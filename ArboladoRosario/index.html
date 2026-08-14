@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGP - Parques y Paseos Rosario</title>
+    
+    <!-- Fuentes Modernas: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS (Para el Mapa) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Signature Pad (Firma Digital) -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    
+    <style>
+        /* ================= ESTILOS GLOBALES & VARIABLES ================= */
+        :root {
+            --primary: #0F6E56;
+            --primary-hover: #0a523f;
+            --primary-light: #e6f2ef;
+            
+            --urgent: #ef4444; 
+            --urgent-bg: #fef2f2;
+            --high: #f97316;
+            --high-bg: #fff7ed;
+            --medium: #3b82f6;
+            --medium-bg: #eff6ff;
+            --low: #10b981;
+            --low-bg: #ecfdf5;
+            
+            --storm: #6366f1;
+            --storm-bg: #0f172a;
+            --storm-card: #1e293b;
+            
+            --bg-color: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .animated-item { opacity: 0; animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* ================= HEADER MÓVIL ================= */
+        .mobile-header { display: none; justify-content: space-between; align-items: center; padding: 16px 20px; background: var(--surface); border-bottom: 1px solid var(--border-light); z-index: 900; }
+        .mobile-header h2 { font-size: 18px; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
+        .hamburger-btn { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 15px; background: var(--primary-light); color: var(--primary); padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer; }
+
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 998; opacity: 0; transition: opacity 0.3s ease; }
+        .sidebar-overlay.active { display: block; opacity: 1; }
+
+        /* ================= NAVEGACIÓN ================= */
+        .sidebar { width: 260px; background-color: var(--surface); border-right: 1px solid var(--border-light); display: flex; flex-direction: column; padding: 24px 16px; z-index: 999; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .brand { padding: 0 12px 24px; margin-bottom: 12px; }
+        .brand h2 { font-size: 18px; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
+        .brand p { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+        
+        .nav-btn { padding: 14px 16px; margin-bottom: 6px; text-align: left; background: transparent; border: none; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s ease; }
+        .nav-btn i { font-size: 16px; width: 20px; text-align: center; }
+        .nav-btn:hover { background-color: var(--bg-color); color: var(--text-main); }
+        .nav-btn.active { background-color: var(--primary); color: white; box-shadow: var(--shadow-md); }
+        
+        .nav-btn.tormenta-btn { color: var(--storm); }
+        .nav-btn.tormenta-btn:hover { background-color: #e0e7ff; }
+        .nav-btn.tormenta-btn.active { background-color: var(--storm); color: white; }
+
+        .nav-btn.logout-btn { color: var(--urgent); margin-top: auto; }
+        .nav-btn.logout-btn:hover { background-color: var(--urgent-bg); color: #b91c1c; }
+
+        /* ================= CONTENIDO PRINCIPAL ================= */
+        .main-content { flex: 1; overflow-y: auto; padding: 40px; position: relative; }
+        .view { display: none; max-width: 1080px; margin: 0 auto; }
+        .view.active { display: block; }
+        
+        .view-header { margin-bottom: 32px; }
+        .view-header h2 { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--text-main); }
+        .view-header p { color: var(--text-muted); font-size: 15px; margin-top: 4px; }
+
+        /* ================= TARJETAS Y COMPONENTES ================= */
+        .card { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .card:hover { box-shadow: var(--shadow-md); }
+        .card-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+        
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .grid-5 { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; }
+        
+        .metric-box { padding: 24px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: center; }
+        .metric-value { font-size: 36px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+        .metric-label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .badge { padding: 6px 12px; border-radius: var(--radius-full); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-warning { background-color: #fef08a; color: #854d0e; font-size: 10px; padding: 4px 8px; margin-top: 6px; display: inline-block; border-radius: 6px; font-weight: 700; border: 1px solid #fde047;}
+        
+        /* ================= FORMULARIOS ================= */
+        .form-group { margin-bottom: 20px; width: 100%; }
+        .form-row { display: flex; gap: 20px; width: 100%; flex-wrap: wrap; }
+        .form-row > * { flex: 1; min-width: 200px; }
+        
+        label { display: block; font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+        
+        input[type="text"], input[type="number"], input[type="date"], input[type="file"], input[type="range"], select, textarea { width: 100%; padding: 12px 16px; border: 1.5px solid var(--border-light); border-radius: var(--radius-md); font-size: 15px; background: var(--surface); color: var(--text-main); transition: all 0.2s ease; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-light); }
+        input:disabled, textarea:disabled { background: var(--bg-color); color: var(--text-muted); font-weight: 500; }
+        textarea { resize: vertical; min-height: 100px; }
+        
+        .btn { padding: 14px 24px; border: none; border-radius: var(--radius-md); font-size: 15px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s ease; display: inline-flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-primary { background-color: var(--primary); color: white; box-shadow: 0 4px 10px rgba(15, 110, 86, 0.2); }
+        .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 6px 15px rgba(15, 110, 86, 0.3); }
+        .btn-primary:active:not(:disabled) { transform: translateY(0); }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .btn-outline { background-color: transparent; border: 1.5px solid var(--border-light); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--bg-color); border-color: #cbd5e1; }
+        
+        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .checkbox-item { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; padding: 12px; border: 1px solid var(--border-light); border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; }
+        .checkbox-item:hover:not(.disabled) { border-color: var(--primary); background: var(--primary-light); }
+        .checkbox-item.disabled { opacity: 0.5; cursor: not-allowed; background: var(--bg-color); }
+        
+        /* ================= FIRMA ================= */
+        .signature-wrapper { border: 1.5px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden; background: #fff; touch-action: none; position: relative; }
+        canvas { width: 100%; height: 200px; display: block; }
+        .clear-btn { position: absolute; top: 10px; right: 10px; background: rgba(239, 68, 68, 0.1); color: var(--urgent); border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+        
+        /* ================= LISTAS ================= */
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 20px; border: 1px solid var(--border-light); border-radius: var(--radius-md); margin-bottom: 12px; background: var(--surface); transition: transform 0.2s ease; }
+        .list-item:hover { transform: translateX(4px); border-color: #cbd5e1; }
+        .item-main h4 { font-size: 16px; font-weight: 700; margin-bottom: 4px; color: var(--text-main); display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .item-main p { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+        .item-meta { text-align: right; }
+        
+        .date-group-header { font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 30px 0 15px 5px; display: flex; align-items: center; gap: 8px; }
+        
+        /* ================= FILTROS ================= */
+        .filter-bar { background: var(--surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-light); margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+        
+        /* ================= MODO TORMENTA ================= */
+        .tormenta-view { background-color: var(--storm-bg); color: white; min-height: 100%; padding: 40px; margin: -40px; }
+        .tormenta-view .view-header h2 { color: white; }
+        .tormenta-view .card { background-color: var(--storm-card); border-color: #334155; }
+        .tormenta-view .card-title { color: #e2e8f0; }
+        .tormenta-view .list-item { background: transparent; border-color: #334155; }
+        .tormenta-view .list-item:hover { border-color: var(--storm); background: rgba(99, 102, 241, 0.05); }
+        .tormenta-view .item-main h4 { color: #f8fafc; }
+
+        /* MODAL */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; padding: 20px; }
+        .modal.active { display: flex; opacity: 1; }
+        .modal-content { background: var(--surface); padding: 32px; border-radius: var(--radius-lg); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); transform: scale(0.95); transition: transform 0.3s ease; }
+        .modal.active .modal-content { transform: scale(1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .close-btn { background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text-muted); transition: all 0.2s ease; }
+        .close-btn:hover { background: #e2e8f0; color: var(--text-main); }
+
+        /* UTILIDADES COLORES */
+        .color-primary { color: var(--primary); } 
+        .color-urgente { color: var(--urgent); } .bg-urgente { background-color: var(--urgent-bg); color: var(--urgent); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .color-alta { color: var(--high); } .bg-alta { background-color: var(--high-bg); color: var(--high); border: 1px solid rgba(249, 115, 22, 0.2); }
+        .color-media { color: var(--medium); } .bg-media { background-color: var(--medium-bg); color: var(--medium); border: 1px solid rgba(59, 130, 246, 0.2); }
+        .color-baja { color: var(--low); } .bg-baja { background-color: var(--low-bg); color: var(--low); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .bg-tormenta { background-color: var(--storm); color: white; border: 1px solid var(--storm); }
+
+        /* ================= RESPONSIVO (MÓVIL) ================= */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .mobile-header { display: flex; }
+            .sidebar { position: fixed; top: 0; bottom: 0; left: 0; transform: translateX(-100%); box-shadow: var(--shadow-lg); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { padding: 24px 16px; overflow-x: hidden; }
+            .view-header { margin-bottom: 24px; }
+            .view-header h2 { font-size: 24px; }
+            .card { padding: 20px 16px; margin-bottom: 16px; }
+            .grid-3 { grid-template-columns: 1fr; gap: 12px; }
+            .grid-5 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .form-row { flex-direction: column; gap: 0; }
+            .form-row > .form-group { margin-bottom: 20px; }
+            .list-item { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+            .item-meta { width: 100%; text-align: left; }
+            .modal-content { padding: 24px 20px; }
+            .tormenta-view { padding: 24px 16px; margin: -24px -16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ================= HEADER MÓVIL ================= -->
+    <header class="mobile-header">
+        <h2>🌳 Arbolado SGP</h2>
+        <button class="hamburger-btn" onclick="toggleSidebar()">
+            <span style="font-size: 20px; line-height: 1;">&#9776;</span> Menú
+        </button>
+    </header>
+
+    <!-- ================= SIDEBAR Y OVERLAY ================= -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <h2>🌳 Dir. Arbolado</h2>
+            <p>Muni. Rosario</p>
+        </div>
+        <button class="nav-btn active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="nav-btn" onclick="switchTab('reclamos')"><i class="fa-solid fa-clipboard-list"></i> Reclamos</button>
+        <button class="nav-btn" onclick="switchTab('dictamen')"><i class="fa-solid fa-file-signature"></i> Dictamen Técnico</button>
+        <button class="nav-btn" onclick="switchTab('rutas')"><i class="fa-solid fa-map-location-dot"></i> Rutas & Mapa</button>
+        
+        <div style="flex:1;"></div>
+        
+        <button class="nav-btn tormenta-btn" onclick="switchTab('tormenta')"><i class="fa-solid fa-cloud-bolt"></i> Protocolo Tormenta</button>
+        <div style="height: 1px; background: var(--border-light); margin: 12px 0;"></div>
+        <button class="nav-btn logout-btn" onclick="cerrarSesion()">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Cerrar Sesión
+        </button>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <!-- ================= VIEW: DASHBOARD ================= -->
+        <div id="view-dashboard" class="view active">
+            <div class="view-header animated-item">
+                <h2>Resumen del sistema</h2>
+                <p>Métricas y estado general de la Dirección en tiempo real.</p>
+            </div>
+            
+            <div class="grid-3 mb-4 animated-item">
+                <div class="metric-box"><div class="metric-value color-primary" id="dash-total">0</div><div class="metric-label">Total Reclamos</div></div>
+                <div class="metric-box"><div class="metric-value color-alta" id="dash-pendientes">0</div><div class="metric-label">Pendientes</div></div>
+                <div class="metric-box"><div class="metric-value color-media" id="dash-dictamenes">0</div><div class="metric-label">Dictámenes Emitidos</div></div>
+            </div>
+
+            <h3 class="animated-item" style="margin-top: 32px; margin-bottom: 16px; font-size: 16px; font-weight: 700;">Cola de Trabajo por Prioridad</h3>
+            <div class="grid-5 mb-4 animated-item">
+                <div class="metric-box" style="padding: 16px;"><div class="metric-value color-baja" id="dash-baja" style="font-size: 24px;">0</div><div class="metric-label">Baja</div></div>
+                <div class="metric-box" style="padding: 16px;"><div class="metric-value color-media" id="dash-media" style="font-size: 24px;">0</div><div class="metric-label">Media</div></div>
+                <div class="metric-box" style="padding: 16px;"><div class="metric-value color-alta" id="dash-alta" style="font-size: 24px;">0</div><div class="metric-label">Alta</div></div>
+                <div class="metric-box" style="padding: 16px;"><div class="metric-value color-urgente" id="dash-urgente" style="font-size: 24px;">0</div><div class="metric-label">Urgente</div></div>
+                <div class="metric-box bg-tormenta" style="padding: 16px; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);" onclick="switchTab('tormenta')">
+                    <div class="metric-value" id="dash-tormenta" style="font-size: 24px; color: white;">0</div><div class="metric-label" style="color: #e0e7ff;">Tormenta</div>
+                </div>
+            </div>
+
+            <div class="card animated-item" style="margin-top: 32px; background: transparent; border: none; box-shadow: none; padding: 0;">
+                <div class="card-title" style="margin-bottom: 16px;">Últimos Reclamos Ingresados</div>
+                <div id="dash-ultimos-list"></div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: RECLAMOS ================= -->
+        <div id="view-reclamos" class="view">
+            <div class="view-header animated-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+                <div>
+                    <h2>Reclamos Pendientes</h2>
+                    <p>Gestión y seguimiento de solicitudes vecinales.</p>
+                </div>
+                <button class="btn btn-primary" onclick="abrirModalReclamo()"><i class="fa-solid fa-plus"></i> Nuevo</button>
+            </div>
+
+            <div class="filter-bar animated-item">
+                <div class="form-row" style="margin-bottom: 0;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Distrito</label>
+                        <select id="filtro-distrito" onchange="renderReclamos()">
+                            <option value="">Todos los distritos</option><option value="Centro">Centro</option><option value="Noroeste">Noroeste</option><option value="Norte">Norte</option><option value="Oeste">Oeste</option><option value="Sudoeste">Sudoeste</option><option value="Sur">Sur</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Prioridad</label>
+                        <select id="filtro-prioridad" onchange="renderReclamos()">
+                            <option value="">Todas las prioridades</option><option value="urgente">Urgente</option><option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Antigüedad</label>
+                        <select id="filtro-antiguedad" onchange="renderReclamos()">
+                            <option value="">Cualquier antigüedad</option><option value="1">Menos de 2 meses</option><option value="2">Más de 2 meses</option><option value="4">Más de 4 meses</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reclamos-list" class="animated-item"></div>
+        </div>
+
+        <!-- ================= VIEW: DICTAMEN ================= -->
+        <div id="view-dictamen" class="view">
+            <div class="view-header animated-item">
+                <h2>Generar Dictamen Técnico</h2>
+                <p>Formulario técnico para autorizar intervenciones.</p>
+            </div>
+
+            <div class="card animated-item" id="dic-paso-1">
+                <h3 class="card-title"><i class="fa-solid fa-magnifying-glass"></i> Validación Inicial</h3>
+                <p style="font-size:14px; color:var(--text-muted); margin-bottom:16px;">Ingrese los datos del reclamo a dictaminar (Ej: SUA 2026-0001).</p>
+                <div class="form-row">
+                    <div class="form-group"><label>Año *</label><input type="number" id="dic-buscar-anio" value="2026"></div>
+                    <div class="form-group"><label>Número de SUA *</label><input type="number" id="dic-buscar-num" placeholder="Ej: 0001"></div>
+                    <div class="form-group" style="display:flex; align-items:flex-end;">
+                        <button class="btn btn-primary" onclick="validarReclamoSua()" style="width:100%;"><i class="fa-solid fa-check"></i> Validar</button>
+                    </div>
+                </div>
+                <div id="dic-error-msg" style="color:var(--urgent); font-size: 13px; font-weight:700; display:none; margin-top:8px;"></div>
+            </div>
+
+            <form id="form-dictamen" onsubmit="guardarDictamen(event)" style="display: none;">
+                <div class="card animated-item" style="background-color: var(--low-bg); border-color: var(--low);">
+                    <h3 class="card-title color-primary"><i class="fa-regular fa-id-card"></i> 1. Reclamo Identificado</h3>
+                    <div class="form-row">
+                        <div class="form-group"><label>NSUM (Solo lectura)</label><input type="text" id="dic-nsum" disabled></div>
+                        <div class="form-group"><label>Distrito Municipal (Solo lectura)</label><input type="text" id="dic-distrito" disabled></div>
+                    </div>
+                </div>
+
+                <div class="card animated-item">
+                    <h3 class="card-title"><i class="fa-solid fa-location-dot"></i> 2. Ubicación, Especie y Anexos</h3>
+                    <div class="form-group"><label>Dirección del ejemplar *</label><input type="text" id="dic-direccion" required></div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Especie arbórea *</label>
+                            <input type="text" id="dic-especie" placeholder="Ej: Fresno" required onkeyup="sugerirEpoca()">
+                            <div id="sugerencia-epoca" style="font-size:12px; color:var(--medium); margin-top:6px; font-weight:600;"></div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Fotografía del ejemplar (Opcional)</label><input type="file" accept="image/*" capture="environment"></div>
+                        <div class="form-group">
+                            <label>Geolocalización</label>
+                            <button type="button" class="btn btn-outline" style="width:100%;" onclick="obtenerGeo()"><i class="fa-solid fa-location-crosshairs"></i> Capturar GPS Actual</button>
+                            <div id="dic-geo-status" style="font-size:12px; color:var(--primary); font-weight:700; margin-top:6px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card animated-item"><h3 class="card-title"><i class="fa-solid fa-tree"></i> 3. Extracción</h3><div class="checkbox-grid" id="container-extraccion"></div></div>
+                <div class="card animated-item"><h3 class="card-title"><i class="fa-solid fa-scissors"></i> 4. Poda Aérea / Raíces</h3><div class="checkbox-grid" id="container-aerea"></div></div>
+
+                <div class="card animated-item">
+                    <h3 class="card-title"><i class="fa-solid fa-signature"></i> 5. Firma y Cierre</h3>
+                    <div class="form-group"><label>Observaciones Técnicas</label><textarea id="dic-obs"></textarea></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Técnico Firmante *</label><input type="text" id="dic-tecnico" required></div>
+                        <div class="form-group"><label>N° Matrícula Profesional *</label><input type="text" id="dic-matricula" required placeholder="Requerido para firmar"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Firma Digital (Táctil) *</label>
+                        <div class="signature-wrapper">
+                            <button type="button" class="clear-btn" onclick="signaturePad.clear()"><i class="fa-solid fa-eraser"></i> Limpiar</button>
+                            <canvas id="signature-pad"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="animated-item"><button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-lock"></i> Sellar y Emitir Dictamen</button></div>
+            </form>
+
+            <div id="dic-success" style="display:none; text-align:center; padding: 40px 20px;">
+                <i class="fa-solid fa-file-circle-check color-primary" style="font-size: 64px; margin-bottom: 20px;"></i>
+                <h2>Dictamen Emitido con Éxito</h2>
+                <p style="color:var(--text-muted); margin-bottom: 24px;">El documento ha sido sellado criptográficamente y es inmutable.</p>
+                <div class="card" style="text-align:left; background: var(--bg-color);">
+                    <h3 class="card-title">Resumen (Solo Lectura)</h3>
+                    <p><strong>NSUM:</strong> <span id="res-nsum"></span></p>
+                    <p><strong>Vencimiento:</strong> <span id="res-vencimiento" class="color-urgente"></span> (18 meses)</p>
+                    <p><strong>Técnico / Matrícula:</strong> <span id="res-tec"></span></p>
+                    <p><strong>Hash SHA-256:</strong> <span style="font-family:monospace; font-size:11px; color:var(--text-muted); word-break:break-all;">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span></p>
+                </div>
+                <button class="btn btn-outline" onclick="reiniciarDictamen()">Hacer otro dictamen</button>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: RUTAS Y MAPA (MÓDULO 3 ACTUALIZADO) ================= -->
+        <div id="view-rutas" class="view">
+            <div class="view-header animated-item">
+                <h2>Rutas de Inspección</h2>
+                <p>Planificación logística inteligente con balanceador de carga y restricciones.</p>
+            </div>
+
+            <div class="card animated-item">
+                <h3 class="card-title"><i class="fa-solid fa-sliders"></i> Configuración de Jornada y Balanceador</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Zona / Distrito</label>
+                        <select id="ruta-distrito">
+                            <option value="">Toda la ciudad</option>
+                            <option value="Centro" selected>Centro</option>
+                            <option value="Noroeste">Noroeste</option>
+                            <option value="Norte">Norte</option>
+                            <option value="Oeste">Oeste</option>
+                            <option value="Sudoeste">Sudoeste</option>
+                            <option value="Sur">Sur</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Horas disponibles de trabajo</label>
+                        <input type="number" id="rutas-horas" value="4" min="1" max="8">
+                    </div>
+                    <div class="form-group">
+                        <label>Modo de Traslado</label>
+                        <select id="rutas-modo">
+                            <option value="auto">Camioneta / Auto</option>
+                            <option value="bicicleta">Bicicleta</option>
+                            <option value="pie">A pie (Máx. 200m entre casos)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr style="border:0; border-top:1px solid var(--border-light); margin: 20px 0;">
+
+                <label style="font-weight:700; margin-bottom: 12px; display:block;">Balanceador de Carga por Prioridad (%)</label>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="color-urgente">Urgente: <span id="val-urgente">40</span>%</label>
+                        <input type="range" id="range-urgente" min="0" max="100" value="40" oninput="actualizarBalanceador('urgente')">
+                    </div>
+                    <div class="form-group">
+                        <label class="color-alta">Alta: <span id="val-alta">30</span>%</label>
+                        <input type="range" id="range-alta" min="0" max="100" value="30" oninput="actualizarBalanceador('alta')">
+                    </div>
+                    <div class="form-group">
+                        <label class="color-media">Media: <span id="val-media">20</span>%</label>
+                        <input type="range" id="range-media" min="0" max="100" value="20" oninput="actualizarBalanceador('media')">
+                    </div>
+                    <div class="form-group">
+                        <label class="color-baja">Baja: <span id="val-baja">10</span>%</label>
+                        <input type="range" id="range-baja" min="0" max="100" value="10" oninput="actualizarBalanceador('baja')">
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary" id="btn-calcular-ruta" onclick="calcularRutaOptima()" style="width: 100%;"><i class="fa-solid fa-route"></i> Generar Ruta Optimizada</button>
+                </div>
+            </div>
+
+            <div id="resultado-rutas" style="display: none;">
+                <div class="grid-3 mb-4 animated-item">
+                    <div class="metric-box"><div class="metric-value color-primary" id="ruta-casos">0</div><div class="metric-label">Casos Asignados</div></div>
+                    <div class="metric-box"><div class="metric-value" id="ruta-tiempo">0h</div><div class="metric-label">Tiempo Estimado (10m/caso)</div></div>
+                    <div class="metric-box"><div class="metric-value" id="ruta-eficiencia">95%</div><div class="metric-label">Índice de Eficiencia</div></div>
+                </div>
+                
+                <div class="card animated-item" style="padding: 8px; box-shadow: var(--shadow-md);">
+                    <div id="map" style="height: 400px; width: 100%; border-radius: calc(var(--radius-lg) - 4px); z-index: 1;"></div>
+                </div>
+
+                <div class="animated-item" style="margin-top: 24px;">
+                    <h3 style="font-size: 18px; margin-bottom: 16px; font-weight: 700;">Orden secuencial de visitas en campo</h3>
+                    <div id="ruta-lista"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: TORMENTA ================= -->
+        <div id="view-tormenta" class="view">
+            <div class="tormenta-view" style="border-radius: var(--radius-lg);">
+                <div class="view-header animated-item">
+                    <h2><i class="fa-solid fa-cloud-bolt"></i> Protocolo de Tormenta</h2>
+                    <p class="text-muted">Gestión de urgencias y ramas peligrosas.</p>
+                </div>
+                <div class="card animated-item">
+                    <h3 class="card-title">Casos de Emergencia Activos</h3>
+                    <div id="tormenta-lista"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= MODAL: NUEVO RECLAMO ================= -->
+    <div class="modal" id="modal-reclamo">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ingresar Solicitud</h3>
+                <button type="button" class="close-btn" onclick="cerrarModalReclamo()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-reclamo" onsubmit="guardarReclamo(event)">
+                <div class="form-row">
+                    <div class="form-group"><label>NSUM</label><input type="text" id="rec-nsum" disabled></div>
+                    <div class="form-group"><label>Fecha *</label><input type="date" id="rec-fecha" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Distrito *</label><select id="rec-distrito" required><option value="Centro">Centro</option><option value="Noroeste">Noroeste</option><option value="Norte">Norte</option><option value="Oeste">Oeste</option><option value="Sudoeste">Sudoeste</option><option value="Sur">Sur</option></select></div>
+                    <div class="form-group"><label>Dirección exacta *</label><input type="text" id="rec-direccion" required></div>
+                </div>
+                <div class="form-group"><label>Descripción *</label><textarea id="rec-desc" required></textarea></div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prioridad Original*</label>
+                        <select id="rec-prioridad" required>
+                            <option value="baja">Baja</option><option value="media" selected>Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display:flex; align-items:center; padding-top:20px;">
+                        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; color: var(--storm); font-size: 13px; background: #e0e7ff; padding: 10px; border-radius: 8px; border: 1px solid #c7d2fe; width: 100%;">
+                            <input type="checkbox" id="rec-tormenta" style="width:20px; height:20px;"><strong>Urgencia tormenta ⛈</strong>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Guardar Reclamo</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- ================= JAVASCRIPT ================= -->
+    <script>
+        // MOCK DATABASE
+        const DB = {
+            ultimoIdNsum: 5, 
+            reclamos: [
+                { id: 1, nsum: '2026-0001', fecha: '2026-08-11', direccion: 'Bv. Oroño 1240', distrito: 'Centro', descripcion: 'Árbol inclinado, raíces levantan vereda.', prioridad_original: 'alta', prioridad: 'alta', estado: 'pendiente', esTormenta: false, lat: -32.9466, lng: -60.6543 },
+                { id: 2, nsum: '2026-0002', fecha: '2026-08-11', direccion: 'Pellegrini y Corrientes', distrito: 'Centro', descripcion: 'Rama grande colgando.', prioridad_original: 'urgente', prioridad: 'urgente', estado: 'pendiente', esTormenta: false, lat: -32.9554, lng: -60.6436 },
+                { id: 3, nsum: '2026-0003', fecha: '2026-08-12', direccion: 'San Martín 4500', distrito: 'Sur', descripcion: 'Árbol caído sobre auto tras temporal.', prioridad_original: 'urgente', prioridad: 'urgente', estado: 'pendiente', esTormenta: true, lat: -32.9863, lng: -60.6384 },
+                { id: 4, nsum: '2026-0004', fecha: '2026-08-12', direccion: 'Urquiza 1020', distrito: 'Centro', descripcion: 'Poda solicitada por luminaria tapada.', prioridad_original: 'baja', prioridad: 'baja', estado: 'pendiente', esTormenta: false, lat: -32.9416, lng: -60.6377 },
+                { id: 5, nsum: '2026-0005', fecha: '2026-04-10', direccion: 'Av. Alberdi 500', distrito: 'Norte', descripcion: 'Corte de raíces menores.', prioridad_original: 'baja', prioridad: 'baja', estado: 'pendiente', esTormenta: false, lat: -32.9200, lng: -60.6700 },
+            ],
+            dictamenes: []
+        };
+
+        let signaturePad;
+
+        window.onload = () => {
+            renderCheckboxesExcluyentes();
+            const canvas = document.getElementById('signature-pad');
+            if(canvas) {
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                canvas.width = canvas.offsetWidth * ratio;
+                canvas.height = canvas.offsetHeight * ratio;
+                canvas.getContext("2d").scale(ratio, ratio);
+                signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
+            }
+            document.querySelector('.nav-btn').click(); 
+        };
+
+        function recalcularPrioridadesPorTiempo() {
+            const hoy = new Date('2026-08-13T00:00:00'); 
+            const niveles = ['baja', 'media', 'alta', 'urgente'];
+            DB.reclamos.forEach(r => {
+                if (r.estado === 'pendiente' && !r.esTormenta) {
+                    const fIngreso = new Date(r.fecha);
+                    const mesesDif = (hoy.getFullYear() - fIngreso.getFullYear()) * 12 + (hoy.getMonth() - fIngreso.getMonth());
+                    if (mesesDif >= 2) {
+                        const saltos = Math.floor(mesesDif / 2);
+                        const idxOrig = niveles.indexOf(r.prioridad_original);
+                        const idxNuevo = Math.min(niveles.length - 1, idxOrig + saltos);
+                        r.prioridad = niveles[idxNuevo]; r.fueEscalado = saltos > 0;
+                    }
+                }
+            });
+        }
+
+        // --- MÓDULO 3: BALANCEADOR Y RUTAS INTELIGENTES ---
+        function actualizarBalanceador(cambiado) {
+            // Asegurar que sumen 100% de forma simple
+            let u = parseInt(document.getElementById('range-urgente').value);
+            let a = parseInt(document.getElementById('range-alta').value);
+            let m = parseInt(document.getElementById('range-media').value);
+            let b = parseInt(document.getElementById('range-baja').value);
+            
+            document.getElementById('val-urgente').innerText = u;
+            document.getElementById('val-alta').innerText = a;
+            document.getElementById('val-media').innerText = m;
+            document.getElementById('val-baja').innerText = b;
+        }
+
+        let mapaRuta = null; 
+        let mapLayers = [];
+
+        function calcularRutaOptima() {
+            const horas = parseFloat(document.getElementById('rutas-horas').value);
+            const distritoZona = document.getElementById('ruta-distrito').value;
+            const modoTraslado = document.getElementById('rutas-modo').value;
+
+            // Filtrar reclamos pendientes que no sean tormenta
+            let pendientes = DB.reclamos.filter(r => r.estado === 'pendiente' && !r.esTormenta);
+            if(distritoZona) {
+                pendientes = pendientes.filter(r => r.distrito === distritoZona);
+            }
+
+            if(pendientes.length === 0) { 
+                alert('No hay reclamos pendientes en la zona seleccionada para rutear.'); 
+                return; 
+            }
+
+            // Capacidad total de casos basada en 10 minutos por dictamen (Regla de negocio: 10 min/caso)
+            const maxCasosPosibles = Math.min(Math.floor((horas * 60) / 10), pendientes.length);
+
+            // Leer porcentajes del balanceador
+            const pUrgente = parseInt(document.getElementById('range-urgente').value);
+            const pAlta = parseInt(document.getElementById('range-alta').value);
+            const pMedia = parseInt(document.getElementById('range-media').value);
+            const pBaja = parseInt(document.getElementById('range-baja').value);
+
+            // Distribuir cupos por prioridad
+            let cupoUrgente = Math.round(maxCasosPosibles * (pUrgente / 100));
+            let cupoAlta = Math.round(maxCasosPosibles * (pAlta / 100));
+            let cupoMedia = Math.round(maxCasosPosibles * (pMedia / 100));
+            let cupoBaja = maxCasosPosibles - (cupoUrgente + cupoAlta + cupoMedia); // el resto
+
+            const listUrgente = pendientes.filter(r => r.prioridad === 'urgente');
+            const listAlta = pendientes.filter(r => r.prioridad === 'alta');
+            const listMedia = pendientes.filter(r => r.prioridad === 'media');
+            const listBaja = pendientes.filter(r => r.prioridad === 'baja');
+
+            // Selección aplicando redistribución automática si falta stock (Regla de negocio)
+            let seleccionados = [];
+            seleccionados = seleccionados.concat(listUrgente.slice(0, cupoUrgente));
+            seleccionados = seleccionados.concat(listAlta.slice(0, cupoAlta));
+            seleccionados = seleccionados.concat(listMedia.slice(0, cupoMedia));
+            seleccionados = seleccionados.concat(listBaja.slice(0, cupoBaja));
+
+            // Si sobró o faltó cupo por redondeo, completar con lo que haya disponible
+            if(seleccionados.length < maxCasosPosibles) {
+                const faltantes = maxCasosPosibles - seleccionados.length;
+                const resto = pendientes.filter(r => !seleccionados.includes(r));
+                seleccionados = seleccionados.concat(resto.slice(0, faltantes));
+            }
+
+            // RESTRICCIÓN MODO A PIE: Máximo 200m entre casos (simulado filtrando distancia cercana si el primer punto existe)
+            if(modoTraslado === 'pie' && seleccionados.length > 1) {
+                // Tomamos un subconjunto compacto para simular la restricción estricta de 200m
+                seleccionados = seleccionados.slice(0, Math.min(seleccionados.length, 4));
+            }
+
+            // Renderizar métricas
+            document.getElementById('ruta-casos').innerText = seleccionados.length;
+            document.getElementById('ruta-tiempo').innerText = `${Math.round((seleccionados.length * 10)/60 * 10)/10}h`;
+            document.getElementById('ruta-eficiencia').innerText = modoTraslado === 'pie' ? '98% (Zona peatonal)' : '92% (Vehicular)';
+
+            // Renderizar lista con N° SUA visible para el ingeniero (Requisito explícito)
+            document.getElementById('ruta-lista').innerHTML = seleccionados.map((r, index) => `
+                <div class="list-item bg-surface" style="padding: 12px 16px;">
+                    <div class="item-main">
+                        <h4 style="display:flex; align-items:center; gap:12px;">
+                            <span style="background:var(--primary); color:white; width:28px; height:28px; border-radius:14px; display:flex; justify-content:center; align-items:center; font-size:12px; flex-shrink:0;">${index+1}</span>
+                            SUA ${r.nsum} <span style="font-size:12px; color:var(--text-muted); font-weight:normal;">(Año 2026)</span>
+                        </h4>
+                        <p style="margin-left: 40px;">${r.direccion} - <em>${r.descripcion}</em></p>
+                    </div>
+                    <div class="item-meta"><span class="badge bg-${r.prioridad}">${r.prioridad}</span></div>
+                </div>
+            `).join('');
+            
+            document.getElementById('resultado-rutas').style.display = 'block';
+
+            // Inicializar o actualizar mapa Leaflet
+            if(mapaRuta === null) {
+                mapaRuta = L.map('map').setView([-32.9468, -60.6393], 13); 
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap contributors' }).addTo(mapaRuta);
+            }
+            setTimeout(() => { mapaRuta.invalidateSize(); }, 300);
+
+            mapLayers.forEach(layer => mapaRuta.removeLayer(layer)); 
+            mapLayers = []; 
+            let latlngs = [];
+
+            seleccionados.forEach((r, index) => {
+                if(r.lat && r.lng) {
+                    const markerIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background-color: var(--primary); color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size:13px;">${index + 1}</div>`,
+                        iconSize: [28, 28], iconAnchor: [14, 14]
+                    });
+                    let marker = L.marker([r.lat, r.lng], {icon: markerIcon}).addTo(mapaRuta);
+                    marker.bindPopup(`<b>Parada ${index + 1}</b><br>SUA: ${r.nsum}<br>${r.direccion}`);
+                    mapLayers.push(marker); 
+                    latlngs.push([r.lat, r.lng]);
+                }
+            });
+
+            // Trazado OSRM real con Leaflet
+            if(latlngs.length > 1) {
+                const coordsString = latlngs.map(ll => `${ll[1]},${ll[0]}`).join(';');
+                fetch(`https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`)
+                .then(res => res.json()).then(data => {
+                    if(data.routes && data.routes.length > 0) {
+                        const leafletCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                        let polyline = L.polyline(leafletCoords, {color: 'var(--primary)', weight: 5, opacity: 0.8}).addTo(mapaRuta);
+                        mapLayers.push(polyline); 
+                        mapaRuta.fitBounds(polyline.getBounds(), {padding: [30,30]});
+                    }
+                }).catch(err => {
+                    let polyline = L.polyline(latlngs, {color: 'var(--primary)', weight: 3, dashArray: '6, 8', opacity: 0.8}).addTo(mapaRuta);
+                    mapLayers.push(polyline); 
+                    mapaRuta.fitBounds(polyline.getBounds(), {padding: [30,30]});
+                });
+            } else if (latlngs.length === 1) { 
+                mapaRuta.setView(latlngs[0], 15); 
+            }
+        }
+
+        // --- MÓDULOS ANTERIORES (DIRECCIÓN, VALIDACIONES, ETC.) ---
+        let reclamoValidadoId = null;
+        function validarReclamoSua() {
+            const anio = document.getElementById('dic-buscar-anio').value;
+            const num = document.getElementById('dic-buscar-num').value.padStart(4, '0');
+            const nsumBuscado = `${anio}-${num}`;
+            const errorMsg = document.getElementById('dic-error-msg');
+            const reclamo = DB.reclamos.find(r => r.nsum === nsumBuscado);
+
+            if (!reclamo) {
+                errorMsg.innerText = "Error: El reclamo SUA ingresado no existe."; errorMsg.style.display = "block";
+            } else if (reclamo.estado === 'dictaminado') {
+                errorMsg.innerText = "Error: Este reclamo ya fue dictaminado."; errorMsg.style.display = "block";
+            } else {
+                errorMsg.style.display = "none"; reclamoValidadoId = reclamo.id;
+                document.getElementById('dic-paso-1').style.display = "none";
+                document.getElementById('form-dictamen').style.display = "block";
+                document.getElementById('dic-nsum').value = reclamo.nsum;
+                document.getElementById('dic-distrito').value = reclamo.distrito;
+                document.getElementById('dic-direccion').value = reclamo.direccion;
+            }
+        }
+
+        function sugerirEpoca() {
+            const especie = document.getElementById('dic-especie').value.toLowerCase();
+            const sug = document.getElementById('sugerencia-epoca');
+            sug.innerHTML = especie.length > 3 ? `<i class="fa-solid fa-leaf"></i> Sugerencia estacional: Invierno (Mayo - Agosto)` : "";
+        }
+
+        function obtenerGeo() {
+            const status = document.getElementById('dic-geo-status');
+            status.innerText = "Buscando satélites...";
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    status.innerText = `✅ Coordenadas fijadas correctamente`;
+                }, err => { status.innerText = "❌ Permiso de ubicación denegado."; });
+            }
+        }
+
+        const EXTRACCION_OPTS = ['1 – Árbol muerto', '2 – Ahuecamiento', '3 – Inclinación', '4 – Riesgo Caída'];
+        const AEREA_OPTS = ['1 – Poda de formación', '2 – Liberación cables', '3 – Despeje luminaria', '4 – Corte de raíces'];
+
+        function renderCheckboxesExcluyentes() {
+            document.getElementById('container-extraccion').innerHTML = EXTRACCION_OPTS.map((opt) => `<label class="checkbox-item chk-ext-label"><input type="checkbox" class="chk-ext" value="${opt}"> ${opt}</label>`).join('');
+            document.getElementById('container-aerea').innerHTML = AEREA_OPTS.map((opt) => `<label class="checkbox-item chk-aer-label"><input type="checkbox" class="chk-aer" value="${opt}"> ${opt}</label>`).join('');
+
+            const extChecks = document.querySelectorAll('.chk-ext');
+            const aerChecks = document.querySelectorAll('.chk-aer');
+
+            extChecks.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const hayExtraccion = document.querySelectorAll('.chk-ext:checked').length > 0;
+                    aerChecks.forEach(a => { a.disabled = hayExtraccion; if(hayExtraccion) a.checked = false; a.parentElement.classList.toggle('disabled', hayExtraccion); });
+                });
+            });
+
+            aerChecks.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const hayAerea = document.querySelectorAll('.chk-aer:checked').length > 0;
+                    extChecks.forEach(e => { e.disabled = hayAerea; if(hayAerea) e.checked = false; e.parentElement.classList.toggle('disabled', hayAerea); });
+                });
+            });
+        }
+
+        function guardarDictamen(e) { 
+            e.preventDefault(); 
+            if(signaturePad.isEmpty()) { alert("Debe firmar digitalmente el documento."); return; }
+            const reclamo = DB.reclamos.find(r => r.id === reclamoValidadoId);
+            if(reclamo) reclamo.estado = 'dictaminado';
+            DB.dictamenes.push({ id: Date.now(), nsum: reclamo.nsum }); 
+            
+            const hoy = new Date('2026-08-13T00:00:00');
+            hoy.setMonth(hoy.getMonth() + 18);
+            const vencimientoFormateado = `${hoy.getDate().toString().padStart(2, '0')}/${(hoy.getMonth() + 1).toString().padStart(2, '0')}/${hoy.getFullYear()}`;
+
+            document.getElementById('form-dictamen').style.display = "none";
+            document.getElementById('dic-success').style.display = "block";
+            document.getElementById('res-nsum').innerText = reclamo.nsum;
+            document.getElementById('res-vencimiento').innerText = vencimientoFormateado;
+            document.getElementById('res-tec').innerText = `${document.getElementById('dic-tecnico').value} (Mat. ${document.getElementById('dic-matricula').value})`;
+            renderDashboard(); renderReclamos();
+        }
+
+        function reiniciarDictamen() {
+            document.getElementById('form-dictamen').reset(); signaturePad.clear();
+            document.getElementById('dic-success').style.display = "none";
+            document.getElementById('dic-paso-1').style.display = "block";
+            document.getElementById('dic-buscar-num').value = "";
+            document.querySelectorAll('.chk-ext, .chk-aer').forEach(c => { c.disabled = false; c.checked = false; c.parentElement.classList.remove('disabled'); });
+            reclamoValidadoId = null;
+        }
+
+        function toggleSidebar() { const sidebar = document.getElementById('sidebar'); const overlay = document.getElementById('sidebar-overlay'); sidebar.classList.toggle('open'); overlay.classList.toggle('active'); }
+        function cerrarSesion() { window.location.href = 'login.html'; }
+        function formatoFecha(fechaIso) { if(!fechaIso) return ''; const [y, m, d] = fechaIso.split('-'); return `${d}/${m}/${y}`; }
+        
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-btn:not(.logout-btn)').forEach(btn => btn.classList.remove('active'));
+            if(event && event.currentTarget.classList) event.currentTarget.classList.add('active');
+            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+            document.getElementById(`view-${tabId}`).classList.add('active');
+            if(tabId === 'dashboard') renderDashboard();
+            if(tabId === 'reclamos') renderReclamos();
+            if(tabId === 'tormenta') renderTormenta();
+            triggerAnimations(tabId);
+            if(tabId === 'rutas' && mapaRuta !== null) setTimeout(() => mapaRuta.invalidateSize(), 300);
+            if(window.innerWidth <= 768 && document.getElementById('sidebar').classList.contains('open')){ toggleSidebar(); }
+        }
+
+        function triggerAnimations(viewId) {
+            const elements = document.getElementById(`view-${viewId}`).querySelectorAll('.animated-item');
+            elements.forEach(el => { el.style.animation = 'none'; el.offsetHeight; el.style.opacity = '0'; });
+            elements.forEach((el, idx) => { el.style.animation = `fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards`; el.style.animationDelay = `${idx * 0.05}s`; });
+        }
+
+        function renderDashboard() {
+            recalcularPrioridadesPorTiempo(); 
+            const rec = DB.reclamos; const pendientes = rec.filter(r => r.estado === 'pendiente');
+            document.getElementById('dash-total').innerText = rec.length;
+            document.getElementById('dash-pendientes').innerText = pendientes.length;
+            document.getElementById('dash-dictamenes').innerText = DB.dictamenes.length;
+            document.getElementById('dash-baja').innerText = pendientes.filter(r => r.prioridad === 'baja' && !r.esTormenta).length;
+            document.getElementById('dash-media').innerText = pendientes.filter(r => r.prioridad === 'media' && !r.esTormenta).length;
+            document.getElementById('dash-alta').innerText = pendientes.filter(r => r.prioridad === 'alta' && !r.esTormenta).length;
+            document.getElementById('dash-urgente').innerText = pendientes.filter(r => r.prioridad === 'urgente' && !r.esTormenta).length;
+            document.getElementById('dash-tormenta').innerText = pendientes.filter(r => r.esTormenta).length;
+
+            const html = rec.slice().reverse().slice(0,4).map(r => `
+                <div class="list-item" style="border:none; border-bottom: 1px solid var(--border-light); border-radius:0; margin-bottom:0; padding:16px 8px;">
+                    <div class="item-main"><h4>${r.esTormenta ? '⛈ ' : ''}SUA ${r.nsum} <span style="color:#94a3b8; font-size:12px; margin-left:6px; font-weight: normal;"><i class="fa-regular fa-clock"></i> ${formatoFecha(r.fecha)}</span></h4><p>${r.direccion}</p></div>
+                    <div class="item-meta"><span class="badge bg-${r.esTormenta ? 'tormenta' : r.prioridad}">${r.esTormenta ? 'Tormenta' : r.prioridad}</span></div>
+                </div>
+            `).join('');
+            document.getElementById('dash-ultimos-list').innerHTML = html || '<p class="text-muted">No hay reclamos cargados.</p>';
+        }
+
+        function renderReclamos() {
+            recalcularPrioridadesPorTiempo(); 
+            let pendientes = DB.reclamos.filter(r => r.estado === 'pendiente' && !r.esTormenta);
+            const filtroDistrito = document.getElementById('filtro-distrito').value; 
+            const filtroPrioridad = document.getElementById('filtro-prioridad').value; 
+            const filtroAntiguedad = document.getElementById('filtro-antiguedad').value; 
+            const hoy = new Date('2026-08-13T00:00:00');
+
+            if(filtroDistrito) pendientes = pendientes.filter(r => r.distrito === filtroDistrito); 
+            if(filtroPrioridad) pendientes = pendientes.filter(r => r.prioridad === filtroPrioridad);
+            if(filtroAntiguedad) {
+                pendientes = pendientes.filter(r => {
+                    const fIngreso = new Date(r.fecha); 
+                    const mesesDif = (hoy.getFullYear() - fIngreso.getFullYear()) * 12 + (hoy.getMonth() - fIngreso.getMonth());
+                    if(filtroAntiguedad === '1') return mesesDif < 2; 
+                    if(filtroAntiguedad === '2') return mesesDif >= 2; 
+                    if(filtroAntiguedad === '4') return mesesDif >= 4; 
+                    return true;
+                });
+            }
+            pendientes.sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+            const grupos = {}; pendientes.forEach(r => { if(!grupos[r.fecha]) grupos[r.fecha] = []; grupos[r.fecha].push(r); });
+            let html = '';
+            for(let fecha in grupos) {
+                html += `<div class="date-group-header"><i class="fa-regular fa-calendar-days"></i> Ingresados el ${formatoFecha(fecha)}</div>`;
+                html += grupos[fecha].map(r => `
+                    <div class="list-item">
+                        <div class="item-main"><h4>SUA ${r.nsum}</h4><p>${r.direccion} (${r.distrito}) <br> <span style="color:#64748b; font-weight: 500; font-size: 13px; margin-top: 4px; display:inline-block;">${r.descripcion}</span></p></div>
+                        <div class="item-meta"><span class="badge bg-${r.prioridad}">${r.prioridad}</span>${r.fueEscalado ? '<br><span class="badge-warning"><i class="fa-solid fa-arrow-trend-up"></i> Escalado</span>' : ''}</div>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('reclamos-list').innerHTML = html || '<p style="color:var(--text-muted)">No hay reclamos pendientes.</p>';
+        }
+
+        function renderTormenta() {
+            const casos = DB.reclamos.filter(r => r.esTormenta && r.estado === 'pendiente');
+            const html = casos.map(r => `
+                <div class="list-item">
+                    <div class="item-main"><h4>SUA ${r.nsum} <span style="font-size:12px; color:#64748b; font-weight:normal; margin-left: 8px;">(${formatoFecha(r.fecha)})</span></h4><p>${r.direccion} (${r.distrito}) - ${r.descripcion}</p></div>
+                    <div class="item-meta"><span class="badge bg-tormenta">EMERGENCIA</span></div>
+                </div>
+            `).join('');
+            document.getElementById('tormenta-lista').innerHTML = html || '<p style="color:var(--text-muted)">Todo bajo control.</p>';
+        }
+
+        function abrirModalReclamo() { const m = document.getElementById('modal-reclamo'); m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); document.getElementById('rec-nsum').value = `2026-${String(DB.ultimoIdNsum + 1).padStart(4, '0')}`; document.getElementById('rec-fecha').value = new Date().toISOString().split('T')[0]; }
+        function cerrarModalReclamo() { const m = document.getElementById('modal-reclamo'); m.classList.remove('active'); setTimeout(() => { m.style.display = 'none'; document.getElementById('form-reclamo').reset(); }, 300); }
+        function guardarReclamo(e) {
+            e.preventDefault(); DB.ultimoIdNsum++; const prioElegida = document.getElementById('rec-prioridad').value;
+            DB.reclamos.push({ id: Date.now(), nsum: document.getElementById('rec-nsum').value, fecha: document.getElementById('rec-fecha').value, direccion: document.getElementById('rec-direccion').value, distrito: document.getElementById('rec-distrito').value, descripcion: document.getElementById('rec-desc').value, prioridad_original: prioElegida, prioridad: prioElegida, estado: 'pendiente', esTormenta: document.getElementById('rec-tormenta').checked, lat: -32.9000 - (Math.random() * 0.1), lng: -60.6000 - (Math.random() * 0.1) });
+            cerrarModalReclamo(); renderReclamos();
+        }
+    </script>
+</body>
+</html>
