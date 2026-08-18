@@ -67,8 +67,7 @@ Detalle en [`docs-back/01-arquitectura.md`](docs-back/01-arquitectura.md).
 .
 ├── ArboladoRosario/       Front. NO se pisa.
 │   ├── index.html         Aplicación (dashboard, reclamos, dictamen, rutas, tormenta)
-│   ├── login.html         Pantalla de acceso
-│   └── app/ services/     App Expo/React Native — fuera del alcance actual
+│   └── login.html         Pantalla de acceso
 ├── docs/                  Documentación académica en Markdown
 │   ├── 01-documentacion-tecnica.md   RF, RNF, HU, CU, MER, arquitectura
 │   ├── 02-minuta-relevamiento.md     Relevamiento y pedidos del cliente

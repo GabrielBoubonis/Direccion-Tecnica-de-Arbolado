@@ -75,7 +75,9 @@ Existe porque el documento se entrega y se defiende. Un desvío no documentado e
 
 **Qué hacemos.** El front es el prototipo estático responsive. La app Expo queda fuera del alcance y Firebase se descarta en favor de Supabase.
 
-**¿Corregir el `.docx`?** No el documento, pero **sí el repositorio**: hay que decidir con el equipo qué se hace con `ArboladoRosario/app/` y `services/` para que no quede código muerto contradiciendo a la documentación.
+**¿Corregir el `.docx`?** No el documento. El repositorio **ya se corrigió**: la app Expo, Firebase y todo el andamiaje de React Native se eliminaron de la rama el 18/08. Quedan solo `index.html` y `login.html`, que son autocontenidos y no referencian ningún archivo local.
+
+> **Nota de seguridad.** `services/firebase.ts` tenía credenciales de un proyecto Firebase versionadas. Aunque una API key web de Firebase no es secreta por diseño, **sigue estando en el historial de git**. Conviene desactivar ese proyecto Firebase o restringir la key por dominio, ya que no se va a usar más.
 
 ---
 

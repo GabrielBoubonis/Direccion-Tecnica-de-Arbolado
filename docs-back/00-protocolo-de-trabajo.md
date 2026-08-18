@@ -127,6 +127,10 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | D-27 | **Directivas de jornada** como entidad propia: el Administrador baja línea restringiendo zona, categoría, prioridad, protocolo, volumen, traslado y antigüedad. Con ámbito, vigencia que caduca sola, y marca de obligatoria o sugerida. Se guardan como preset | 18/08 |
 | D-28 | La ruta registra **bajo qué directiva se armó**, para poder explicar después por qué se dictaminaron esos casos | 18/08 |
 | D-29 | **Entregable visual por progreso**: una única página web que crece por hitos (H1 diseño → H5 completo). Nunca muestra como funcionando lo que solo está diseñado | 18/08 |
+| D-30 | Cada directiva se marca como **obligatoria o sugerida** al crearla: el Administrador decide caso por caso | 18/08 |
+| D-31 | Se diseña para el peor caso: el SUA entrega **solo texto libre**. Si aparece un motivo categorizado, el diseño sigue sirviendo | 18/08 |
+| D-32 | **Cortes académicos semanales.** Próximo: viernes 21/08/2026. H1 (diseño + entregable visual) debe estar listo antes | 18/08 |
+| D-33 | La app Expo con Firebase **se eliminó de la rama** el 18/08. El front queda como `index.html` + `login.html`, autocontenidos | 18/08 |
 
 ## 9. Preguntas abiertas
 
@@ -142,9 +146,10 @@ Se listan acá y se van cerrando; cada una que se cierra pasa a la tabla de deci
 | P-06 | ¿Qué pasa con los reclamos no visitados al cerrar la jornada? | **cerrada** → D-24 |
 | P-07 | ¿Quién es el rol Lector en la práctica? | **cerrada** → D-26 |
 | P-08 | ¿Qué es la "zona" al planificar una ruta? | **cerrada** → D-25 |
-| P-09 | ¿El SUA trae el motivo del reclamo ya categorizado, o solo texto libre del vecino? De esto depende si la categoría se lee o se deduce | abierta |
+| P-09 | ¿El SUA trae el motivo del reclamo ya categorizado, o solo texto libre? | **a confirmar con Gabriel/CIL** — se diseña para texto libre (D-31) |
 | P-10 | ¿Las señales de riesgo propuestas coinciden con cómo escriben realmente los vecinos en el SUA? | abierta |
 | P-11 | ¿Qué campos lleva el entregable para concesionarias y en qué formato se entrega? | abierta |
-| P-12 | ¿Qué se hace con `ArboladoRosario/app/` y `services/` (la app Expo con Firebase)? Hoy es código muerto que contradice la documentación | abierta |
-| P-13 | ¿Las directivas de jornada son obligatorias, sugeridas, o el Administrador elige caso por caso? | abierta |
-| P-14 | ¿Cuáles son las fechas de los cortes académicos, para saber qué hito debe estar listo cuándo? | abierta |
+| P-12 | ¿Qué se hace con la app Expo con Firebase? | **cerrada** → D-33, eliminada |
+| P-13 | ¿Las directivas son obligatorias o sugeridas? | **cerrada** → D-30 |
+| P-14 | ¿Fechas de los cortes académicos? | **cerrada** → D-32, semanales |
+| P-15 | ¿Hay que avisarle al equipo que se eliminó la app Expo de esta rama, antes de que Gabriel o Alejandro la busquen? | abierta |
