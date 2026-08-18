@@ -45,6 +45,16 @@ Cada acceso a datos vive detrás de un **puerto**. El día hipotético de la tra
 
 > **Regla de oro:** la tecnología termina en los adaptadores. Ni un `import` de un proveedor fuera de `adapters/`.
 
+La frontera se ve también en la base: el esquema `sua_sim` contiene lo que el SUA nos daría y **se borra entero** el día de la transferencia; el esquema `arbolado` contiene lo propio del módulo y migra.
+
+## Principio de campo
+
+> **El trabajo se toma con señal y se ejecuta sin señal.**
+
+Un reclamo apunta a un único árbol, así que dos ingenieros dictaminando el mismo ejemplar no es un conflicto a resolver: es trabajo desperdiciado que hay que evitar antes de que ocurra. Pedir trabajo es, por naturaleza, una acción conectada — el ingeniero le pide al sistema qué hacer. Entonces la asignación se reserva en ese momento, y todo lo que sigue funciona sin conexión sobre reclamos que nadie más puede tener.
+
+Detalle en [`docs-back/01-arquitectura.md`](docs-back/01-arquitectura.md).
+
 ---
 
 ## Estructura del repositorio
@@ -61,7 +71,10 @@ Cada acceso a datos vive detrás de un **puerto**. El día hipotético de la tra
 │   ├── 03-diagramas.md               Fuente PlantUML de los 8 diagramas
 │   └── 04-estado-del-codigo.md       Estado real y brechas contra los RF
 ├── docs-back/             Diseño del backend
-│   └── 00-protocolo-de-trabajo.md    Cómo trabajamos. Leer primero.
+│   ├── 00-protocolo-de-trabajo.md    Cómo trabajamos. Leer primero.
+│   ├── 01-arquitectura.md            Puertos, adaptadores y principio de campo
+│   ├── 02-modelo-de-datos.md         Esquemas, entidades, RLS y storage
+│   └── 99-desvios.md                 Qué hacemos distinto del .docx y por qué
 └── CLAUDE.md              Contexto del proyecto y reglas de negocio
 ```
 

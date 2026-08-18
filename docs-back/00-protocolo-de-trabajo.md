@@ -79,8 +79,8 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 
 | Módulo | Diseño | Aprobado | Desarrollo | Driver verde |
 | --- | --- | --- | --- | --- |
-| Arquitectura y puertos | en curso | — | — | — |
-| Modelo de datos y RLS | — | — | — | — |
+| Arquitectura y puertos | **listo** | pendiente | — | — |
+| Modelo de datos y RLS | **listo** | pendiente | — | — |
 | Autenticación y roles | — | — | — | — |
 | Reclamos y filtros | — | — | — | — |
 | Dictamen técnico | — | — | — | — |
@@ -108,6 +108,13 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | D-11 | Escalamiento de prioridad: función pura + job diario que persiste + historial auditable de cada salto | 18/08 |
 | D-12 | Driver = CLI de escenarios con reporte `RF → PASA/FALLA`, ejecutable en vivo en la defensa | 18/08 |
 | D-13 | Alcance del back: auth, reclamos y filtros, dictamen, rutas, tormenta, dashboard por distrito, panel admin, alta manual de reclamos y consulta por dirección | 18/08 |
+| D-14 | **Se toma con señal, se ejecuta sin señal.** La reserva es requisito previo al dictamen: no se dictamina un reclamo que no esté reservado a nombre del ingeniero. El choque deja de ser el caso normal | 18/08 |
+| D-15 | La reserva es visible para todo el equipo, con quién la tiene y desde cuándo. Vence sola al cierre de la jornada (configurable) | 18/08 |
+| D-16 | Choque excepcional: se rechaza el segundo dictamen, se informa quién dictaminó primero y **la carga se conserva como borrador**. No se descarta trabajo de campo | 18/08 |
+| D-17 | Dictamen vencido a los 18 meses: el reclamo **vuelve a la cola** como `vencido_redictaminar`, con el dictamen viejo consultable | 18/08 |
+| D-18 | Alta de reclamo por el ingeniero habilitada en tres situaciones: de oficio, a pedido de un vecino en la calle, y durante el protocolo de tormenta. Se crea **a través de `IReclamoProvider`** para que entre al circuito formal, no como reclamo paralelo | 18/08 |
+| D-19 | Dos esquemas en la base: `sua_sim` (se borra el día de la transferencia) y `arbolado` (migra). La frontera con el mundo externo es visible en la base | 18/08 |
+| D-20 | La prioridad por colores y su escalamiento son **lógica del módulo, no del SUA**: el SUA real no tiene matriz de priorización | 18/08 |
 
 ## 9. Preguntas abiertas
 
@@ -115,7 +122,11 @@ Se listan acá y se van cerrando; cada una que se cierra pasa a la tabla de deci
 
 | # | Pregunta | Estado |
 | --- | --- | --- |
-| P-01 | ¿Qué justifica que un ingeniero abra un reclamo nuevo, y en qué se diferencia de uno del SUA? (minuta 12/08) | abierta |
-| P-02 | ¿Qué pasa si el ingeniero dictamina, sin señal, un reclamo que otro ya dictaminó? | abierta |
-| P-03 | ¿Cuánto dura la reserva de un reclamo y qué ve el resto del equipo mientras tanto? | abierta |
-| P-04 | ¿Un dictamen vencido a los 18 meses habilita re-dictaminar el reclamo? | abierta |
+| P-01 | ¿Qué justifica que un ingeniero abra un reclamo nuevo? | **cerrada** → D-18 |
+| P-02 | ¿Qué pasa si el ingeniero dictamina, sin señal, un reclamo que otro ya dictaminó? | **cerrada** → D-14, D-16 |
+| P-03 | ¿Cuánto dura la reserva y qué ve el resto del equipo? | **cerrada** → D-15 |
+| P-04 | ¿Un dictamen vencido habilita re-dictaminar? | **cerrada** → D-17 |
+| P-05 | ¿Con qué criterios concretos el sistema asigna la prioridad **inicial** de un reclamo recién ingresado? La minuta da ejemplos por color, pero falta la regla que los decide | abierta |
+| P-06 | Si el ingeniero termina la jornada sin visitar todos los reclamos de su ruta, ¿qué pasa con los que quedaron? | abierta |
+| P-07 | ¿Quién es el rol Lector en la práctica dentro de la repartición? | abierta |
+| P-08 | La "zona" para planificar una ruta, ¿es el distrito, o algo más chico como un radio o un barrio? | abierta |
