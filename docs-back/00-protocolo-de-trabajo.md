@@ -81,6 +81,7 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | --- | --- | --- | --- | --- |
 | Arquitectura y puertos | **listo** | pendiente | — | — |
 | Modelo de datos y RLS | **listo** | pendiente | — | — |
+| Reglas de negocio | **listo** | pendiente | — | — |
 | Autenticación y roles | — | — | — | — |
 | Reclamos y filtros | — | — | — | — |
 | Dictamen técnico | — | — | — | — |
@@ -89,6 +90,8 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | Dashboard | — | — | — | — |
 | Panel de administrador | — | — | — | — |
 | Sincronización offline | — | — | — | — |
+| Directivas de jornada | **listo** | pendiente | — | — |
+| Entregable visual | **planificado** | pendiente | — | — |
 | Driver de escenarios | — | — | — | — |
 
 ## 8. Decisiones cerradas
@@ -115,6 +118,15 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | D-18 | Alta de reclamo por el ingeniero habilitada en tres situaciones: de oficio, a pedido de un vecino en la calle, y durante el protocolo de tormenta. Se crea **a través de `IReclamoProvider`** para que entre al circuito formal, no como reclamo paralelo | 18/08 |
 | D-19 | Dos esquemas en la base: `sua_sim` (se borra el día de la transferencia) y `arbolado` (migra). La frontera con el mundo externo es visible en la base | 18/08 |
 | D-20 | La prioridad por colores y su escalamiento son **lógica del módulo, no del SUA**: el SUA real no tiene matriz de priorización | 18/08 |
+| D-21 | Prioridad inicial: verde por defecto, con salto por señales de riesgo en el texto (**regla desactivable**) y por insistencia del vecino. Gana la más alta, nunca baja | 18/08 |
+| D-22 | El **ritmo de escalamiento depende de la categoría** del reclamo: 30 días para riesgo estructural y cableado, 60 por defecto, 90 para poda estética. Todo configurable | 18/08 |
+| D-23 | La matriz de priorización vive en tabla (`regla_prioridad`), no en código: se ajusta sin deploy | 18/08 |
+| D-24 | Al cerrar la jornada, los reclamos no visitados **se liberan y vuelven a la cola** | 18/08 |
+| D-25 | Zona de planificación = **distrito, con barrio opcional** para afinar | 18/08 |
+| D-26 | Lector es rol de consulta ejecutiva (dirección/jefatura). Las **concesionarias no son usuarias**: reciben un entregable exportable que solo genera el Administrador | 18/08 |
+| D-27 | **Directivas de jornada** como entidad propia: el Administrador baja línea restringiendo zona, categoría, prioridad, protocolo, volumen, traslado y antigüedad. Con ámbito, vigencia que caduca sola, y marca de obligatoria o sugerida. Se guardan como preset | 18/08 |
+| D-28 | La ruta registra **bajo qué directiva se armó**, para poder explicar después por qué se dictaminaron esos casos | 18/08 |
+| D-29 | **Entregable visual por progreso**: una única página web que crece por hitos (H1 diseño → H5 completo). Nunca muestra como funcionando lo que solo está diseñado | 18/08 |
 
 ## 9. Preguntas abiertas
 
@@ -126,7 +138,13 @@ Se listan acá y se van cerrando; cada una que se cierra pasa a la tabla de deci
 | P-02 | ¿Qué pasa si el ingeniero dictamina, sin señal, un reclamo que otro ya dictaminó? | **cerrada** → D-14, D-16 |
 | P-03 | ¿Cuánto dura la reserva y qué ve el resto del equipo? | **cerrada** → D-15 |
 | P-04 | ¿Un dictamen vencido habilita re-dictaminar? | **cerrada** → D-17 |
-| P-05 | ¿Con qué criterios concretos el sistema asigna la prioridad **inicial** de un reclamo recién ingresado? La minuta da ejemplos por color, pero falta la regla que los decide | abierta |
-| P-06 | Si el ingeniero termina la jornada sin visitar todos los reclamos de su ruta, ¿qué pasa con los que quedaron? | abierta |
-| P-07 | ¿Quién es el rol Lector en la práctica dentro de la repartición? | abierta |
-| P-08 | La "zona" para planificar una ruta, ¿es el distrito, o algo más chico como un radio o un barrio? | abierta |
+| P-05 | ¿Con qué criterios se asigna la prioridad inicial? | **cerrada** → D-21, D-22, D-23 |
+| P-06 | ¿Qué pasa con los reclamos no visitados al cerrar la jornada? | **cerrada** → D-24 |
+| P-07 | ¿Quién es el rol Lector en la práctica? | **cerrada** → D-26 |
+| P-08 | ¿Qué es la "zona" al planificar una ruta? | **cerrada** → D-25 |
+| P-09 | ¿El SUA trae el motivo del reclamo ya categorizado, o solo texto libre del vecino? De esto depende si la categoría se lee o se deduce | abierta |
+| P-10 | ¿Las señales de riesgo propuestas coinciden con cómo escriben realmente los vecinos en el SUA? | abierta |
+| P-11 | ¿Qué campos lleva el entregable para concesionarias y en qué formato se entrega? | abierta |
+| P-12 | ¿Qué se hace con `ArboladoRosario/app/` y `services/` (la app Expo con Firebase)? Hoy es código muerto que contradice la documentación | abierta |
+| P-13 | ¿Las directivas de jornada son obligatorias, sugeridas, o el Administrador elige caso por caso? | abierta |
+| P-14 | ¿Cuáles son las fechas de los cortes académicos, para saber qué hito debe estar listo cuándo? | abierta |

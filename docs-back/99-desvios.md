@@ -7,7 +7,7 @@ Existe porque el documento se entrega y se defiende. Un desvío no documentado e
 
 ---
 
-## DV-01 — Los adaptadores son ocho, no dos
+## DV-01 — Los adaptadores son doce, no dos
 
 **Qué dice el documento.** Sección 1.4 y diagrama de clases: dos interfaces, `IReclamoProvider` e `IAuthProvider`. Los dictámenes y rutas se guardan en Supabase como base propia del módulo.
 
@@ -76,3 +76,15 @@ Existe porque el documento se entrega y se defiende. Un desvío no documentado e
 **Qué hacemos.** El front es el prototipo estático responsive. La app Expo queda fuera del alcance y Firebase se descarta en favor de Supabase.
 
 **¿Corregir el `.docx`?** No el documento, pero **sí el repositorio**: hay que decidir con el equipo qué se hace con `ArboladoRosario/app/` y `services/` para que no quede código muerto contradiciendo a la documentación.
+
+---
+
+## DV-07 — Las bajadas de línea son más que porcentajes por prioridad
+
+**Qué dice el documento.** RF-24 define los presets como una distribución porcentual por nivel de prioridad, con la posibilidad de asignar el 100% a una sola.
+
+**Qué hacemos.** Se agrega la entidad `directiva_jornada`, que además de la prioridad restringe zona, categoría de reclamo, protocolo, volumen, modo de traslado y antigüedad; tiene ámbito (global, por distrito o por usuario), vigencia con caducidad automática y marca de obligatoria o sugerida.
+
+**Por qué.** En la práctica una bajada de línea no es "60% urgentes": es "esta semana todo el equipo a Distrito Oeste, solo casos de cableado, veinte por jornada". Con solo porcentajes por prioridad, la mitad de esa directiva no se puede expresar y termina comunicándose de palabra, que es exactamente el problema de discrecionalidad que el proyecto quiere resolver.
+
+**¿Corregir el `.docx`?** **Sí.** Conviene reescribir RF-24 y sumar la entidad al MER. Es material fuerte para la defensa: muestra que el diseño escuchó cómo se dirige el trabajo realmente, en vez de quedarse con la primera formulación del requerimiento.

@@ -37,6 +37,7 @@ Clave primaria: **(`nro_reclamo_sua`, `anio`)** — es la clave funcional que ex
 | `calle`, `altura` | texto, entero | Normalizados, para la búsqueda por dirección |
 | `entre_calle_1`, `entre_calle_2` | texto | |
 | `distrito` | enum | `Centro`, `Norte`, `Noroeste`, `Oeste`, `Sudoeste`, `Sur` |
+| `barrio` | texto | Permite afinar la zona al planificar la jornada |
 | `lat`, `lng` | punto geográfico | Sin esto no hay ruta posible (RF-22, RF-26) |
 | `descripcion_motivo` | texto largo | |
 | `foto_url` | texto | Puede venir vacío: la calidad del dato de entrada es heterogénea |
@@ -82,6 +83,27 @@ Estado del reclamo **desde la mirada del módulo**. Clave: (`nro_reclamo_sua`, `
 | `etiqueta_tormenta` | booleano | Habilita la sección de emergencia (RF-28) |
 | `fecha_tormenta` | fecha y hora | Para la ventana de 3 días |
 | `origen_alta` | enum | `sua`, `oficio`, `vecino`, `tormenta` |
+| `categoria` | enum | Determina el ritmo de escalamiento. Ver reglas §2 |
+| `senal_riesgo_detectada` | texto, nulo | Qué frase del texto del vecino disparó el salto de color. Nunca hay un color inexplicable |
+| `cantidad_reclamos_ejemplar` | entero | Insistencia del vecino: cuántos reclamos hay sobre el mismo árbol |
+| `id_ejemplar_agrupado` | texto | Agrupador de reclamos sobre el mismo ejemplar. Ver abajo |
+
+**Agrupación por ejemplar.** La insistencia del vecino solo se puede medir si el sistema sabe que tres reclamos hablan del mismo árbol. Se agrupa por calle y altura coincidentes y, cuando hay coordenadas, por cercanía menor a 15 metros. El criterio se documenta explícitamente porque un mismo árbol de vereda puede recibir reclamos con la altura catastral corrida en un número, y agrupar de más sería tan malo como no agrupar.
+
+### `arbolado.regla_prioridad`
+
+La matriz de priorización, en tabla y no en código: es la mejora central que pide el relevamiento y tiene que poder ajustarse sin un deploy (RNF-09, RF-32).
+
+| Campo | Notas |
+| --- | --- |
+| `tipo_regla` | `senal_riesgo`, `reiteracion`, `ritmo_escalamiento` |
+| `categoria` | A qué categoría de reclamo aplica |
+| `patron` | La frase o señal que dispara, para las reglas de texto |
+| `resultado` | Color al que salta, o días de escalamiento |
+| `activa` | **Las reglas por texto se pueden apagar sin tocar código** |
+| `orden` | Cuál se evalúa primero |
+
+Que la regla de señales de riesgo sea desactivable es una decisión deliberada: el relevamiento dice que la calidad del dato de entrada es muy despareja, y una regla que interpreta texto libre se puede equivocar. Si el área concluye que genera más ruido que valor, se apaga y el sistema sigue funcionando con las demás reglas.
 
 ### `arbolado.escalamiento_historial`
 
@@ -205,7 +227,31 @@ Una fila por parada: `orden_visita`, `hora_estimada_llegada`, `visitado`, `visit
 
 ### `arbolado.perfil_distribucion`
 
-Los presets del balanceador (RF-24): nombre, porcentajes por prioridad, si es global o personal. Permite la "bajada de línea" del jefe —por ejemplo 100% urgentes— en dos clics.
+Los presets del balanceador (RF-24): nombre, porcentajes por prioridad, si es global o personal.
+
+### `arbolado.directiva_jornada`
+
+La "bajada de línea" completa, que es más que porcentajes por prioridad. Ver reglas §7 bis.
+
+| Campo | Notas |
+| --- | --- |
+| `id`, `nombre` | Se guarda como preset reutilizable |
+| `ambito` | `global`, `distrito`, `usuario` |
+| `ambito_valor` | Qué distrito o qué usuario, según el ámbito |
+| `zona_distrito`, `zona_barrio` | Restricción geográfica |
+| `categorias` | Qué categorías de reclamo entran |
+| `distribucion_prioridad` | Los porcentajes, si aplica |
+| `protocolo` | `normal` o `tormenta` |
+| `cantidad_casos`, `horas_jornada` | El volumen de la jornada |
+| `modo_traslado` | Si se fuerza uno |
+| `antiguedad_minima_meses` | Para campañas sobre rezago |
+| `obligatoria` | Si el ingeniero puede salirse o no |
+| `vigencia_desde`, `vigencia_hasta` | **Caduca sola**: nadie tiene que acordarse de apagarla |
+| `creada_por`, `activa` | |
+
+**Resolución de conflictos:** si varias directivas vigentes alcanzan al mismo ingeniero, gana la de ámbito más específico (usuario > distrito > global); a igual ámbito, la más reciente.
+
+La tabla `ruta` guarda `directiva_aplicada`: qué directiva regía cuando se armó esa jornada. Sin ese dato, en dos meses nadie puede explicar por qué se dictaminaron esos casos y no otros.
 
 ---
 
@@ -264,14 +310,35 @@ Ninguna tabla sin política. Resumen:
 | `dictamen` | — | crea **con matrícula**; nunca actualiza ni borra | lee todo; puede anular |
 | `ruta` / `detalle_ruta` | — | solo las propias | lee todas |
 | `parametro` | — | lee | escribe |
+| `regla_prioridad` | — | lee | escribe |
 | `auditoria` | — | — | lee. **Nadie escribe directo** |
 
 El rol se valida en la Edge Function **y** en la base. Es redundante a propósito: si un token se filtra o alguien expone la base, RLS sigue conteniendo.
 
 ---
 
-## 13. Pendiente de decidir
+## 13. Entregable para empresas concesionarias
+
+Las concesionarias **no son usuarias del sistema**: no tienen cuenta, ni rol, ni acceso. Reciben un export que **solo el Administrador genera**, con los dictámenes firmados y vigentes que les toca ejecutar.
+
+### `arbolado.entregable_concesionaria`
+
+| Campo | Notas |
+| --- | --- |
+| `id`, `generado_por`, `generado_en` | Quién lo emitió y cuándo |
+| `filtros` | Zona, período y estado usados para armarlo |
+| `dictamenes_incluidos` | Qué dictámenes salieron en ese entregable |
+| `archivo_ref` | El documento generado, en storage privado |
+
+Se guarda el registro de cada generación, no solo el archivo: si mañana hay una discusión sobre qué se le informó a una contratista y cuándo, hay respuesta.
+
+**Fundamento de privacidad.** Es un tercero externo a la repartición. El entregable lleva lo necesario para ejecutar la intervención —ubicación del ejemplar, acción autorizada, complejidad, vigencia del dictamen— y **no** el circuito interno ni los datos del vecino que hizo el reclamo. Que las concesionarias sean lectoras del sistema completo sería exponer datos de vecinos a una empresa privada sin ninguna necesidad operativa.
+
+---
+
+## 14. Pendiente de decidir
 
 - Cómo se generan las coordenadas de los reclamos inventados → `05-datos-semilla.md`
-- Qué exponen exactamente los endpoints → `03-contrato-api.md`
+- Qué exponen exactamente los endpoints → `04-contrato-api.md`
 - Retención del registro de auditoría y de las fotos → `07-seguridad-y-privacidad.md`
+- Qué campos exactos lleva el entregable para concesionarias y en qué formato

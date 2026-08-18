@@ -19,12 +19,11 @@ El sistema ataca tres cuellos de botella: despapelización del dictamen, prioriz
 
 ## Restricción que define toda la arquitectura
 
-**El equipo no tiene permisos sobre el SUA ni sobre la autenticación institucional.** Por eso el prototipo simula esos servicios con una base en la nube, detrás de dos interfaces:
+**El equipo no tiene permisos sobre el SUA ni sobre la autenticación institucional, y la conexión real no se va a realizar nunca.** Supabase (base, auth, storage) es andamio: **se va entero** el día hipotético de la transferencia.
 
-- `IReclamoProvider` — `obtenerReclamo(nroSua, anio)`, `actualizarEstado(nroSua, estado)`
-- `IAuthProvider` — `validarCredenciales(usuario, password)`
+Por eso **todo acceso a datos vive detrás de un puerto**, no solo los dos que menciona el documento académico. Son doce: reclamos, auth, dictámenes, rutas, reservas, perfiles, storage, ruteo, parámetros, auditoría, reloj y certificación de firma. El detalle está en `docs-back/01-arquitectura.md`.
 
-Pasar a producción debe ser **cambiar la implementación concreta del adaptador, sin tocar el núcleo** (RNF-08, RF-32). Toda lógica de negocio que se escriba tiene que quedar de este lado de la interfaz, nunca acoplada al proveedor de datos.
+Pasar a producción debe ser **cambiar la implementación concreta del adaptador, sin tocar el núcleo** (RNF-08, RF-32). Toda lógica de negocio queda de este lado de la interfaz, nunca acoplada al proveedor.
 
 ## Documentación
 
@@ -44,15 +43,17 @@ Al citar una decisión, referenciar el ID (`RF-14`, `RNF-08`, `CU-04`, `HU-08`) 
 
 - **Alcance de entrada**: solo solicitudes del SUA con Tipo `Reclamo` / Subtipo `Problemas con el arbolado público`. Nada más.
 - **Clave de un reclamo**: el par **(N° SUA, año)**. Es el primer paso obligatorio del dictamen (RF-12): si no existe o ya está dictaminado, no se puede continuar.
-- **Prioridad por colores**: verde (baja) → amarillo (media) → naranja (alta) → rojo (urgente). **Escala sola cada 2 meses** si el reclamo sigue sin dictaminar; rojo se queda en rojo (RF-11).
+- **Prioridad por colores**: verde (baja) → amarillo (media) → naranja (alta) → rojo (urgente). Arranca en **verde por defecto** y sube por señales de riesgo en el texto del vecino (regla desactivable) o por **insistencia** (varios reclamos sobre el mismo árbol). Después escala sola con el tiempo, y el ritmo **depende de la categoría**: 30 días para riesgo estructural y cableado, 60 por defecto, 90 para poda estética. Rojo se queda en rojo (RF-11).
+- **Se toma con señal, se ejecuta sin señal**: no se dictamina un reclamo que no esté reservado a nombre del ingeniero. Tomar trabajo exige conexión; cargar y firmar el dictamen, no. La reserva es visible para todo el equipo y vence al cierre de la jornada.
+- **Al vencer el dictamen a los 18 meses**, el reclamo **vuelve a la cola** para re-dictaminar, con el dictamen viejo consultable.
 - **Intervenciones mutuamente excluyentes** (RF-14): extracción bloquea poda y corte de raíces, y viceversa. No se puede confirmar el dictamen con la combinación inconsistente.
 - **Firma digital** (RF-18): solo un Operario **con matrícula profesional registrada** puede firmar. Al firmar, el dictamen queda en **solo lectura**, con sello de tiempo, matrícula y hash (RF-19, RNF-06).
 - **Vencimiento del dictamen: 18 meses** desde la emisión (RF-19). El dashboard avisa los que vencen en ≤30 días (RF-05).
 - **Al firmar, el reclamo pasa a `dictaminado`** vía el adaptador (RF-20).
 - **Rutas** (RF-21→RF-27): parten de Parques y Paseos y **vuelven** a Parques y Paseos. **10 minutos por dictamen, configurable** (RNF-09). Modos: auto, a pie, bicicleta. El balanceador reparte la jornada por porcentaje de prioridad, con modos `urgentes primero` / `por porcentaje del jefe` / `automático equilibrado`, y **redistribuye si falta stock** de una prioridad (RF-25).
 - **Protocolo de tormenta** (RF-28→RF-30): sección visible **solo si hay casos** etiquetados, últimos 3 días, **todos con la misma prioridad** (no aplica balanceador), ruta de mínima distancia.
-- **Roles**: Lector (solo dashboard), Operario (todo lo operativo; firma solo si tiene matrícula), Administrador (usuarios, roles, adaptadores, parámetros).
-- **El sistema no crea reclamos propios**: consume los que Procesamiento de Datos deriva. Si se habilita el alta manual, hay que justificar el caso de uso (pedido explícito del cliente, minuta 12/08).
+- **Roles**: Lector (consulta ejecutiva del dashboard), Operario (todo lo operativo; firma solo si tiene matrícula), Administrador (usuarios, roles, adaptadores, parámetros, y el entregable para concesionarias). **Las concesionarias no son usuarias del sistema**: reciben un export que solo genera el Administrador.
+- **El ingeniero sí puede abrir reclamos**, en tres situaciones: de oficio, a pedido de un vecino que lo aborda en la calle, y durante el protocolo de tormenta. Se crean **a través de `IReclamoProvider`** para que entren al circuito formal del SUA, no como reclamo paralelo — esa es la justificación que pedía la minuta del 12/08.
 
 ### Pedidos del cliente (minuta 12/08) que suelen olvidarse
 
@@ -63,23 +64,15 @@ Al citar una decisión, referenciar el ID (`RF-14`, `RNF-08`, `CU-04`, `HU-08`) 
 
 ## El código
 
-Vive en `Direccion-Tecnica-de-Arbolado/ArboladoRosario/` (la app está un nivel adentro del repo).
+**El front es `ArboladoRosario/index.html` + `login.html`**: prototipo estático responsive con Leaflet, OSRM y signature_pad, hoy funcionando con un objeto `DB` simulado en memoria. Es la demo que se le mostró al profesor. **No se pisa**: mantiene su aspecto y su comportamiento visible, y lo único que cambia es que el `DB` mock se reemplaza por llamadas al SDK contra la API.
 
-Stack actual de la rama: **Expo SDK 54 + React Native 0.81 + expo-router 6**, TypeScript strict, **Firebase Firestore** como base. Pantallas en `app/` (routing por archivo), acceso a datos en `services/`.
+La app **Expo / React Native** (`app/`, `services/`) con Firebase quedó **fuera del alcance** (D-01). Es código muerto que contradice la documentación; qué hacer con él es la pregunta abierta P-12.
 
-```bash
-cd "Direccion-Tecnica-de-Arbolado/ArboladoRosario"
-npm install
-npm run web       # o: npm start / npm run android / npm run ios
-```
+Lógica que se migra del front al backend, sin cambiar lo que se ve: escalamiento de prioridades, balanceador, cálculo de ruta, validación del par (SUA, año) y sugerencia de época. Las validaciones de exclusión se **duplican**: el front valida por comodidad, el backend valida por obligación.
 
-Expo cambió mucho: consultar <https://docs.expo.dev/versions/v54.0.0/> antes de escribir código de Expo (es lo que pide el `AGENTS.md` del repo).
+### Tensiones ya resueltas
 
-`index.html` y `login.html` en esa carpeta son el **prototipo estático anterior** (Leaflet + OSRM + signature_pad) — es la demo que se le mostró al profesor y tiene funcionalidad que la app Expo todavía no replicó. Sirve como referencia de comportamiento, no como código a mantener.
-
-### Tensiones abiertas — leer antes de proponer cambios
-
-La documentación dice **Supabase + Vercel + web app**; el código usa **Firebase + Expo**. También hay constantes que contradicen los RF (`T_DICT = 7` vs los 10 minutos de RF-21) y falta todo el login, los adaptadores y el vínculo dictamen↔reclamo. El detalle completo está en `docs/04-estado-del-codigo.md`. **No resolver estas discrepancias por cuenta propia: son decisiones de equipo.** Señalarlas y proponer, pero preguntar antes de reescribir.
+Firebase vs Supabase, y Expo vs web: resueltas a favor de **Supabase + prototipo estático**. Lo que queda abierto está en la tabla de preguntas del protocolo. Las brechas contra los RF están en `docs/04-estado-del-codigo.md`, y los desvíos respecto del `.docx` en `docs-back/99-desvios.md`.
 
 ## Cómo trabajar acá
 

@@ -38,7 +38,11 @@ Cada acceso a datos vive detrás de un **puerto**. El día hipotético de la tra
 | `IAuthProvider` | Supabase Auth | directorio institucional |
 | `IDictamenRepository` | Postgres de Supabase | base de la Municipalidad |
 | `IRutaRepository` | Postgres de Supabase | base de la Municipalidad |
+| `IReservaRepository` | Postgres de Supabase | base de la Municipalidad |
 | `IPerfilRepository` | Postgres de Supabase | directorio institucional |
+| `IParametroRepository` | Postgres de Supabase | base de la Municipalidad |
+| `IAuditoriaRepository` | Postgres de Supabase | base de la Municipalidad |
+| `IRelojProvider` | reloj del sistema | reloj del sistema |
 | `IArchivoStorage` | Supabase Storage | file server municipal |
 | `IRuteoProvider` | OSRM público (activo) | Google Routes (escrito, sin conectar) |
 | `ICertificadoraFirma` | placeholder, sin implementar | firma digital oficial |
@@ -74,6 +78,8 @@ Detalle en [`docs-back/01-arquitectura.md`](docs-back/01-arquitectura.md).
 │   ├── 00-protocolo-de-trabajo.md    Cómo trabajamos. Leer primero.
 │   ├── 01-arquitectura.md            Puertos, adaptadores y principio de campo
 │   ├── 02-modelo-de-datos.md         Esquemas, entidades, RLS y storage
+│   ├── 03-reglas-de-negocio.md       Prioridad, escalamiento, firma, balanceador, directivas
+│   ├── 05-entregable-visual.md       Plan del entregable academico por hitos
 │   └── 99-desvios.md                 Qué hacemos distinto del .docx y por qué
 └── CLAUDE.md              Contexto del proyecto y reglas de negocio
 ```
@@ -86,13 +92,14 @@ Cuando arranque la Fase 2 se suman `backend/` (núcleo, casos de uso y adaptador
 
 - **Alcance de entrada**: solo solicitudes del SUA con Tipo `Reclamo` / Subtipo `Problemas con el arbolado público`.
 - **Clave de un reclamo**: el par **(N° SUA, año)**. Es el primer paso obligatorio del dictamen (RF-12).
-- **Prioridad por colores**: verde → amarillo → naranja → rojo. Escala sola cada 2 meses si sigue sin dictaminar (RF-11).
+- **Prioridad por colores**: verde → amarillo → naranja → rojo. Arranca en verde y sube por señales de riesgo en el texto o por insistencia del vecino; después escala sola con el tiempo, más rápido en las categorías de riesgo (RF-11).
 - **Intervenciones excluyentes** (RF-14): extracción bloquea poda y corte de raíces, y viceversa.
 - **Firma digital** (RF-18): solo un Operario **con matrícula registrada**. Al firmar, el dictamen queda inmutable, con sello de tiempo y hash (RF-19, RNF-06).
 - **Vencimiento del dictamen**: 18 meses desde la emisión.
 - **Rutas** (RF-21→27): parten y vuelven a Parques y Paseos, con tiempo por dictamen configurable y balanceador de prioridades.
 - **Protocolo de tormenta** (RF-28→30): visible solo si hay casos, últimos 3 días, todos con la misma prioridad.
-- **Roles**: Lector (solo dashboard), Operario (operativo; firma solo con matrícula), Administrador (usuarios, roles, adaptadores, parámetros).
+- **Roles**: Lector (consulta ejecutiva del dashboard), Operario (operativo; firma solo con matrícula), Administrador (usuarios, roles, adaptadores, parámetros y directivas de jornada). Las concesionarias no son usuarias: reciben un export que solo genera el Administrador.
+- **Bajadas de línea**: el Administrador baja directivas de jornada que restringen zona, categoría, prioridad, protocolo, volumen y traslado, con vigencia que caduca sola (RF-24 ampliado).
 
 Detalle completo en [`docs/01-documentacion-tecnica.md`](docs/01-documentacion-tecnica.md).
 
