@@ -1,0 +1,884 @@
+<title>Arbolado Rosario</title>
+<style>
+  /* ─────────── TOKENS: paleta clara completa ─────────── */
+  :root {
+    --ground:      #F3F6F4;
+    --surface:     #FFFFFF;
+    --surface-2:   #EDF2EF;
+    --ink:         #0E1C18;
+    --ink-2:       #55655F;
+    --ink-3:       #7C8C86;
+    --rule:        #D6E0DB;
+    --rule-strong: #B4C4BD;
+    --accent:      #0F6E56;
+    --accent-2:    #0A4C3B;
+    --accent-soft: #E4F0EB;
+
+    --p-verde:     #4C9A48;
+    --p-amarillo:  #C89400;
+    --p-naranja:   #DC6A16;
+    --p-rojo:      #C62F2F;
+    --p-tormenta:  #5B5BD6;
+
+    --ok:          #2F7D5B;
+    --pend:        #96A59E;
+
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --pad: clamp(1.1rem, 4vw, 2.5rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0C1512;
+      --surface:     #121D19;
+      --surface-2:   #17241F;
+      --ink:         #E4EDE8;
+      --ink-2:       #9AAAA3;
+      --ink-3:       #74847D;
+      --rule:        #24322C;
+      --rule-strong: #35463F;
+      --accent:      #4EBF9B;
+      --accent-2:    #7BD3B6;
+      --accent-soft: #14312A;
+
+      --p-verde:     #62B75D;
+      --p-amarillo:  #D9A81F;
+      --p-naranja:   #EC8038;
+      --p-rojo:      #E4574F;
+      --p-tormenta:  #8B8BEA;
+
+      --ok:          #4EBF8E;
+      --pend:        #6B7B74;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0C1512;
+    --surface:     #121D19;
+    --surface-2:   #17241F;
+    --ink:         #E4EDE8;
+    --ink-2:       #9AAAA3;
+    --ink-3:       #74847D;
+    --rule:        #24322C;
+    --rule-strong: #35463F;
+    --accent:      #4EBF9B;
+    --accent-2:    #7BD3B6;
+    --accent-soft: #14312A;
+
+    --p-verde:     #62B75D;
+    --p-amarillo:  #D9A81F;
+    --p-naranja:   #EC8038;
+    --p-rojo:      #E4574F;
+    --p-tormenta:  #8B8BEA;
+
+    --ok:          #4EBF8E;
+    --pend:        #6B7B74;
+  }
+
+  /* ─────────── BASE ─────────── */
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 var(--pad) 6rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  @media (min-width: 1080px) {
+    .wrap { grid-template-columns: 200px minmax(0, 1fr); column-gap: 3.5rem; }
+    .masthead, .colofon { grid-column: 1 / -1; }
+  }
+
+  /* ─────────── MASTHEAD ─────────── */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 3.5rem 0 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.1rem;
+  }
+
+  .masthead h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2.2rem, 6vw, 3.6rem);
+    line-height: 1.06;
+    letter-spacing: -.018em;
+    text-wrap: balance;
+    margin: 0 0 1rem;
+  }
+
+  .masthead .lede {
+    max-width: var(--measure);
+    font-size: 1.08rem;
+    color: var(--ink-2);
+    margin: 0 0 2rem;
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .fact { background: var(--surface); padding: .85rem 1rem; }
+  .fact dt {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 .3rem;
+  }
+  .fact dd { margin: 0; font-size: .93rem; font-weight: 600; }
+
+  /* ─────────── ÍNDICE ─────────── */
+  .indice { display: none; }
+  @media (min-width: 1080px) {
+    .indice {
+      display: block;
+      position: sticky;
+      top: 1.5rem;
+      align-self: start;
+      max-height: calc(100vh - 3rem);
+      overflow-y: auto;
+      font-size: .82rem;
+    }
+    .indice p {
+      font-family: var(--mono);
+      font-size: .66rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin: 0 0 .7rem;
+    }
+    .indice ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .38rem; counter-reset: idx; }
+    .indice a {
+      color: var(--ink-2);
+      text-decoration: none;
+      display: block;
+      padding-left: 1.6rem;
+      position: relative;
+      line-height: 1.35;
+    }
+    .indice li { counter-increment: idx; }
+    .indice a::before {
+      content: counter(idx, decimal-leading-zero);
+      position: absolute;
+      left: 0;
+      font-family: var(--mono);
+      font-size: .68rem;
+      color: var(--ink-3);
+    }
+    .indice a:hover { color: var(--accent); }
+  }
+
+  /* ─────────── SECCIONES ─────────── */
+  section { padding-top: 3.2rem; scroll-margin-top: 1.5rem; }
+
+  .sec-num {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .14em;
+    color: var(--accent);
+    display: block;
+    margin-bottom: .5rem;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(1.55rem, 3.4vw, 2.05rem);
+    line-height: 1.16;
+    letter-spacing: -.012em;
+    text-wrap: balance;
+    margin: 0 0 1.3rem;
+    padding-bottom: .7rem;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: -.005em;
+    margin: 2.2rem 0 .7rem;
+  }
+
+  p, li { max-width: var(--measure); }
+  p { margin: 0 0 1.05rem; }
+  ul, ol { margin: 0 0 1.05rem; padding-left: 1.15rem; }
+  li { margin-bottom: .4rem; }
+
+  strong { font-weight: 700; }
+  code, .id {
+    font-family: var(--mono);
+    font-size: .87em;
+    background: var(--surface-2);
+    padding: .08em .38em;
+    border-radius: 3px;
+  }
+  .id { color: var(--accent); font-weight: 600; }
+
+  blockquote {
+    margin: 1.6rem 0;
+    padding: 1.1rem 1.3rem;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    max-width: var(--measure);
+  }
+  blockquote p { margin: 0; font-size: 1.02rem; }
+  blockquote p + p { margin-top: .7rem; }
+
+  /* ─────────── TABLAS ─────────── */
+  .tabla-wrap { overflow-x: auto; margin: 1.4rem 0 1.8rem; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; min-width: 480px; }
+  th, td { text-align: left; padding: .62rem .85rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ─────────── FRONTERA ─────────── */
+  .frontera { margin: 1.6rem 0 2rem; }
+  .frontera-grid {
+    display: grid;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  @media (min-width: 720px) { .frontera-grid { grid-template-columns: 1fr 1fr; } }
+
+  .lado { background: var(--surface); padding: 1.1rem 1.2rem; }
+  .lado h4 {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    margin: 0 0 .25rem;
+  }
+  .lado.queda h4 { color: var(--accent); }
+  .lado.se-va h4 { color: var(--p-rojo); }
+  .lado .sub { font-size: .8rem; color: var(--ink-3); margin: 0 0 .9rem; max-width: none; }
+  .lado ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; }
+  .lado li { margin: 0; max-width: none; font-family: var(--mono); font-size: .78rem; color: var(--ink-2); }
+
+  .corte {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    margin: 0;
+    padding: .6rem 0 0;
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--p-rojo);
+  }
+  .corte::before, .corte::after {
+    content: "";
+    flex: 1;
+    border-top: 2px dashed var(--p-rojo);
+    opacity: .55;
+  }
+
+  /* ─────────── PRIORIDADES ─────────── */
+  .escala { display: flex; flex-wrap: wrap; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 1.4rem 0 1.8rem; }
+  .nivel { background: var(--surface); padding: .9rem 1rem; flex: 1 1 150px; }
+  .nivel .barra { height: 4px; margin-bottom: .6rem; }
+  .nivel b { display: block; font-size: .9rem; margin-bottom: .15rem; }
+  .nivel span { font-size: .78rem; color: var(--ink-2); }
+  .v .barra { background: var(--p-verde); }
+  .a .barra { background: var(--p-amarillo); }
+  .n .barra { background: var(--p-naranja); }
+  .r .barra { background: var(--p-rojo); }
+
+  /* ─────────── ESTADO ─────────── */
+  .chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: .16em .5em;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .chip.dis { color: var(--accent); }
+  .chip.no  { color: var(--pend); }
+
+  .aviso {
+    border: 2px solid var(--p-naranja);
+    background: var(--surface);
+    padding: 1.1rem 1.3rem;
+    margin: 1.6rem 0;
+    max-width: var(--measure);
+  }
+  .aviso h4 { margin: 0 0 .5rem; font-size: .92rem; color: var(--p-naranja); }
+  .aviso p { margin: 0; font-size: .93rem; }
+
+  /* ─────────── COLOFÓN ─────────── */
+  .colofon {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--ink);
+    font-size: .85rem;
+    color: var(--ink-2);
+  }
+  .colofon p { max-width: var(--measure); }
+
+  a { color: var(--accent); }
+  a:focus-visible, .indice a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Hito 1 · Diseño · 18 agosto 2026</p>
+    <h1>Dictaminado y rutas eficientes para el arbolado de Rosario</h1>
+    <p class="lede">
+      Un ingeniero agrónomo evalúa un árbol en la vereda y escribe el dictamen en papel. El papel viaja a otra
+      oficina, donde alguien lo transcribe a mano al sistema municipal. Este proyecto elimina ese viaje.
+    </p>
+    <dl class="facts">
+      <div class="fact"><dt>Organismo</dt><dd>Dirección Técnica de Arbolado</dd></div>
+      <div class="fact"><dt>Materia</dt><dd>Práctica Profesionalizante II</dd></div>
+      <div class="fact"><dt>Etapa</dt><dd>Diseño cerrado</dd></div>
+      <div class="fact"><dt>Código escrito</dt><dd>Ninguno todavía</dd></div>
+    </dl>
+  </header>
+
+  <nav class="indice" aria-label="Índice">
+    <p>Contenido</p>
+    <ol>
+      <li><a href="#problema">El problema</a></li>
+      <li><a href="#alcance">Qué resuelve</a></li>
+      <li><a href="#restriccion">La restricción</a></li>
+      <li><a href="#arquitectura">La frontera</a></li>
+      <li><a href="#campo">Principio de campo</a></li>
+      <li><a href="#prioridad">Prioridad</a></li>
+      <li><a href="#reglas">Reglas duras</a></li>
+      <li><a href="#directivas">Bajadas de línea</a></li>
+      <li><a href="#datos">Modelo de datos</a></li>
+      <li><a href="#verificacion">Verificación</a></li>
+      <li><a href="#avance">Estado de avance</a></li>
+      <li><a href="#desvios">Desvíos</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="problema">
+      <span class="sec-num">01</span>
+      <h2>El problema no es la falta de un sistema</h2>
+      <p>
+        La Municipalidad de Rosario ya tiene un sistema: el <strong>SUA</strong>, la plataforma transversal donde
+        entran todos los reclamos ciudadanos. El arbolado público es una porción mínima de ese ecosistema y usa un
+        módulo parametrizado que no contempla sus particularidades técnicas ni logísticas.
+      </p>
+      <p>
+        El resultado es un circuito con un cuello de botella físico. El ingeniero completa el dictamen en papel
+        durante la inspección. Ese papel se traslada al Área de Diagramación de Datos, donde una persona busca el
+        reclamo en el SUA y transcribe la información a mano. Hay expedientes en curso con más de tres años.
+      </p>
+      <blockquote>
+        <p>
+          Ninguna cuadrilla puede intervenir un ejemplar sin dictamen técnico firmado — Ordenanza Municipal 5.118,
+          Ley Provincial 13.836. El dictamen no es un trámite: es la llave de todo el circuito.
+        </p>
+      </blockquote>
+      <p>
+        A eso se suma que los reclamos entran por canales distintos —oficinas, distritos, Munibot— y cada persona
+        que los recibe asigna la urgencia según su propio criterio, porque no hay parámetros comunes. Un reclamo
+        con riesgo real puede quedar esperando detrás de una poda estética.
+      </p>
+    </section>
+
+    <section id="alcance">
+      <span class="sec-num">02</span>
+      <h2>Qué resuelve, y qué deja deliberadamente afuera</h2>
+      <p>
+        El sistema es una <strong>herramienta complementaria</strong>, no un reemplazo del SUA. Su universo de
+        entrada son exclusivamente las solicitudes de tipo <em>Reclamo</em> y subtipo <em>Problemas con el arbolado
+        público</em>. Nada más.
+      </p>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Entra en el alcance</th><th>Queda afuera</th></tr></thead>
+          <tbody>
+            <tr><td>Emitir el dictamen técnico desde el celular, frente al árbol</td><td>Modificar el SUA</td></tr>
+            <tr><td>Priorizar reclamos con criterio común y explicable</td><td>La ejecución de la intervención por las cuadrillas</td></tr>
+            <tr><td>Planificar rutas de inspección eficientes</td><td>Otros tipos de reclamo de Parques y Paseos</td></tr>
+            <tr><td>Responder al protocolo de tormenta</td><td>La certificación oficial de la firma digital</td></tr>
+            <tr><td>Dashboard de gestión con filtro por distrito</td><td>El circuito administrativo posterior al dictamen</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        La cuarta exclusión importa y se declara de frente: el sistema captura la firma, la vincula a la matrícula
+        del profesional, le pone sello de tiempo y la vuelve inmutable, pero <strong>no la certifica ante un
+        organismo oficial</strong>. Presentarla como firma con validez legal plena sería falso.
+      </p>
+    </section>
+
+    <section id="restriccion">
+      <span class="sec-num">03</span>
+      <h2>La restricción que ordenó toda la arquitectura</h2>
+      <p>
+        El equipo no tiene permisos sobre las bases del SUA ni sobre la autenticación institucional, y
+        <strong>la conexión real no se va a realizar</strong>. Es un trabajo académico.
+      </p>
+      <p>
+        Eso podría ser una excusa para construir cualquier cosa. Se tomó la decisión contraria: usar la restricción
+        como criterio de diseño. Si mañana alguien quisiera conectar este módulo a la infraestructura municipal,
+        todo lo que hoy resuelve la nube —base de datos, autenticación, almacenamiento de fotos— desaparece.
+      </p>
+      <p>
+        La pregunta de diseño no fue <em>«cómo guardamos los datos»</em>, sino <em>«qué tiene que pasar el día en
+        que nada de esto exista»</em>. La respuesta es que cada acceso a datos vive detrás de una interfaz, y lo
+        que se reemplaza es la pieza que la implementa.
+      </p>
+      <blockquote>
+        <p>La tecnología termina en los adaptadores.</p>
+        <p style="font-size:.9rem;color:var(--ink-2)">
+          Ni una sola referencia a un proveedor fuera de esa capa. Es una regla verificada de forma automática, no
+          una intención escrita en un documento.
+        </p>
+      </blockquote>
+    </section>
+
+    <section id="arquitectura">
+      <span class="sec-num">04</span>
+      <h2>Dónde está la línea de corte</h2>
+      <p>
+        El diseño original del documento técnico preveía dos interfaces. Al asumir que la nube se va
+        <em>entera</em>, esa premisa se cae: con solo dos adaptadores habría que reescribir toda la capa de
+        persistencia. Son <strong>doce</strong>.
+      </p>
+
+      <div class="frontera">
+        <div class="frontera-grid">
+          <div class="lado queda">
+            <h4>Queda intacto</h4>
+            <p class="sub">Reglas de negocio y casos de uso. No conocen ningún proveedor.</p>
+            <ul>
+              <li>Escalamiento de prioridad</li>
+              <li>Exclusión de intervenciones</li>
+              <li>Firma, hash y vencimiento</li>
+              <li>Balanceador de carga</li>
+              <li>Reserva de trabajo</li>
+              <li>Cálculo de eficiencia</li>
+            </ul>
+          </div>
+          <div class="lado se-va">
+            <h4>Se reemplaza</h4>
+            <p class="sub">Doce adaptadores. Cambiar de prototipo a producción es cambiar estas piezas.</p>
+            <ul>
+              <li>IReclamoProvider → SUA</li>
+              <li>IAuthProvider → directorio</li>
+              <li>IDictamenRepository</li>
+              <li>IRutaRepository</li>
+              <li>IReservaRepository</li>
+              <li>IPerfilRepository</li>
+              <li>IParametroRepository</li>
+              <li>IAuditoriaRepository</li>
+              <li>IArchivoStorage</li>
+              <li>IRuteoProvider</li>
+              <li>IRelojProvider</li>
+              <li>ICertificadoraFirma</li>
+            </ul>
+          </div>
+        </div>
+        <p class="corte">Línea de corte</p>
+      </div>
+
+      <h3>La frontera también se ve en la base de datos</h3>
+      <p>
+        La base se divide en dos esquemas. Uno contiene los reclamos tal como el SUA los entregaría y
+        <strong>se borra entero</strong> el día de la transferencia. El otro contiene lo propio del módulo y migra.
+      </p>
+      <p>
+        Esto habilita una demostración concreta: borrar el esquema simulado y mostrar que lo único que se rompe es
+        un adaptador, mientras el resto del sistema queda en pie.
+      </p>
+
+      <h3>Dos adaptadores para lo mismo, a propósito</h3>
+      <p>
+        El puerto de ruteo tiene dos implementaciones reales. Una contra un servicio de mapas comercial, escrita y
+        configurable pero <strong>sin conectar</strong> —es lo que la Municipalidad contrataría—; otra contra un
+        servicio abierto y gratuito, activa, para demostrar el funcionamiento. Se elige por parámetro, sin tocar
+        código ni volver a desplegar.
+      </p>
+    </section>
+
+    <section id="campo">
+      <span class="sec-num">05</span>
+      <h2>El trabajo se toma con señal y se ejecuta sin señal</h2>
+      <p>
+        Hay varios ingenieros trabajando en la calle al mismo tiempo, muchas veces sin conectividad. El riesgo
+        evidente es que dos evalúen el mismo árbol y uno pierda su trabajo.
+      </p>
+      <p>
+        La solución habitual sería detectar el conflicto al sincronizar y resolverlo después. Este diseño hace lo
+        contrario, y parte de una observación simple: <strong>un reclamo apunta a un único árbol</strong>. Dos
+        dictámenes sobre el mismo ejemplar no son datos a fusionar, son trabajo desperdiciado.
+      </p>
+      <p>
+        Y se puede evitar antes de que ocurra, porque pedir trabajo es por naturaleza una acción conectada: el
+        ingeniero le pide al sistema qué hacer. En ese momento la asignación queda reservada de forma exclusiva, y
+        todo lo que sigue funciona sin conexión sobre casos que nadie más puede tener.
+      </p>
+
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Acción en la calle</th><th>¿Necesita señal?</th><th>Por qué</th></tr></thead>
+          <tbody>
+            <tr><td>Tomar trabajo o planificar la ruta</td><td><strong>Sí</strong></td><td>Es pedir una asignación exclusiva</td></tr>
+            <tr><td>Ver la ruta, el mapa y los casos</td><td>No</td><td>Viajan descargados en el dispositivo</td></tr>
+            <tr><td>Cargar y firmar el dictamen</td><td>No</td><td>Nadie más puede tener ese caso</td></tr>
+            <tr><td>Sacar fotos y adjuntarlas</td><td>No</td><td>Se encolan y se envían solas</td></tr>
+            <tr><td>Dar de alta un reclamo de oficio</td><td>No</td><td>Es nuevo: nadie puede tenerlo</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Diseñado para señal mala, no solo para falta de señal</h3>
+      <p>
+        La peor condición de campo no es estar sin cobertura: es tener una barra que no transmite, donde la
+        petición no falla rápido sino que queda colgada. Un diseño que solo contempla «conectado o desconectado»
+        se rompe justo ahí.
+      </p>
+      <p>
+        Por eso la conectividad se decide por el resultado real de las peticiones y no por lo que declara el
+        navegador, y todo tiene tiempo límite. Debajo hay tres capas: el formulario se guarda solo mientras se
+        escribe —si el celular se apaga, al volver está donde estaba—; lo firmado va a una cola durable que
+        sobrevive a que se cierre el navegador; y un proceso en segundo plano la envía cuando aparece señal,
+        aunque la aplicación esté cerrada.
+      </p>
+      <blockquote>
+        <p>Nunca se le miente al usuario y nunca se pierde trabajo en silencio.</p>
+        <p style="font-size:.9rem;color:var(--ink-2)">
+          Si el dictamen está en la cola, la pantalla dice «guardado, se envía cuando haya señal», no «enviado».
+          Y si algo se rechaza, queda en una bandeja donde el ingeniero puede recuperarlo: veinte minutos de
+          trabajo frente a un árbol no se descartan solos.
+        </p>
+      </blockquote>
+    </section>
+
+    <section id="prioridad">
+      <span class="sec-num">06</span>
+      <h2>Prioridad: no inventar precisión que no existe</h2>
+      <p>
+        Cuando entra un reclamo, <strong>nadie miró el árbol todavía</strong>. El único que va a evaluarlo de
+        verdad es el ingeniero, y recién cuando llegue. Por eso la regla base es conservadora y cada excepción
+        tiene que justificarse.
+      </p>
+
+      <div class="escala">
+        <div class="nivel v"><div class="barra"></div><b>Verde</b><span>Baja. Poda de mantenimiento o estética.</span></div>
+        <div class="nivel a"><div class="barra"></div><b>Amarillo</b><span>Media. Ramas bajas, interferencia leve.</span></div>
+        <div class="nivel n"><div class="barra"></div><b>Naranja</b><span>Alta. Raíces sobre vereda, cableado crítico.</span></div>
+        <div class="nivel r"><div class="barra"></div><b>Rojo</b><span>Urgente. Rama por caer, ejemplar inclinado.</span></div>
+      </div>
+
+      <h3>Tres reglas, y gana la más alta</h3>
+      <p>
+        Todo reclamo arranca en <strong>verde</strong>. Sube si la descripción del vecino contiene señales claras
+        de riesgo, y sube si hay <strong>insistencia</strong>: varios reclamos sobre el mismo ejemplar. La
+        insistencia es la señal más confiable de las tres, porque no depende de cómo alguien redactó el texto —
+        tres personas reclamando el mismo árbol es información objetiva.
+      </p>
+      <p>
+        La regla que lee texto libre <strong>se puede desactivar</strong> sin tocar código. El relevamiento dice
+        que la calidad del dato de entrada es muy despareja, y una regla que interpreta texto se equivoca. Si el
+        área concluye que genera más ruido que valor, se apaga y el sistema sigue funcionando.
+      </p>
+      <p>
+        En todos los casos queda registrado <strong>qué disparó cada color</strong>. Un color sin explicación es un
+        color que nadie va a respetar.
+      </p>
+
+      <h3>Después escala solo, y no todos al mismo ritmo</h3>
+      <p>
+        Un reclamo sin dictaminar sube de color con el tiempo, para que los casos viejos no queden olvidados detrás
+        de los nuevos. El relevamiento propone dos meses parejos; el diseño lo afina, porque un caso de
+        interferencia con cableado no puede esperar lo mismo que una poda estética.
+      </p>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Categoría del reclamo</th><th>Escala cada</th><th>Fundamento</th></tr></thead>
+          <tbody>
+            <tr><td>Riesgo estructural — inclinado, rama colgando</td><td class="num">30 días</td><td>Riesgo directo a personas</td></tr>
+            <tr><td>Interferencia con cableado o media tensión</td><td class="num">30 días</td><td>Riesgo eléctrico y corte de servicio</td></tr>
+            <tr><td>Infraestructura — vereda, raíces, cañerías</td><td class="num">60 días</td><td>Daño patrimonial progresivo</td></tr>
+            <tr><td>Molestia u obstrucción</td><td class="num">60 días</td><td>Valor base del relevamiento</td></tr>
+            <tr><td>Poda de mantenimiento o estética</td><td class="num">90 días</td><td>Sin riesgo asociado</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="reglas">
+      <span class="sec-num">07</span>
+      <h2>Las reglas que la base impone, no que el código promete</h2>
+      <p>
+        El sistema emite documentos con validez legal. Las garantías que dependen de que un programador se acuerde
+        de chequear algo no son garantías.
+      </p>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Regla</th><th>Cómo se garantiza</th></tr></thead>
+          <tbody>
+            <tr><td>Un dictamen firmado no se modifica ni se borra</td><td>Lo impide la base. Corregir es anular y reemitir; ambos quedan</td></tr>
+            <tr><td>Un solo dictamen vigente por reclamo</td><td>Índice único sobre el par número de reclamo y año</td></tr>
+            <tr><td>Un solo ingeniero por reclamo a la vez</td><td>Índice único parcial sobre las reservas activas</td></tr>
+            <tr><td>Solo firma quien tiene matrícula registrada</td><td>Se valida contra el perfil, nunca contra lo que diga el cliente</td></tr>
+            <tr><td>Extracción excluye poda y corte de raíces</td><td>Se valida en el servidor además del navegador</td></tr>
+            <tr><td>Un rol no accede a lo que no le corresponde</td><td>Se valida en la API y otra vez en la base</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        La quinta fila enuncia un principio general del diseño: <strong>el navegador valida por comodidad, el
+        servidor valida por obligación</strong>. La coherencia de un documento legal no puede depender de que el
+        código del navegador se haya ejecutado.
+      </p>
+
+      <h3>El vencimiento tiene consecuencia</h3>
+      <p>
+        Un dictamen vence a los dieciocho meses. El documento técnico explica cómo calcular esa fecha y cómo
+        avisar, pero <strong>ningún requerimiento decía qué pasa cuando efectivamente vence</strong>. Sin
+        consecuencia, el vencimiento es decorativo.
+      </p>
+      <p>
+        La decisión: el reclamo vuelve a la cola de pendientes marcado para re-dictaminar, con el dictamen anterior
+        consultable como historial. Es lo correcto forestalmente — en dieciocho meses el ejemplar creció, se pudo
+        secar o alguien pudo intervenirlo, y la evaluación anterior ya no autoriza nada.
+      </p>
+    </section>
+
+    <section id="directivas">
+      <span class="sec-num">08</span>
+      <h2>Bajadas de línea que se pueden escribir</h2>
+      <p>
+        El requerimiento original permitía fijar qué porcentaje de cada prioridad se dictamina por jornada. En la
+        práctica una directiva de jefatura no es «sesenta por ciento urgentes»: es <em>«esta semana todo el equipo
+        a Distrito Oeste, solo casos de cableado, veinte por jornada»</em>.
+      </p>
+      <p>
+        Con solo porcentajes, la mitad de esa instrucción no se puede expresar y termina comunicándose de palabra —
+        que es exactamente la discrecionalidad que el proyecto quiere eliminar. Por eso la directiva es una entidad
+        con nombre propio, que se guarda como preset reutilizable.
+      </p>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Puede restringir</th><th>Ejemplo</th></tr></thead>
+          <tbody>
+            <tr><td>Zona</td><td>Solo Distrito Oeste, o un barrio puntual</td></tr>
+            <tr><td>Categoría</td><td>Solo interferencia con cableado</td></tr>
+            <tr><td>Prioridad</td><td>Cien por ciento urgentes</td></tr>
+            <tr><td>Protocolo</td><td>Jornada normal, o exclusivamente tormenta</td></tr>
+            <tr><td>Volumen</td><td>Veinte casos, o cuatro horas de jornada</td></tr>
+            <tr><td>Traslado</td><td>Forzar recorrido a pie en zona de alta concentración</td></tr>
+            <tr><td>Antigüedad</td><td>Solo reclamos con más de un año sin dictaminar</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Cada directiva alcanza a toda la dirección, a un distrito o a una persona, se marca como
+        <strong>obligatoria o sugerida</strong> según el caso, y tiene vigencia con fecha de fin: caduca sola, sin
+        que nadie tenga que acordarse de apagarla el lunes.
+      </p>
+      <p>
+        Y la ruta generada registra <strong>bajo qué directiva se armó</strong>. Si dentro de dos meses alguien
+        pregunta por qué se dictaminaron esos casos y no otros, la respuesta está en el dato y no en la memoria de
+        nadie.
+      </p>
+    </section>
+
+    <section id="datos">
+      <span class="sec-num">09</span>
+      <h2>Decisiones de modelo que vale la pena defender</h2>
+
+      <h3>La prioridad es nuestra, no del SUA</h3>
+      <p>
+        El SUA real <strong>no tiene matriz de priorización por colores</strong>: es una de las mejoras
+        <em>propuestas</em> en el relevamiento, no una capacidad existente. Por eso la prioridad vigente vive del
+        lado del módulo y no del lado del sistema simulado.
+      </p>
+      <p>
+        Si la guardáramos del otro lado, el prototipo estaría simulando una funcionalidad que el sistema real no
+        tiene, y el diseño se caería el día de la conexión.
+      </p>
+
+      <h3>El identificador del dictamen lo genera el celular</h3>
+      <p>
+        Parece un detalle y es lo que vuelve segura la cola offline. Si el dispositivo reintenta el envío tres
+        veces porque la señal va y viene, entra <strong>un</strong> dictamen, no tres.
+      </p>
+
+      <h3>Dos fechas, dos relojes</h3>
+      <p>
+        El dictamen se emitió frente al árbol el martes a las diez y media, aunque haya llegado al servidor el
+        miércoles. La primera es la fecha legal y desde ahí cuentan los dieciocho meses; la segunda es
+        trazabilidad. Si el reloj del celular está mal configurado, la discrepancia <strong>se registra</strong> en
+        lugar de aceptarse en silencio.
+      </p>
+
+      <h3>Las concesionarias no son usuarias</h3>
+      <p>
+        Las empresas que ejecutan las intervenciones no tienen cuenta ni acceso. Reciben un entregable que genera
+        el administrador, con lo necesario para trabajar: ubicación del ejemplar, acción autorizada, complejidad y
+        vigencia.
+      </p>
+      <p>
+        No incluye la descripción del vecino ni las fotos del reclamo. Una empresa privada no necesita saber qué
+        escribió un vecino sobre el árbol de su vereda para ir a podarlo.
+      </p>
+    </section>
+
+    <section id="verificacion">
+      <span class="sec-num">10</span>
+      <h2>Nada se da por terminado sin demostrarlo</h2>
+      <p>
+        Cada entregable se verifica con un programa que corre escenarios de punta a punta contra la base real y
+        emite una tabla de requerimiento contra resultado. No es una suite de pruebas internas: es evidencia
+        ejecutable delante de quien pregunte.
+      </p>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Escenario</th><th>Qué demuestra</th></tr></thead>
+          <tbody>
+            <tr><td>Adelantar el reloj catorce meses</td><td>El escalamiento y el vencimiento, sin esperar catorce meses</td></tr>
+            <tr><td>Dos usuarios piden el mismo reclamo a la vez</td><td>Que la reserva es exclusiva de verdad</td></tr>
+            <tr><td>Enviar el mismo dictamen tres veces</td><td>Que no entran tres</td></tr>
+            <tr><td>Firmar sin matrícula</td><td>Que el bloqueo existe</td></tr>
+            <tr><td>Un rol de solo lectura llamando a la API operativa</td><td>Mínimo privilegio real, no botones ocultos</td></tr>
+            <tr><td>Cambiar el proveedor de mapas en caliente</td><td>Que el desacoplamiento no es una promesa</td></tr>
+            <tr><td>Recorrer el código buscando referencias prohibidas</td><td>Que la regla de arquitectura no se erosiona sola</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        El primero justifica una decisión que de otro modo parecería excesiva: que el reloj sea también un
+        adaptador. Sin eso, las dos reglas temporales del sistema serían imposibles de verificar.
+      </p>
+    </section>
+
+    <section id="avance">
+      <span class="sec-num">11</span>
+      <h2>Estado de avance</h2>
+      <div class="aviso">
+        <h4>Todo lo listado está diseñado. Nada está funcionando.</h4>
+        <p>
+          A la fecha de este documento no hay una sola línea de código de producción escrita. Se distingue de
+          forma explícita para que nadie confunda una decisión de diseño con una función disponible.
+        </p>
+      </div>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Módulo</th><th>Diseño</th><th>Construido</th></tr></thead>
+          <tbody>
+            <tr><td>Arquitectura y puertos</td><td><span class="chip dis">Diseñado</span></td><td><span class="chip no">No</span></td></tr>
+            <tr><td>Modelo de datos y permisos</td><td><span class="chip dis">Diseñado</span></td><td><span class="chip no">No</span></td></tr>
+            <tr><td>Reglas de negocio</td><td><span class="chip dis">Diseñado</span></td><td><span class="chip no">No</span></td></tr>
+            <tr><td>Contrato de la API</td><td><span class="chip dis">Diseñado</span></td><td><span class="chip no">No</span></td></tr>
+            <tr><td>Trabajo sin conexión</td><td><span class="chip dis">Diseñado</span></td><td><span class="chip no">No</span></td></tr>
+            <tr><td>Seguridad y privacidad</td><td><span class="chip dis">Diseñado</span></td><td><span class="chip no">No</span></td></tr>
+            <tr><td>Directivas de jornada</td><td><span class="chip dis">Diseñado</span></td><td><span class="chip no">No</span></td></tr>
+            <tr><td>Datos de prueba y verificación</td><td><span class="chip dis">Diseñado</span></td><td><span class="chip no">No</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Qué sigue</h3>
+      <p>
+        Aprobación del diseño, y después construcción por módulos en orden de dependencia: autenticación y roles,
+        reclamos con sus filtros, dictamen de punta a punta, rutas con balanceador, protocolo de tormenta,
+        dashboard, panel de administración y sincronización. Cada uno cierra con su escenario de verificación en
+        verde.
+      </p>
+    </section>
+
+    <section id="desvios">
+      <span class="sec-num">12</span>
+      <h2>Dónde nos apartamos del documento entregado</h2>
+      <p>
+        Un desvío no documentado es una pregunta sin respuesta. Estos son los ocho, con la aclaración de cuáles
+        conviene incorporar al documento técnico antes de la entrega final.
+      </p>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr><th>Desvío</th><th>Motivo</th><th>¿Corregir el documento?</th></tr></thead>
+          <tbody>
+            <tr><td>Doce adaptadores, no dos</td><td>La nube se va entera, no solo los conectores externos</td><td>Sí</td></tr>
+            <tr><td>Diez minutos por dictamen</td><td>El prototipo usaba siete, contra el requerimiento</td><td>No — el documento estaba bien</td></tr>
+            <tr><td>La prioridad vive del lado del módulo</td><td>El SUA real no tiene matriz de priorización</td><td>Sí</td></tr>
+            <tr><td>Reserva de trabajo previa</td><td>El documento no contemplaba el choque entre ingenieros</td><td>Sí</td></tr>
+            <tr><td>El vencimiento devuelve el reclamo a la cola</td><td>Ningún requerimiento decía qué pasa al vencer</td><td>Sí — es un requerimiento faltante</td></tr>
+            <tr><td>Una sola aplicación, no dos</td><td>Había una app paralela que contradecía la documentación</td><td>No — se corrigió el repositorio</td></tr>
+            <tr><td>Las directivas restringen más que la prioridad</td><td>Así se dirige el trabajo realmente</td><td>Sí</td></tr>
+            <tr><td>Prioridad media en amarillo</td><td>El prototipo la pintaba de azul, contra la escala del relevamiento</td><td>No — se corrige el prototipo</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="colofon">
+    <p>
+      <strong>Sistema de Dictaminado y Rutas Eficientes</strong> · Dirección Técnica de Arbolado, Dirección General
+      de Parques y Paseos, Municipalidad de Rosario.
+    </p>
+    <p>
+      Práctica Profesionalizante II — Tecnicatura Superior en Análisis Funcional de Sistemas, Terciario Urquiza.
+      Boubonis, Maschio, Pizzicatti y Villega. Docente: Pedernera.
+    </p>
+    <p>
+      Hito 1 de 5 — diseño. Este documento se actualiza en cada corte y nunca presenta como funcionando algo que
+      solo está diseñado.
+    </p>
+  </footer>
+
+</div>

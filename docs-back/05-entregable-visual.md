@@ -1,6 +1,9 @@
 # Entregable visual por progreso
 
-> Última actualización: 18/08/2026 · Estado: **planificado, no construido**
+> Última actualización: 18/08/2026 · Estado: **H1 publicado**
+>
+> **H1 en vivo:** <https://claude.ai/code/artifact/797fd3f0-1af9-4310-893a-f02397dca478>
+> Fuente versionada en `entregables/h1-dossier.html`. Republicar ese archivo actualiza la misma URL.
 > Se construye cuando haya sustancia real que mostrar. Un entregable visual sin contenido detrás es una maqueta, y una maqueta no defiende un trabajo.
 
 ---
@@ -34,7 +37,7 @@ Lo que está diseñado pero no construido se muestra **marcado como diseñado**,
 
 ## 4. Hitos
 
-**H1 — Diseño cerrado.** Arquitectura, modelo de datos y reglas aprobados. La página sale completa en su parte conceptual, con el avance en cero. Es lo que se muestra si la fecha de entrega llega antes que el código: un análisis completo y defendible, que es exactamente lo que se evalúa en una tecnicatura de análisis funcional.
+**H1 — Diseño cerrado. PUBLICADO el 18/08 para el corte del viernes 21/08.** Arquitectura, modelo de datos y reglas aprobados. La página sale completa en su parte conceptual, con el avance en cero. Es lo que se muestra si la fecha de entrega llega antes que el código: un análisis completo y defendible, que es exactamente lo que se evalúa en una tecnicatura de análisis funcional.
 
 **H2 — Base y autenticación.** Esquema desplegado, usuarios de prueba, primeros escenarios del driver en verde. Aparece la sección de evidencia con salida real.
 

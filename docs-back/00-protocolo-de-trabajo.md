@@ -95,7 +95,7 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | Panel de administrador | — | — | — | — |
 | Sincronización offline | — | — | — | — |
 | Directivas de jornada | **listo** | pendiente | — | — |
-| Entregable visual | **planificado** | pendiente | — | — |
+| Entregable visual | **H1 publicado** | pendiente | — | — |
 | Driver de escenarios | — | — | — | — |
 
 ## 8. Decisiones cerradas
@@ -135,6 +135,7 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | D-31 | Se diseña para el peor caso: el SUA entrega **solo texto libre**. Si aparece un motivo categorizado, el diseño sigue sirviendo | 18/08 |
 | D-32 | **Cortes académicos semanales.** Próximo: viernes 21/08/2026. H1 (diseño + entregable visual) debe estar listo antes | 18/08 |
 | D-33 | La app Expo con Firebase **se eliminó de la rama** el 18/08. El front queda como `index.html` + `login.html`, autocontenidos | 18/08 |
+| D-34 | El backend usa la escala de colores documentada (verde/**amarillo**/naranja/rojo). El front tiene azul en prioridad media y hay que corregirlo: es un cambio de una línea | 18/08 |
 
 ## 9. Preguntas abiertas
 

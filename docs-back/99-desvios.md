@@ -90,3 +90,17 @@ Existe porque el documento se entrega y se defiende. Un desvío no documentado e
 **Por qué.** En la práctica una bajada de línea no es "60% urgentes": es "esta semana todo el equipo a Distrito Oeste, solo casos de cableado, veinte por jornada". Con solo porcentajes por prioridad, la mitad de esa directiva no se puede expresar y termina comunicándose de palabra, que es exactamente el problema de discrecionalidad que el proyecto quiere resolver.
 
 **¿Corregir el `.docx`?** **Sí.** Conviene reescribir RF-24 y sumar la entidad al MER. Es material fuerte para la defensa: muestra que el diseño escuchó cómo se dirige el trabajo realmente, en vez de quedarse con la primera formulación del requerimiento.
+
+---
+
+## DV-08 — La prioridad media es amarilla, no azul
+
+**Qué dice el relevamiento.** La minuta define una escala de cuatro niveles representados por colores: verde (baja), **amarillo (media)**, naranja (alta) y rojo (urgente).
+
+**Qué hay en el front.** `index.html` define `--medium: #3b82f6`, que es azul, y `--low: #10b981`, que es verde esmeralda. La escala real que se ve en pantalla es verde-azul-naranja-rojo.
+
+**Qué hacemos.** El backend usa la escala documentada. El front tiene que corregir el token de prioridad media a amarillo.
+
+**Por qué importa.** No es un detalle estético. La escala de colores es la mejora central que propone el relevamiento para estandarizar la priorización, y un azul en el medio rompe la lectura de semáforo que la vuelve intuitiva: verde-amarillo-naranja-rojo se entiende sin leyenda, verde-azul-naranja-rojo no.
+
+**¿Corregir el `.docx`?** No. Se corrige el front, cambiando una variable de color. Es el único cambio de front identificado hasta ahora, y es de una línea.
