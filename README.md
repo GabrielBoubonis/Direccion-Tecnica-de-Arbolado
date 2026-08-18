@@ -14,7 +14,7 @@ Trabajo final de **Práctica Profesionalizante II** — Tecnicatura Superior en 
 | --- | --- |
 | Documentación técnica y relevamiento | Completa |
 | Front (prototipo estático responsive) | Funcional con datos simulados en memoria |
-| Backend, base de datos y adaptadores | **En diseño** — sin código todavía |
+| Backend, base de datos y adaptadores | **Diseño completo** — pendiente de aprobación, sin código todavía |
 
 El backend está en **fase de diseño**. No hay código de producción escrito, y no lo habrá hasta que el diseño esté aprobado. Ver [`docs-back/00-protocolo-de-trabajo.md`](docs-back/00-protocolo-de-trabajo.md).
 
@@ -78,7 +78,11 @@ Detalle en [`docs-back/01-arquitectura.md`](docs-back/01-arquitectura.md).
 │   ├── 01-arquitectura.md            Puertos, adaptadores y principio de campo
 │   ├── 02-modelo-de-datos.md         Esquemas, entidades, RLS y storage
 │   ├── 03-reglas-de-negocio.md       Prioridad, escalamiento, firma, balanceador, directivas
-│   ├── 05-entregable-visual.md       Plan del entregable academico por hitos
+│   ├── 04-contrato-api.md            La frontera estable que ve el front
+│   ├── 05-entregable-visual.md       Plan del entregable académico por hitos
+│   ├── 06-offline-y-sincronizacion.md  Trabajo de campo sin señal
+│   ├── 07-seguridad-y-privacidad.md  Datos personales, integridad y secretos
+│   ├── 08-datos-semilla-y-driver.md  Seed reproducible y escenarios de verificación
 │   └── 99-desvios.md                 Qué hacemos distinto del .docx y por qué
 └── CLAUDE.md              Contexto del proyecto y reglas de negocio
 ```

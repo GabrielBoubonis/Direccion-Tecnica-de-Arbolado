@@ -82,6 +82,10 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | Arquitectura y puertos | **listo** | pendiente | — | — |
 | Modelo de datos y RLS | **listo** | pendiente | — | — |
 | Reglas de negocio | **listo** | pendiente | — | — |
+| Contrato de API | **listo** | pendiente | — | — |
+| Sincronización offline | **listo** | pendiente | — | — |
+| Seguridad y privacidad | **listo** | pendiente | — | — |
+| Datos semilla | **listo** | pendiente | — | — |
 | Autenticación y roles | — | — | — | — |
 | Reclamos y filtros | — | — | — | — |
 | Dictamen técnico | — | — | — | — |
