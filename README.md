@@ -116,7 +116,18 @@ Detalle completo en [`docs/01-documentacion-tecnica.md`](docs/01-documentacion-t
 4. **Siempre commit**, uno por entregable.
 5. **El front no se pisa.** Se le migra lógica al backend, pero su comportamiento visible no cambia.
 
-El protocolo completo, con la definición de terminado, las decisiones cerradas y las preguntas abiertas, está en [`docs-back/00-protocolo-de-trabajo.md`](docs-back/00-protocolo-de-trabajo.md).
+El protocolo completo, con la definición de terminado y las decisiones cerradas, está en [`docs-back/00-protocolo-de-trabajo.md`](docs-back/00-protocolo-de-trabajo.md).
+
+---
+
+## Entregables
+
+| Documento | Para quién |
+| --- | --- |
+| [`entregables/h1-dossier.html`](entregables/h1-dossier.html) | Dossier de diseño del hito 1, para el docente y el equipo |
+| [`entregables/preguntas-abiertas.html`](entregables/preguntas-abiertas.html) | Las 22 preguntas por resolver, agrupadas por quién puede responderlas |
+
+Ambos se publican como página web compartible por link. Republicar el mismo archivo actualiza la misma dirección: no se genera un enlace nuevo en cada corte.
 
 ---
 

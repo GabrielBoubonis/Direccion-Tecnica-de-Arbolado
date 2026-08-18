@@ -139,7 +139,16 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 
 ## 9. Preguntas abiertas
 
-Se listan acá y se van cerrando; cada una que se cierra pasa a la tabla de decisiones.
+Las cerradas quedan abajo. **Las abiertas viven en un documento aparte, pensado para compartir con el equipo:**
+
+- Fuente: `entregables/preguntas-abiertas.html`
+- En vivo: <https://claude.ai/code/artifact/0c975d13-c851-4ad3-9070-19a3e7f55b96>
+
+Son 22, agrupadas por quién puede responderlas: 12 de relevamiento puro (Dirección Técnica), 4 de verificación técnica (CIL/SUA), 4 decisiones del equipo y 2 consultas al docente. Cada una indica de dónde sale, qué implica cada respuesta, qué supuesto tomamos mientras tanto y qué habría que corregir del `.docx` y en qué sección.
+
+Las tres críticas: **A-02** (dirección de la sede, sin ella las rutas son inventadas), **A-03** (si la etiqueta de tormenta existe o es propuesta nuestra) y **B-01** (si el SUA acepta que un sistema externo le escriba — de esto depende el beneficio principal del trabajo).
+
+Se van cerrando ahí; cada una que se cierra pasa a la tabla de decisiones de acá arriba.
 
 | # | Pregunta | Estado |
 | --- | --- | --- |
@@ -151,10 +160,3 @@ Se listan acá y se van cerrando; cada una que se cierra pasa a la tabla de deci
 | P-06 | ¿Qué pasa con los reclamos no visitados al cerrar la jornada? | **cerrada** → D-24 |
 | P-07 | ¿Quién es el rol Lector en la práctica? | **cerrada** → D-26 |
 | P-08 | ¿Qué es la "zona" al planificar una ruta? | **cerrada** → D-25 |
-| P-09 | ¿El SUA trae el motivo del reclamo ya categorizado, o solo texto libre? | **a confirmar con Gabriel/CIL** — se diseña para texto libre (D-31) |
-| P-10 | ¿Las señales de riesgo propuestas coinciden con cómo escriben realmente los vecinos en el SUA? | abierta |
-| P-11 | ¿Qué campos lleva el entregable para concesionarias y en qué formato se entrega? | abierta |
-| P-12 | ¿Qué se hace con la app Expo con Firebase? | **cerrada** → D-33, eliminada |
-| P-13 | ¿Las directivas son obligatorias o sugeridas? | **cerrada** → D-30 |
-| P-14 | ¿Fechas de los cortes académicos? | **cerrada** → D-32, semanales |
-| P-15 | ¿Hay que avisarle al equipo que se eliminó la app Expo de esta rama, antes de que Gabriel o Alejandro la busquen? | abierta |
