@@ -21,6 +21,8 @@ Sigue vigente el "preguntame todo, no asumas" **para el qué**: alcance, reglas 
 
 **Fase 1 — Diseño (actual).** No se escribe una sola línea de código de producción. Los entregables son documentos. Termina cuando Lucas aprueba el diseño completo.
 
+Tiene **dos mitades, las dos escritas**: el diseño funcional —el *qué* y el *porqué*— en `docs-back/0X-*.md`, y el diseño técnico —el *cómo*— en `docs-back/tecnico/T0` a `T13`. El índice de la segunda está en `docs-back/tecnico/T0-indice.md`.
+
 **Fase 2 — Desarrollo.** Se implementa por módulos, en orden de dependencia. Ningún módulo arranca sin su diseño aprobado.
 
 Excepción admitida en Fase 1: preparar infraestructura vacía (crear el proyecto Supabase) y escribir el driver, porque son herramientas de verificación, no producto.
@@ -99,7 +101,8 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | Pre-confirmación de jornada | **listo** | pendiente | — | — |
 | Configuración de firma digital | **listo** | pendiente | — | — |
 | Entregable visual | **H1 publicado** | pendiente | — | — |
-| Driver de escenarios | — | — | — | — |
+| Driver de escenarios | **listo** | pendiente | — | — |
+| **Diseño técnico (T1–T13)** | **listo** | pendiente | — | — |
 
 ## 8. Decisiones cerradas
 

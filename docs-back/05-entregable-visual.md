@@ -3,6 +3,8 @@
 > Última actualización: 18/08/2026 · Estado: **H1 publicado**
 >
 > **H1 en vivo:** <https://claude.ai/code/artifact/797fd3f0-1af9-4310-893a-f02397dca478>
+> **Diseño técnico en vivo:** <https://claude.ai/code/artifact/d6a7c26d-3301-4bc7-afa7-276a6014f5f6>
+> **Preguntas abiertas en vivo:** <https://claude.ai/code/artifact/0c975d13-c851-4ad3-9070-19a3e7f55b96>
 > Fuente versionada en `entregables/h1-dossier.html`. Republicar ese archivo actualiza la misma URL.
 > Se construye cuando haya sustancia real que mostrar. Un entregable visual sin contenido detrás es una maqueta, y una maqueta no defiende un trabajo.
 

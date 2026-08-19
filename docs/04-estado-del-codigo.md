@@ -1,5 +1,10 @@
 # Estado del código — rama `VillegaBackBranch`
 
+> **⚠ Documento desactualizado a propósito, al 19/08/2026.**
+> Describe el estado del repositorio **antes** del 18/08. Desde entonces: la app Expo / React Native con Firebase **se eliminó de la rama** (D-33, DV-06), el front quedó reducido a `index.html` + `login.html` autocontenidos, y el diseño del backend se completó en `docs-back/` y `docs-back/tecnico/`.
+> Se conserva sin reescribir porque es el **relevamiento de código original**, y como tal es evidencia del análisis: muestra qué se encontró y por qué se decidió lo que se decidió. Reescribirlo borraría ese recorrido.
+> El estado vigente está en `README.md` y en `docs-back/tecnico/T13-plan-de-implementacion.md`.
+
 Repo: <https://github.com/GabrielBoubonis/Direccion-Tecnica-de-Arbolado>
 Rama de trabajo: `VillegaBackBranch` (clonada en `Direccion-Tecnica-de-Arbolado/`).
 Ramas existentes: `main`, `VillegaBackBranch`, `Alemaschio-Front-Test`.

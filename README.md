@@ -14,7 +14,7 @@ Trabajo final de **Práctica Profesionalizante II** — Tecnicatura Superior en 
 | --- | --- |
 | Documentación técnica y relevamiento | Completa |
 | Front (prototipo estático responsive) | Funcional con datos simulados en memoria |
-| Backend, base de datos y adaptadores | **Diseño completo** — pendiente de aprobación, sin código todavía |
+| Backend, base de datos y adaptadores | **Diseño funcional y técnico completos** — pendiente de aprobación, sin código todavía |
 
 El backend está en **fase de diseño**. No hay código de producción escrito, y no lo habrá hasta que el diseño esté aprobado. Ver [`docs-back/00-protocolo-de-trabajo.md`](docs-back/00-protocolo-de-trabajo.md).
 
@@ -83,9 +83,26 @@ Detalle en [`docs-back/01-arquitectura.md`](docs-back/01-arquitectura.md).
 │   ├── 06-offline-y-sincronizacion.md  Trabajo de campo sin señal
 │   ├── 07-seguridad-y-privacidad.md  Datos personales, integridad y secretos
 │   ├── 08-datos-semilla-y-driver.md  Seed reproducible y escenarios de verificación
-│   └── 99-desvios.md                 Qué hacemos distinto del .docx y por qué
+│   ├── 99-desvios.md                 Qué hacemos distinto del .docx y por qué
+│   └── tecnico/                      EL CÓMO: diseño técnico completo
+│       ├── T0-indice.md                  Mapa de la carpeta y cómo leerla
+│       ├── T1-estructura-y-convenciones.md  Carpetas, nombres, errores, config, tiempos
+│       ├── T2-puertos.md                 Las 13 interfaces con su firma exacta
+│       ├── T3-nucleo-dominio.md          Entidades y funciones puras del negocio
+│       ├── T4-casos-de-uso.md            Cada operación paso a paso
+│       ├── T5-esquema-sql.md             DDL completo, índices, triggers y RLS
+│       ├── T6-api-http.md                Endpoints con petición y respuesta reales
+│       ├── T7-ruteo-y-geocodificacion.md Ruta, balanceador y punto en el mapa
+│       ├── T8-offline.md                 Service Worker, cola durable y precarga
+│       ├── T9-jobs-y-reloj.md            Trabajos programados y reloj inyectable
+│       ├── T10-seguridad-tecnica.md      Token, RLS, storage, auditoría, retención
+│       ├── T11-driver-de-escenarios.md   El verificador ejecutable en la defensa
+│       ├── T12-integracion-del-front.md  Del mock al SDK sin cambiar lo que se ve
+│       └── T13-plan-de-implementacion.md Orden de construcción y datos semilla
 └── CLAUDE.md              Contexto del proyecto y reglas de negocio
 ```
+
+**`docs-back/` responde el qué y el porqué; `docs-back/tecnico/` responde el cómo.** Cada documento técnico se puede leer solo, así que se repiten definiciones entre ellos a propósito: quien implemente rutas no debería tener que leer los catorce archivos para saber qué recibe y qué devuelve.
 
 Cuando arranque la Fase 2 se suman `backend/` (núcleo, casos de uso y adaptadores), `supabase/` (migraciones, políticas RLS y seeds) y `driver/` (escenarios de verificación).
 
@@ -97,12 +114,14 @@ Cuando arranque la Fase 2 se suman `backend/` (núcleo, casos de uso y adaptador
 - **Clave de un reclamo**: el par **(N° SUA, año)**. Es el primer paso obligatorio del dictamen (RF-12).
 - **Prioridad por colores**: verde → amarillo → naranja → rojo. Arranca en verde y sube por señales de riesgo en el texto o por insistencia del vecino; después escala sola con el tiempo, más rápido en las categorías de riesgo (RF-11).
 - **Intervenciones excluyentes** (RF-14): extracción bloquea poda y corte de raíces, y viceversa.
-- **Firma digital** (RF-18): solo un Operario **con matrícula registrada**. Al firmar, el dictamen queda inmutable, con sello de tiempo y hash (RF-19, RNF-06).
+- **Firma digital** (RF-18): **firmar es atributo del rol** — firman Operario y Jefe, los dos que van a la calle. El Administrador es personal del CIL: configura la firma pero no la ejerce. Al firmar, el dictamen queda inmutable, con sello de tiempo, legajo, rol y hash (RF-19, RNF-06). Contradice RF-02, RF-18 y RF-19 como están escritos, y está documentado en `docs-back/99-desvios.md` (DV-10).
 - **Vencimiento del dictamen**: 18 meses desde la emisión.
 - **Rutas** (RF-21→27): parten y vuelven a Parques y Paseos, con tiempo por dictamen configurable y balanceador de prioridades.
 - **Protocolo de tormenta** (RF-28→30): visible solo si hay casos, últimos 3 días, todos con la misma prioridad.
-- **Roles**: Lector (consulta ejecutiva del dashboard), Operario (operativo; firma solo con matrícula), Administrador (usuarios, roles, adaptadores, parámetros y directivas de jornada). Las concesionarias no son usuarias: reciben un export que solo genera el Administrador.
-- **Bajadas de línea**: el Administrador baja directivas de jornada que restringen zona, categoría, prioridad, protocolo, volumen y traslado, con vigencia que caduca sola (RF-24 ampliado).
+- **Roles**: Lector (consulta ejecutiva del dashboard), Operario (operativo, firma), Jefe (operario + ve el trabajo del equipo y baja directivas), Administrador (personal del CIL: usuarios, roles, adaptadores, parámetros y firma digital; no dictamina ni firma). Las concesionarias no son usuarias: reciben un export que solo genera el Administrador.
+- **Bajadas de línea**: el Jefe y el Administrador bajan directivas de jornada que restringen zona, categoría, prioridad, protocolo, volumen y traslado, con vigencia que caduca sola (RF-24 ampliado).
+- **La jornada se pre-confirma**: el ingeniero define horas o casos, **el sistema reserva ahí mismo**, y recién después ajusta sin apuro —corregir puntos del mapa, sacar casos, corregir categoría— antes de confirmar y salir. Reservar primero es lo que vuelve gratis la revisión.
+- **El SUA no tiene coordenadas**: solo la dirección escrita del ejemplar. Geocodificar es trabajo del módulo, con precisión declarada y punto corregible por el ingeniero.
 
 Detalle completo en [`docs/01-documentacion-tecnica.md`](docs/01-documentacion-tecnica.md).
 
@@ -125,7 +144,8 @@ El protocolo completo, con la definición de terminado y las decisiones cerradas
 | Documento | Para quién |
 | --- | --- |
 | [`entregables/h1-dossier.html`](entregables/h1-dossier.html) | Dossier de diseño del hito 1, para el docente y el equipo |
-| [`entregables/preguntas-abiertas.html`](entregables/preguntas-abiertas.html) | Las 22 preguntas por resolver, agrupadas por quién puede responderlas |
+| [`entregables/preguntas-abiertas.html`](entregables/preguntas-abiertas.html) | Las 22 preguntas por resolver, con las 16 ya respondidas y qué cambió con cada una |
+| [`entregables/dossier-tecnico.html`](entregables/dossier-tecnico.html) | **El diseño técnico completo**, para entregar al docente |
 
 Ambos se publican como página web compartible por link. Republicar el mismo archivo actualiza la misma dirección: no se genera un enlace nuevo en cada corte.
 
