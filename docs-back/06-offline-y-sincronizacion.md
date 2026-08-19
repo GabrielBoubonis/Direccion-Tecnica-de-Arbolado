@@ -19,7 +19,14 @@ El diseño no asume "a veces se cae internet". Asume todo esto, porque todo esto
 
 La peor de todas no es la falta de señal: es la **señal mala**, donde la petición no falla rápido sino que queda colgada. Un diseño que solo contempla "online u offline" se rompe justo ahí.
 
-iOS queda fuera del alcance por condición de proyecto admitida, lo que permite usar Background Sync sin necesidad de un plan B.
+### El dispositivo es provisto, y eso importa
+
+En la calle no usan el celular propio: la Municipalidad entrega un equipo al que llaman **captor**, con los datos móviles incluidos y pagos por la repartición (A-04, A-05). Dos consecuencias de diseño:
+
+- **El parque de dispositivos es conocido y homogéneo.** No hay que diseñar para "cualquier celular que traiga cada uno". Si el captor es Android —falta confirmarlo—, la sincronización en segundo plano funciona como está diseñada y iOS queda fuera del alcance por una condición **real**, no por un supuesto de conveniencia.
+- **El costo de los datos no es del ingeniero.** Aun así las fotos se comprimen igual, y no por ahorrar plata: se comprimen porque **subir menos bytes con una barra de señal es la diferencia entre que el envío entre o quede colgado**. El cuello de botella en campo es la señal, no la factura.
+
+Como el plan de datos lo paga la repartición, sí se aprovecha para lo contrario: al planificar la jornada **con conexión**, se precarga todo lo que el ingeniero va a necesitar sin señal —reclamos reservados, geometría de la ruta, parámetros vigentes, catálogo de especies—, en vez de racionar la descarga.
 
 ---
 

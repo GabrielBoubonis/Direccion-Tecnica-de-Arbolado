@@ -1,7 +1,7 @@
 # Protocolo de trabajo — Backend Arbolado
 
 > Documento vivo. Se actualiza cada vez que cambia una regla, en el mismo commit que el cambio.
-> Última actualización: 18/08/2026 · Rama: `VillegaBackBranch`
+> Última actualización: 19/08/2026 · Rama: `VillegaBackBranch`
 
 ## 0. Reparto de roles
 
@@ -95,6 +95,7 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | Panel de administrador | — | — | — | — |
 | Sincronización offline | — | — | — | — |
 | Directivas de jornada | **listo** | pendiente | — | — |
+| Geocodificación de reclamos | **listo** | pendiente | — | — |
 | Entregable visual | **H1 publicado** | pendiente | — | — |
 | Driver de escenarios | — | — | — | — |
 
@@ -136,6 +137,20 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | D-32 | **Cortes académicos semanales.** Próximo: viernes 21/08/2026. H1 (diseño + entregable visual) debe estar listo antes | 18/08 |
 | D-33 | La app Expo con Firebase **se eliminó de la rama** el 18/08. El front queda como `index.html` + `login.html`, autocontenidos | 18/08 |
 | D-34 | El backend usa la escala de colores documentada (verde/**amarillo**/naranja/rojo). El front tiene azul en prioridad media y hay que corregirlo: es un cambio de una línea | 18/08 |
+| D-35 | **Dotación real: 4 ingenieros dictaminan en campo hoy**, con intención de escalar a uno por distrito (6). La reserva sigue justificada y el seed se dimensiona para ese equipo (A-01) | 19/08 |
+| D-36 | **La sede es Moreno 2350.** Origen y regreso de toda ruta (RF-22). Se geocodifica una vez, se verifica a ojo contra el mapa y queda fija en parámetros (A-02) | 19/08 |
+| D-37 | **La etiqueta de tormenta no existe todavía**: la tiene que agregar el CIL en el SUA. El adaptador la lee igual, y mientras tanto la marca el Administrador sobre reclamos existentes o el ingeniero al dar de alta en campo (A-03) → DV-09 | 19/08 |
+| D-38 | **El dispositivo es provisto por la Municipalidad** (le dicen *captor*) y los datos móviles los paga la repartición. Se comprimen las fotos igual —por señal mala, no por costo— y se aprovecha para precargar la jornada entera al planificar (A-04, A-05) | 19/08 |
+| D-39 | **La especie se escribe a mano.** Texto libre con autocompletado y normalización contra un catálogo interno; si no matchea, no se sugiere época en vez de inventarla (A-06) → DV-14 | 19/08 |
+| D-40 | **La matrícula se reemplaza por la habilitación para firmar**, con respaldo (título presentado en RRHH), fecha y administrador que la cargó. No se valida un formato que nadie sabe describir (A-07) → DV-10 | 19/08 |
+| D-41 | **El número de reclamo son dos campos separados**: se elige el año y se busca el número dentro de ese año. El selector ofrece el año en curso y los diez anteriores, configurable (A-08) | 19/08 |
+| D-42 | **Existe rol `jefe`**: operario completo —dictamina y firma— más ver el trabajo del equipo y bajar directivas. No administra el sistema (A-09) → DV-11 | 19/08 |
+| D-43 | **La complejidad se sugiere por diámetro y altura**, con los cortes en tabla. El sistema convierte perímetro a diámetro. **Apagada** hasta tener los cortes reales (A-10) → DV-15 | 19/08 |
+| D-44 | El re-dictaminado a los 18 meses **lo confirmó la repartición**: deja de ser deducción del diseño y pasa a ser el circuito real (A-11) | 19/08 |
+| D-45 | **El SUA acepta que un sistema externo cambie el estado de una solicitud**, cedidos los permisos por sus administradores. El beneficio central del trabajo se sostiene entero (B-01) | 19/08 |
+| D-46 | **El SUA no tiene coordenadas**: solo la dirección escrita del ejemplar. Se agrega el puerto `IGeocodificador` y la tabla `reclamo_geo`, con precisión declarada y punto corregible en campo (B-02) → DV-12 | 19/08 |
+| D-47 | **El motivo es solo texto libre.** La categoría se infiere, se marca como inferida y **el ingeniero puede corregirla**; el ritmo de escalamiento usa la categoría corregida (B-03) | 19/08 |
+| D-48 | **La credencial es un usuario de red** con la forma `gboubon0`. D-09 lo había previsto: no se rehace nada, cambia la etiqueta del login. Los usuarios de prueba usan el formato real con personas inventadas (B-04) → DV-13 | 19/08 |
 
 ## 9. Preguntas abiertas
 
@@ -146,9 +161,31 @@ Las cerradas quedan abajo. **Las abiertas viven en un documento aparte, pensado 
 
 Son 22, agrupadas por quién puede responderlas: 12 de relevamiento puro (Dirección Técnica), 4 de verificación técnica (CIL/SUA), 4 decisiones del equipo y 2 consultas al docente. Cada una indica de dónde sale, qué implica cada respuesta, qué supuesto tomamos mientras tanto y qué habría que corregir del `.docx` y en qué sección.
 
-Las tres críticas: **A-02** (dirección de la sede, sin ella las rutas son inventadas), **A-03** (si la etiqueta de tormenta existe o es propuesta nuestra) y **B-01** (si el SUA acepta que un sistema externo le escriba — de esto depende el beneficio principal del trabajo).
+### Estado al 19/08: contestaron los grupos A y B
 
-Se van cerrando ahí; cada una que se cierra pasa a la tabla de decisiones de acá arriba.
+De las 22, quedan **6 abiertas**. Las cuatro críticas se cerraron, y las tres que definían el planteo del trabajo salieron a favor:
+
+- **B-01 — el SUA acepta escritura externa** con los permisos cedidos. El argumento central del proyecto (eliminar la transcripción manual del papel al SUA) se sostiene entero.
+- **A-02 — la sede es Moreno 2350.** Las rutas dejan de partir de un punto inventado.
+- **A-03 — la etiqueta de tormenta no existe**: la tiene que agregar el CIL. Pasa de integración a mejora propuesta con dependencia externa, y el módulo necesita funcionar sin ella (DV-09).
+
+Dos respuestas obligaron a rediseñar, no solo a confirmar: **A-07** (se cae la matrícula, entra la habilitación registrada) y **B-02** (el SUA no tiene coordenadas, así que geocodificar es trabajo del módulo y aparece un puerto nuevo). Una tercera, **A-09**, agrega un rol que el documento no tenía y que sus propias historias de usuario ya usaban.
+
+**B-04 es la mejor evidencia de que el desacoplamiento sirve**: el supuesto era "correo institucional", la respuesta fue "usuario de red", y no hubo que rehacer nada porque el puerto recibía un identificador opaco (D-09).
+
+### Lo que sigue abierto
+
+| # | Qué falta | Por qué importa |
+| --- | --- | --- |
+| A-04 bis | Si el *captor* es Android | Si lo es, iOS queda fuera del alcance por una condición real y no por conveniencia |
+| A-10 bis | Los cortes de diámetro y altura de cada nivel de complejidad | Sin ellos la sugerencia de RF-15 queda apagada |
+| A-12 | Diez o quince descripciones reales de reclamos | Ahora pesa el doble: de esas señales sale la prioridad **y** la categoría (B-03) |
+| C-01 | Qué lleva el entregable para concesionarias y en qué formato | Es funcionalidad nueva, hay que redactarla como requerimiento |
+| C-02 | Cuánto se guarda el historial de recorridos | Es un registro de movimientos de un trabajador |
+| C-03 | Dónde se guardan las contraseñas de los usuarios de prueba | Al repositorio no van |
+| D-01 · D-02 | Cómo presentar los desvíos y qué espera el docente en cada corte | Forma de la entrega |
+
+C-04 quedó resuelta de hecho: la app Expo ya se eliminó de la rama (D-33).
 
 | # | Pregunta | Estado |
 | --- | --- | --- |
@@ -160,3 +197,19 @@ Se van cerrando ahí; cada una que se cierra pasa a la tabla de decisiones de ac
 | P-06 | ¿Qué pasa con los reclamos no visitados al cerrar la jornada? | **cerrada** → D-24 |
 | P-07 | ¿Quién es el rol Lector en la práctica? | **cerrada** → D-26 |
 | P-08 | ¿Qué es la "zona" al planificar una ruta? | **cerrada** → D-25 |
+| A-01 | ¿Cuántos ingenieros dictaminan en campo? | **cerrada** → D-35 |
+| A-02 | ¿Dónde queda la sede? | **cerrada** → D-36 |
+| A-03 | ¿La etiqueta de tormenta existe? | **cerrada** → D-37, DV-09 |
+| A-04 | ¿Qué dispositivo usan en la calle? | **cerrada** → D-38 · falta confirmar si es Android |
+| A-05 | ¿Quién paga los datos móviles? | **cerrada** → D-38 |
+| A-06 | ¿Hay lista oficial de especies? | **cerrada** → D-39, DV-14 |
+| A-07 | ¿Qué forma tiene la matrícula? | **cerrada** → D-40, DV-10 |
+| A-08 | ¿Qué forma tiene el número de reclamo? | **cerrada** → D-41 |
+| A-09 | ¿Existe la jefatura? | **cerrada** → D-42, DV-11 |
+| A-10 | ¿Con qué criterio se decide la complejidad? | **cerrada** → D-43, DV-15 · faltan los cortes |
+| A-11 | ¿Qué pasa cuando vence el dictamen? | **cerrada** → D-44, confirma D-17 |
+| A-12 | ¿Cómo escriben los vecinos? | **abierta** · se conocen los canales, faltan los textos |
+| B-01 | ¿El SUA acepta escritura externa? | **cerrada** → D-45 |
+| B-02 | ¿Los reclamos traen coordenadas? | **cerrada** → D-46, DV-12 |
+| B-03 | ¿El motivo viene categorizado? | **cerrada** → D-47, confirma D-31 |
+| B-04 | ¿Con qué se identifica un agente? | **cerrada** → D-48, DV-13 |

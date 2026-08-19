@@ -1,6 +1,7 @@
 # Reglas de negocio
 
-> Última actualización: 18/08/2026 · Estado: **en diseño** — la matriz de §1 necesita validación funcional
+> Última actualización: 19/08/2026 · Estado: **en diseño** — la matriz de §1 necesita validación funcional
+> Incorpora las respuestas de relevamiento del 18/08 (grupos A y B de `entregables/preguntas-abiertas.html`).
 > Todas las reglas viven en el núcleo, son funciones puras y tienen escenario propio en el driver.
 
 ---
@@ -61,6 +62,10 @@ verde ──► amarillo ──► naranja ──► rojo ──► (se mantiene
 
 La minuta propone 2 meses parejos para todos. El diseño lo afina: **un caso de interferencia con cableado no puede esperar lo mismo que una poda estética.**
 
+> **La categoría se deduce del texto.** El SUA no trae un motivo elegido de una lista: el reclamo llega con lo que escribió quien lo tomó, y nada más (B-03). La categoría la infiere el sistema con las mismas señales de §1, queda marcada como `inferida`, y **el ingeniero puede corregirla** cuando toma el caso o cuando lo dictamina. Corregida, se marca como tal y el escalamiento pasa a usar el ritmo de la categoría buena.
+>
+> Es la diferencia entre un sistema que se equivoca en silencio y uno que muestra de dónde sacó cada dato. Y la corrección tiene un beneficio lateral: cada categoría corregida es evidencia de qué señales fallan, que es exactamente lo que hace falta para afinar la tabla de reglas.
+
 | Categoría del reclamo | Escala cada | Fundamento |
 | --- | --- | --- |
 | Riesgo estructural (inclinado, rama colgando) | 30 días | Riesgo directo a personas |
@@ -100,12 +105,16 @@ También se bloquean las contradicciones dentro de un mismo campo: no se puede m
 
 ## 4. Firma y cierre del dictamen (RF-18, RF-19)
 
-**Solo firma quien tiene matrícula registrada.** Se valida contra el perfil, no contra lo que el cliente diga.
+**Solo firma quien está habilitado en su perfil.** Se valida contra el perfil, no contra lo que el cliente diga.
+
+RF-18 habla de *matrícula profesional registrada*. En la repartición nadie pudo precisar qué forma tiene esa matrícula ni quién la valida, y la propia Dirección propuso reemplazarla por el **título profesional presentado en RRHH** (A-07). El diseño toma esa respuesta: el Administrador marca a un agente como habilitado para firmar, deja registrado **qué respalda esa habilitación, desde cuándo y quién la cargó**, y eso queda en auditoría.
+
+El cambio no debilita la firma, la fortalece: validar el formato de un número no prueba nada sobre la persona, mientras que un registro de habilitación con respaldo y responsable sí responde la pregunta que importa —*¿quién autorizó que esta persona firme, y con qué constancia?*—. Queda registrado en `99-desvios.md` (DV-10).
 
 Al firmar, en un solo paso indivisible:
 
 1. Se calcula el **hash** del contenido del dictamen.
-2. Se registra el **sello de tiempo** del servidor.
+2. Se registra el **sello de tiempo** del servidor, junto con el legajo del firmante y el respaldo de su habilitación.
 3. Se fija la **fecha de vencimiento** a 18 meses de la fecha de emisión.
 4. El dictamen pasa a **solo lectura**: no se actualiza ni se borra, y lo impide la base, no una convención.
 5. El reclamo pasa a **dictaminado** a través de `IReclamoProvider` (RF-20).
@@ -202,9 +211,11 @@ En ambos casos, la ruta generada **registra bajo qué directiva se armó**. Si e
 
 Una directiva tiene fecha de inicio y de fin, así que caduca sola: nadie tiene que acordarse de apagarla el lunes. Si hay varias vigentes que alcanzan al mismo ingeniero, **gana la de ámbito más específico** (usuario sobre distrito, distrito sobre global), y si empatan, la más reciente. La que se aplicó queda registrada en la ruta.
 
-### Por qué el Administrador y no solo el jefe
+### Quién baja la directiva
 
-RF-24 le da los perfiles al jefe/coordinador. Las directivas las administra el rol Administrador porque son configuración del sistema con alcance sobre otros usuarios, igual que los parámetros de negocio y los adaptadores. En la práctica el jefe pide la directiva y el Administrador la carga, que es el mismo circuito que ya existe para cualquier cambio de criterio operativo.
+**El Jefe**, que es quien dirige el trabajo, y también el Administrador. RF-24 le da los perfiles de distribución al jefe/coordinador, y ahora que la jefatura está confirmada como real (A-09) el permiso queda donde corresponde: quien decide el criterio operativo lo carga él mismo, sin depender de un tercero.
+
+El Administrador lo conserva porque es configuración con alcance sobre otros usuarios, y porque alguien tiene que poder corregir una directiva mal cargada cuando el jefe está en la calle. Lo que **no** hereda el Jefe es la gestión de usuarios, los parámetros del sistema, los adaptadores ni el entregable para concesionarias: dirigir el trabajo no es administrar el sistema.
 
 > Esto extiende RF-24 más allá de lo que dice el documento. Queda registrado en `99-desvios.md` (DV-07).
 
@@ -244,23 +255,55 @@ El sistema **sugiere** la época conveniente según especie y estación, y la de
 
 Es una sugerencia, no un bloqueo: la decisión técnica es del ingeniero, y un riesgo inminente se atiende en cualquier época del año. El sistema aporta el criterio; no lo impone.
 
+### La especie se escribe a mano
+
+No hay lista oficial de especies: el ingeniero agrónomo escribe la especie, y conoce el nombre científico (A-06). El campo queda como texto libre —así está hoy en el prototipo y así se queda—, pero con dos agregados que salvan RF-16:
+
+- **Autocompletado sobre un catálogo interno** de las especies frecuentes del arbolado de Rosario, con nombre común, nombre científico y sinonimias ("tipa", "tipa blanca", *Tipuana tipu*). Sugiere mientras escribe; **no obliga a elegir**.
+- **Normalización al guardar**: si lo escrito coincide con una entrada del catálogo, se guarda además la especie normalizada, y **con eso** se calcula la época recomendada.
+
+Si no coincide con nada, el dictamen se guarda igual con lo que el ingeniero escribió y **el sistema no sugiere época**, en lugar de inventar una. Es preferible una sugerencia ausente a una sugerencia falsa en un documento con validez legal.
+
+---
+
+## 10 bis. Complejidad sugerida (RF-15)
+
+La complejidad no es criterio libre: en la repartición se decide **por el diámetro del tronco y la altura del ejemplar** (A-10). Eso la vuelve calculable, y RF-15 pasa de casilla a dato asistido.
+
+| Cómo funciona | Detalle |
+| --- | --- |
+| Entrada | Diámetro y altura, ya cargados en el dictamen |
+| Cálculo | Tabla `regla_complejidad`, con los cortes en la base y no en el código |
+| Salida | Un valor **sugerido**, que el ingeniero confirma o cambia |
+| Registro | Se guardan la sugerida y la elegida, para saber cuánto se aparta el criterio real de la tabla |
+
+**El ingeniero mide perímetro, la regla habla de diámetro.** El formulario físico —y el prototipo— piden perímetro de tronco, porque en la calle se mide con cinta métrica alrededor. La regla se expresa en diámetro. El sistema convierte (diámetro = perímetro ÷ π) y muestra los dos valores, para que nadie tenga que hacer la cuenta parado frente al árbol ni cargar un dato que no midió.
+
+> **Los cortes exactos todavía no los tenemos.** Mientras tanto la tabla existe vacía y la sugerencia queda **apagada** por parámetro: el campo funciona como hoy, a criterio del ingeniero. Encender la sugerencia con umbrales inventados sería mostrarle al ingeniero una automatización que no refleja su propio criterio.
+
 ---
 
 ## 11. Roles: qué puede hacer cada uno
 
-| | Lector | Operario | Operario con matrícula | Administrador |
-| --- | --- | --- | --- | --- |
-| Dashboard y métricas | Sí | Sí | Sí | Sí |
-| Ver reclamos pendientes | — | Sí | Sí | Sí |
-| Tomar trabajo y planificar rutas | — | Sí | Sí | Sí |
-| Cargar dictamen | — | Sí | Sí | — |
-| **Firmar dictamen** | — | **No** | **Sí** | — |
-| Dar de alta reclamos | — | Sí | Sí | Sí |
-| Gestionar usuarios y roles | — | — | — | Sí |
-| Configurar parámetros y adaptadores | — | — | — | Sí |
-| **Generar el entregable para concesionarias** | — | — | — | **Sí** |
+| | Lector | Operario | Operario habilitado | Jefe | Administrador |
+| --- | --- | --- | --- | --- | --- |
+| Dashboard y métricas | Sí | Sí | Sí | Sí | Sí |
+| Ver reclamos pendientes | — | Sí | Sí | Sí | Sí |
+| Tomar trabajo y planificar rutas | — | Sí | Sí | Sí | Sí |
+| Cargar dictamen | — | Sí | Sí | Sí | — |
+| **Firmar dictamen** | — | **No** | **Sí** | Sí, si está habilitado | — |
+| Dar de alta reclamos | — | Sí | Sí | Sí | Sí |
+| Ver el trabajo de todo el equipo | — | — | — | **Sí** | Sí |
+| **Bajar directivas de jornada** | — | — | — | **Sí** | Sí |
+| Gestionar usuarios y roles | — | — | — | — | Sí |
+| Configurar parámetros y adaptadores | — | — | — | — | Sí |
+| **Generar el entregable para concesionarias** | — | — | — | — | **Sí** |
 
-**Lector** es un rol de consulta ejecutiva: dirección o jefatura mirando "cómo venimos", y puestos periféricos que necesitan conocer el estado sin operar.
+**Lector** es un rol de consulta ejecutiva: dirección mirando "cómo venimos", y puestos periféricos que necesitan conocer el estado sin operar.
+
+**Jefe** es un ingeniero más: dictamina y firma como cualquier otro. Lo que agrega es dirigir el trabajo del equipo —ver cómo viene el reparto del día y bajar las directivas de jornada— sin necesidad de ser administrador del sistema.
+
+> El rol existe porque la jefatura **existe hoy en la Dirección Técnica**: hay un ingeniero en jefe que suele quedarse atendiendo al público más difícil, y la intención de la repartición es que también dictamine en la calle (A-09). Hasta esta respuesta el diseño lo daba por inexistente y le cargaba las directivas al Administrador. Que exista resuelve además una incoherencia del documento: HU-12 y HU-13 le hablan a un "jefe" que el modelo de roles de la sección 3 no tenía. Queda registrado en `99-desvios.md` (DV-11).
 
 **Las empresas concesionarias no son usuarias del sistema.** No tienen rol ni acceso. Reciben un **entregable exportable que solo el Administrador genera**, con los dictámenes firmados y vigentes que les corresponde ejecutar. Es la decisión correcta en privacidad: son terceros externos a la repartición y no deben ver el circuito interno completo ni los datos de los vecinos que no les incumben.
 
@@ -268,6 +311,6 @@ Es una sugerencia, no un bloqueo: la decisión técnica es del ingeniero, y un r
 
 ## 12. Pendiente de validación funcional
 
-1. **Las señales de riesgo de §1** son una propuesta redactada desde el relevamiento. Conviene contrastarlas con cómo escriben realmente los vecinos en el SUA.
-2. **Las categorías de reclamo de §2** también son propuestas. Falta saber si el SUA trae un motivo categorizado o solo texto libre; si es lo segundo, la categoría se deduce con las mismas señales de §1.
-3. **Qué campos lleva el entregable para concesionarias** y en qué formato.
+1. **Las señales de riesgo de §1** son una propuesta redactada desde el relevamiento. Siguen sin contrastarse con reclamos reales (A-12), y ahora pesan el doble: con el motivo en texto libre confirmado (B-03), de esas mismas señales sale también la categoría que fija el ritmo de escalamiento. Por eso la regla es desactivable y la categoría, corregible.
+2. **Los cortes de diámetro y altura** que determinan la complejidad (§10 bis). Sin ellos la sugerencia queda apagada.
+3. **Qué campos lleva el entregable para concesionarias** y en qué formato (C-01).

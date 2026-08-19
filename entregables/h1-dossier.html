@@ -375,7 +375,7 @@
 <div class="wrap">
 
   <header class="masthead">
-    <p class="eyebrow">Hito 1 · Diseño · 18 agosto 2026</p>
+    <p class="eyebrow">Hito 1 · Diseño · 19 agosto 2026</p>
     <h1>Dictaminado y rutas eficientes para el arbolado de Rosario</h1>
     <p class="lede">
       Un ingeniero agrónomo evalúa un árbol en la vereda y escribe el dictamen en papel. El papel viaja a otra
@@ -456,9 +456,10 @@
         </table>
       </div>
       <p>
-        La cuarta exclusión importa y se declara de frente: el sistema captura la firma, la vincula a la matrícula
-        del profesional, le pone sello de tiempo y la vuelve inmutable, pero <strong>no la certifica ante un
-        organismo oficial</strong>. Presentarla como firma con validez legal plena sería falso.
+        La cuarta exclusión importa y se declara de frente: el sistema captura la firma, la vincula al profesional
+        habilitado y al respaldo de esa habilitación, le pone sello de tiempo y la vuelve inmutable, pero
+        <strong>no la certifica ante un organismo oficial</strong>. Presentarla como firma con validez legal plena
+        sería falso.
       </p>
     </section>
 
@@ -494,7 +495,14 @@
       <p>
         El diseño original del documento técnico preveía dos interfaces. Al asumir que la nube se va
         <em>entera</em>, esa premisa se cae: con solo dos adaptadores habría que reescribir toda la capa de
-        persistencia. Son <strong>doce</strong>.
+        persistencia. Son <strong>trece</strong>.
+      </p>
+      <p>
+        El decimotercero apareció con el relevamiento del 18 de agosto: el SUA guarda la dirección escrita del
+        ejemplar y <strong>ninguna coordenada</strong>, porque el censo de arbolado nunca se geolocalizó. Convertir
+        «Mendoza 3450» en un punto del mapa es entonces trabajo del módulo, no un dato de entrada — y va detrás de
+        una interfaz como todo lo demás, porque la Municipalidad tiene su propio geocodificador y conoce la
+        nomenclatura catastral de Rosario mucho mejor que cualquier proveedor global.
       </p>
 
       <div class="frontera">
@@ -513,7 +521,7 @@
           </div>
           <div class="lado se-va">
             <h4>Se reemplaza</h4>
-            <p class="sub">Doce adaptadores. Cambiar de prototipo a producción es cambiar estas piezas.</p>
+            <p class="sub">Trece adaptadores. Cambiar de prototipo a producción es cambiar estas piezas.</p>
             <ul>
               <li>IReclamoProvider → SUA</li>
               <li>IAuthProvider → directorio</li>
@@ -525,6 +533,7 @@
               <li>IAuditoriaRepository</li>
               <li>IArchivoStorage</li>
               <li>IRuteoProvider</li>
+              <li>IGeocodificador</li>
               <li>IRelojProvider</li>
               <li>ICertificadoraFirma</li>
             </ul>
@@ -673,7 +682,7 @@
             <tr><td>Un dictamen firmado no se modifica ni se borra</td><td>Lo impide la base. Corregir es anular y reemitir; ambos quedan</td></tr>
             <tr><td>Un solo dictamen vigente por reclamo</td><td>Índice único sobre el par número de reclamo y año</td></tr>
             <tr><td>Un solo ingeniero por reclamo a la vez</td><td>Índice único parcial sobre las reservas activas</td></tr>
-            <tr><td>Solo firma quien tiene matrícula registrada</td><td>Se valida contra el perfil, nunca contra lo que diga el cliente</td></tr>
+            <tr><td>Solo firma quien está habilitado en su perfil</td><td>Se valida contra el perfil, nunca contra lo que diga el cliente</td></tr>
             <tr><td>Extracción excluye poda y corte de raíces</td><td>Se valida en el servidor además del navegador</td></tr>
             <tr><td>Un rol no accede a lo que no le corresponde</td><td>Se valida en la API y otra vez en la base</td></tr>
           </tbody>
@@ -793,7 +802,7 @@
             <tr><td>Adelantar el reloj catorce meses</td><td>El escalamiento y el vencimiento, sin esperar catorce meses</td></tr>
             <tr><td>Dos usuarios piden el mismo reclamo a la vez</td><td>Que la reserva es exclusiva de verdad</td></tr>
             <tr><td>Enviar el mismo dictamen tres veces</td><td>Que no entran tres</td></tr>
-            <tr><td>Firmar sin matrícula</td><td>Que el bloqueo existe</td></tr>
+            <tr><td>Firmar sin habilitación</td><td>Que el bloqueo existe</td></tr>
             <tr><td>Un rol de solo lectura llamando a la API operativa</td><td>Mínimo privilegio real, no botones ocultos</td></tr>
             <tr><td>Cambiar el proveedor de mapas en caliente</td><td>Que el desacoplamiento no es una promesa</td></tr>
             <tr><td>Recorrer el código buscando referencias prohibidas</td><td>Que la regla de arquitectura no se erosiona sola</td></tr>
@@ -844,14 +853,16 @@
       <span class="sec-num">12</span>
       <h2>Dónde nos apartamos del documento entregado</h2>
       <p>
-        Un desvío no documentado es una pregunta sin respuesta. Estos son los ocho, con la aclaración de cuáles
-        conviene incorporar al documento técnico antes de la entrega final.
+        Un desvío no documentado es una pregunta sin respuesta. Estos son los quince, con la aclaración de cuáles
+        conviene incorporar al documento técnico antes de la entrega final. Los siete últimos salieron de las
+        respuestas de la Dirección Técnica del 18 de agosto: son el diseño corrigiéndose contra el relevamiento,
+        no contra sí mismo.
       </p>
       <div class="tabla-wrap">
         <table>
           <thead><tr><th>Desvío</th><th>Motivo</th><th>¿Corregir el documento?</th></tr></thead>
           <tbody>
-            <tr><td>Doce adaptadores, no dos</td><td>La nube se va entera, no solo los conectores externos</td><td>Sí</td></tr>
+            <tr><td>Trece adaptadores, no dos</td><td>La nube se va entera, no solo los conectores externos</td><td>Sí</td></tr>
             <tr><td>Diez minutos por dictamen</td><td>El prototipo usaba siete, contra el requerimiento</td><td>No — el documento estaba bien</td></tr>
             <tr><td>La prioridad vive del lado del módulo</td><td>El SUA real no tiene matriz de priorización</td><td>Sí</td></tr>
             <tr><td>Reserva de trabajo previa</td><td>El documento no contemplaba el choque entre ingenieros</td><td>Sí</td></tr>
@@ -859,6 +870,13 @@
             <tr><td>Una sola aplicación, no dos</td><td>Había una app paralela que contradecía la documentación</td><td>No — se corrigió el repositorio</td></tr>
             <tr><td>Las directivas restringen más que la prioridad</td><td>Así se dirige el trabajo realmente</td><td>Sí</td></tr>
             <tr><td>Prioridad media en amarillo</td><td>El prototipo la pintaba de azul, contra la escala del relevamiento</td><td>No — se corrige el prototipo</td></tr>
+            <tr><td>La etiqueta de tormenta todavía no existe</td><td>La tiene que agregar el CIL: es mejora propuesta, no integración</td><td>Sí</td></tr>
+            <tr><td>Habilitación para firmar, no matrícula</td><td>Nadie supo describir la matrícula; la Dirección propuso el título presentado en RRHH</td><td>Sí</td></tr>
+            <tr><td>El Ingeniero en Jefe es un rol del sistema</td><td>La jefatura existe, y dos historias de usuario ya le hablaban</td><td>Sí</td></tr>
+            <tr><td>Geocodificar es trabajo del módulo</td><td>El SUA no tiene coordenadas: el censo nunca se geolocalizó</td><td>Sí</td></tr>
+            <tr><td>La credencial es un usuario de red</td><td>Se identifican con usuario y contraseña, no con correo</td><td>Sí — menor</td></tr>
+            <tr><td>La especie se escribe a mano</td><td>No hay lista oficial; la sugerencia de época pasa a ser best effort</td><td>Sí</td></tr>
+            <tr><td>La complejidad tiene criterio objetivo</td><td>Se decide por diámetro y altura, así que se puede sugerir</td><td>Sí</td></tr>
           </tbody>
         </table>
       </div>

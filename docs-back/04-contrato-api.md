@@ -36,13 +36,15 @@ La distinción entre `409` y `422` importa: el `409` significa "llegaste tarde, 
 
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
-| `POST` | `/auth/login` | Recibe `{identificador, password}`, devuelve token y perfil con rol y si tiene matrícula |
+| `POST` | `/auth/login` | Recibe `{identificador, password}`, devuelve token y perfil con rol y si está habilitado para firmar |
 | `POST` | `/auth/logout` | Invalida el token vigente |
 | `GET` | `/auth/perfil` | Perfil del usuario de la sesión |
 
 Ante credenciales incorrectas se devuelve **siempre el mismo mensaje genérico**, sin revelar si falló el usuario o la contraseña (RF-01). Los intentos fallidos se limitan por tasa.
 
-El campo se llama `identificador`, no `email`: hoy el adaptador lo trata como correo institucional, mañana como usuario de red, y **el front no se entera** (D-09).
+El campo se llama `identificador`, no `email`, y esa decisión (D-09) se confirmó sola: los agentes municipales entran a los sistemas internos con **usuario de red**, con la forma `gboubon0` — primera letra del nombre, hasta seis del apellido, número correlativo (B-04). No hay nada que rehacer en el contrato.
+
+Lo que sí cambia es la **pantalla de acceso**: hoy dice "Correo Institucional / Legajo" con un ejemplo de correo, y tiene que decir "Usuario" con un ejemplo del formato real. El adaptador de Supabase, que internamente necesita un correo, le agrega el dominio reservado `@arbolado.test` puertas adentro.
 
 ---
 
@@ -87,7 +89,7 @@ Si un reclamo ya está tomado, responde `409` indicando quién lo tiene. Si se p
 | `GET` | `/dictamenes` | Listado filtrable, incluye próximos a vencer |
 | `POST` | `/dictamenes/{id}/anular` | Solo Administrador. Anula para permitir uno nuevo |
 
-`POST /dictamenes` valida en orden: reserva propia vigente, matrícula registrada, coherencia de intervenciones (RF-14, RF-15). Recién entonces firma. Todo ocurre **en un solo paso indivisible**: o el dictamen queda entero y firmado con el reclamo actualizado y la reserva liberada, o no queda nada.
+`POST /dictamenes` valida en orden: reserva propia vigente, habilitación para firmar, coherencia de intervenciones (RF-14, RF-15). Recién entonces firma. Todo ocurre **en un solo paso indivisible**: o el dictamen queda entero y firmado con el reclamo actualizado y la reserva liberada, o no queda nada.
 
 Devuelve el hash, el sello de tiempo y la fecha de vencimiento calculada. **No existe `PUT` ni `DELETE`**: un dictamen firmado es inmutable (RF-19, RNF-06).
 
@@ -136,7 +138,7 @@ Si una directiva obligatoria alcanza al usuario, los parámetros fuera de su alc
 
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
-| `GET` `POST` `PATCH` | `/admin/usuarios` | Vincula cuentas a roles, carga matrículas, desactiva (RF-31) |
+| `GET` `POST` `PATCH` | `/admin/usuarios` | Vincula cuentas a roles, registra la habilitación para firmar, desactiva (RF-31) |
 | `GET` `PUT` | `/admin/parametros` | Parámetros de negocio (RNF-09) |
 | `GET` `POST` `PATCH` | `/admin/directivas` | Directivas de jornada (D-27) |
 | `GET` `POST` `PATCH` | `/admin/reglas-prioridad` | Matriz de priorización, incluye activar y desactivar reglas |

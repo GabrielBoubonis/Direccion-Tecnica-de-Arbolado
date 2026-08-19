@@ -1,6 +1,7 @@
 # Modelo de datos
 
-> Última actualización: 18/08/2026 · Estado: **en diseño, sin aprobar**
+> Última actualización: 19/08/2026 · Estado: **en diseño, sin aprobar**
+> Incorpora las respuestas de relevamiento del 18/08 (grupos A y B de `entregables/preguntas-abiertas.html`).
 > Especificación, no implementación. Las migraciones se escriben en Fase 2.
 
 ## 1. Dos esquemas, una frontera visible
@@ -31,22 +32,29 @@ Clave primaria: **(`nro_reclamo_sua`, `anio`)** — es la clave funcional que ex
 | `nro_reclamo_sua` | texto | Parte 1 de la PK |
 | `anio` | entero corto | Parte 2 de la PK |
 | `fecha_ingreso` | fecha y hora | |
-| `origen_ingreso` | enum | `presencial`, `distrito`, `munibot`, `telefonico`, `de_oficio` |
+| `origen_ingreso` | enum | `munibot`, `presencial`, `distrito`, `de_oficio`. Son los canales reales por los que entra un reclamo (A-12) |
 | `tipo` / `subtipo` | texto | Fijos en `Reclamo` / `Problemas con el arbolado público`. Existen para que el adaptador filtre igual que contra el SUA real |
-| `direccion_exacta` | texto | Para mostrar |
+| `direccion_exacta` | texto | **Es la dirección del ejemplar, no la del vecino** (B-02). Único dato de ubicación que da el SUA |
 | `calle`, `altura` | texto, entero | Normalizados, para la búsqueda por dirección |
 | `entre_calle_1`, `entre_calle_2` | texto | |
 | `distrito` | enum | `Centro`, `Norte`, `Noroeste`, `Oeste`, `Sudoeste`, `Sur` |
 | `barrio` | texto | Permite afinar la zona al planificar la jornada |
-| `lat`, `lng` | punto geográfico | Sin esto no hay ruta posible (RF-22, RF-26) |
-| `descripcion_motivo` | texto largo | |
+| `descripcion_motivo` | texto largo | **Solo texto libre.** El SUA no trae motivo categorizado (B-03) |
 | `foto_url` | texto | Puede venir vacío: la calidad del dato de entrada es heterogénea |
 | `estado_sua` | enum | `ingresado`, `derivado`, `dictaminado`, `en_ejecucion`, `cerrado` |
 | `area_asignada` | texto | Solo los derivados a Arbolado entran al sistema (RF-07) |
 | `fecha_derivacion` | fecha y hora | |
 | `creado_por_usuario` | uuid, nulo | Solo para altas de oficio. Ver §5 |
 
-**Índices**: por `(area_asignada, estado_sua)` para el listado; por `distrito`; geoespacial sobre `(lat, lng)` para el armado de rutas; por `(calle, altura)` para la consulta por dirección.
+**Índices**: por `(area_asignada, estado_sua)` para el listado; por `distrito`; por `(calle, altura)` para la consulta por dirección y para agrupar reclamos del mismo ejemplar.
+
+### Decisión: las coordenadas son nuestras, no del SUA
+
+El SUA guarda **solo la dirección escrita**, y es la dirección exacta del ejemplar. No hay coordenadas: el censo de arbolado nunca se geolocalizó (B-02).
+
+Por eso `sua_sim.reclamo` **no tiene `lat`/`lng`**. Simularlas sería atribuirle al SUA un dato que no tiene — el mismo error que ya evitamos con la prioridad (§1). El punto en el mapa es un dato **derivado y propio del módulo**, y vive en `arbolado.reclamo_geo`.
+
+Consecuencia operativa: entre la dirección y el punto hay una geocodificación que puede fallar o caer media cuadra corrida. El diseño la trata como un dato de calidad variable —con precisión declarada y corregible en campo— en vez de como una verdad.
 
 ---
 
@@ -57,14 +65,26 @@ Clave primaria: **(`nro_reclamo_sua`, `anio`)** — es la clave funcional que ex
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `usuario_id` | uuid | PK. Referencia a la identidad emitida por `IAuthProvider` |
-| `identificador` | texto único | Lo que el agente tipea en el login |
+| `identificador` | texto único | El **usuario de red** que el agente tipea en el login: `gboubon0` (B-04) |
 | `legajo` | texto | |
 | `nombre_apellido` | texto | |
-| `rol` | enum | `lector`, `operario`, `administrador` |
-| `matricula` | texto, nulo | **Sin matrícula no se puede firmar** (RF-18) |
+| `rol` | enum | `lector`, `operario`, `jefe`, `administrador` |
+| `distrito_asignado` | enum, nulo | Distrito de trabajo habitual. **Precarga los filtros, no restringe** |
+| `habilitado_para_firmar` | booleano | **Sin habilitación no se puede firmar** (RF-18) |
+| `habilitacion_respaldo` | texto | Qué la respalda. Hoy: título profesional presentado en RRHH |
+| `habilitacion_fecha` | fecha, nulo | Desde cuándo |
+| `habilitacion_cargada_por` | uuid, nulo | Qué administrador la registró. Va a auditoría |
 | `activo` | booleano | Desactivar revoca el acceso a la app sin tocar la cuenta institucional (RF-31) |
 
-La matrícula es un campo aparte y anulable a propósito: RF-02 dice que dentro del rol Operario **solo** los matriculados firman. Si fuera un rol distinto, un operario sin matrícula no podría hacer el resto de su trabajo.
+**La habilitación para firmar es un campo, no un rol.** RF-02 distingue dentro del Operario a quien puede firmar de quien no. Si fuera un rol aparte, un operario no habilitado no podría hacer el resto de su trabajo.
+
+Lo que cambió respecto del documento: el requerimiento habla de *matrícula profesional*, pero en la repartición nadie supo precisar qué forma tiene ni quién la valida, y la propia Dirección propuso reemplazarla por el **título profesional presentado en RRHH** (A-07). El sistema no valida entonces un formato que nadie conoce: registra **quién está habilitado, con qué respaldo, desde cuándo y quién lo cargó**, que es lo que sostiene la firma ante una impugnación. Queda registrado en `99-desvios.md` (DV-10).
+
+### El identificador es un usuario de red, no un correo
+
+Los agentes municipales entran a los sistemas internos con usuario y contraseña. El usuario se arma con la primera letra del nombre, hasta seis del apellido y un número correlativo que resuelve las coincidencias: `gboubon0` (B-04).
+
+D-09 ya había previsto que el puerto de autenticación recibiera un `identificador` opaco en vez de un `email`, así que **no hay nada que rehacer**: cambian la etiqueta del campo en la pantalla de acceso y el ejemplo. El adaptador de Supabase, que internamente necesita un correo, lo sintetiza agregándole el dominio reservado `@arbolado.test`. Ese armado vive **dentro del adaptador**: ni el núcleo ni el front lo conocen, y el día de la transferencia se va con él.
 
 ---
 
@@ -80,15 +100,41 @@ Estado del reclamo **desde la mirada del módulo**. Clave: (`nro_reclamo_sua`, `
 | `prioridad_vigente` | enum | La que rige hoy, ya escalada |
 | `fecha_ultimo_escalamiento` | fecha | |
 | `estado_modulo` | enum | `sin_dictaminar`, `reservado`, `dictaminado`, `vencido_redictaminar` |
-| `etiqueta_tormenta` | booleano | Habilita la sección de emergencia (RF-28) |
+| `etiqueta_tormenta` | booleano | Habilita la sección de emergencia (RF-28). Llega del SUA **o** la marca el Administrador mientras el CIL no la implemente (A-03) |
 | `fecha_tormenta` | fecha y hora | Para la ventana de 3 días |
 | `origen_alta` | enum | `sua`, `oficio`, `vecino`, `tormenta` |
-| `categoria` | enum | Determina el ritmo de escalamiento. Ver reglas §2 |
+| `categoria` | enum | Determina el ritmo de escalamiento. **Inferida del texto libre** (B-03). Ver reglas §2 |
+| `categoria_origen` | enum | `inferida` o `corregida`. Nunca se muestra una categoría sin saber de dónde salió |
+| `categoria_corregida_por` | uuid, nulo | Quién la corrigió |
 | `senal_riesgo_detectada` | texto, nulo | Qué frase del texto del vecino disparó el salto de color. Nunca hay un color inexplicable |
 | `cantidad_reclamos_ejemplar` | entero | Insistencia del vecino: cuántos reclamos hay sobre el mismo árbol |
 | `id_ejemplar_agrupado` | texto | Agrupador de reclamos sobre el mismo ejemplar. Ver abajo |
 
-**Agrupación por ejemplar.** La insistencia del vecino solo se puede medir si el sistema sabe que tres reclamos hablan del mismo árbol. Se agrupa por calle y altura coincidentes y, cuando hay coordenadas, por cercanía menor a 15 metros. El criterio se documenta explícitamente porque un mismo árbol de vereda puede recibir reclamos con la altura catastral corrida en un número, y agrupar de más sería tan malo como no agrupar.
+**Agrupación por ejemplar.** La insistencia del vecino solo se puede medir si el sistema sabe que tres reclamos hablan del mismo árbol. Se agrupa **por calle y altura normalizadas**, que es el único dato que da el origen, y se afina por cercanía menor a 15 metros solo cuando los dos puntos son de precisión `exacta` o corregidos en campo — dos puntos aproximados cercanos no prueban nada. El criterio se documenta explícitamente porque un mismo árbol de vereda puede recibir reclamos con la altura catastral corrida en un número, y agrupar de más sería tan malo como no agrupar.
+
+### `arbolado.reclamo_geo`
+
+El punto en el mapa de cada reclamo. Existe porque el SUA no lo da (B-02) y sin punto no hay ruta (RF-22, RF-26).
+
+| Campo | Notas |
+| --- | --- |
+| `nro_reclamo_sua`, `anio` | Clave |
+| `lat`, `lng` | El punto vigente |
+| `origen_punto` | `geocodificado` o `corregido_en_campo` |
+| `precision` | `exacta` (se halló la altura), `aproximada` (interpolada sobre la cuadra), `solo_calle`, `fallida` |
+| `direccion_normalizada` | Lo que efectivamente se geocodificó |
+| `proveedor`, `geocodificado_en` | Con qué y cuándo |
+| `corregido_por`, `corregido_en` | Quién movió el punto y cuándo |
+
+Tres decisiones detrás de esta tabla:
+
+- **La precisión se declara, no se oculta.** Un reclamo con precisión `solo_calle` se dibuja distinto en el mapa y el ingeniero sabe que tiene que buscar el ejemplar en la cuadra. Un punto falsamente exacto es peor que un punto declarado dudoso.
+- **El ingeniero puede corregirlo.** Está parado frente al árbol: es la única persona con el dato bueno. La corrección queda como `corregido_en_campo` y **ninguna geocodificación posterior la pisa**.
+- **La geocodificación va detrás de un puerto** (`IGeocodificador`), como todo lo demás. En la demo es un proveedor abierto; el día de la transferencia puede ser el servicio de la Municipalidad, que conoce la nomenclatura catastral de Rosario mejor que cualquier proveedor global.
+
+Un reclamo con `precision = fallida` **no se pierde**: entra igual al listado, al dashboard y a la consulta por dirección, y queda afuera solo del armado de ruta hasta que alguien le ponga el punto.
+
+**Índice geoespacial** sobre `(lat, lng)`, acá y no en `sua_sim`.
 
 ### `arbolado.regla_prioridad`
 
@@ -163,12 +209,12 @@ Mientras está reservado, el resto del equipo lo ve en el listado marcado con qu
 | Grupo | Campos |
 | --- | --- |
 | Identidad | `id` (uuid **generado en el dispositivo**), `nro_reclamo_sua`, `anio` |
-| Autoría | `usuario_id`, `matricula_usada`, `nro_expediente`, `nro_nota` |
+| Autoría | `usuario_id`, `legajo_firmante`, `habilitacion_respaldo_usada`, `nro_expediente`, `nro_nota` |
 | Tiempos | `fecha_dictamen` (reloj del dispositivo), `fecha_recepcion` (reloj del servidor), `fecha_vencimiento` |
-| Ejemplar | `especie`, `perimetro_tronco`, `altura_aproximada`, `estado_copa`, `estado_tronco`, `estado_raices`, `inclinacion_ejemplar` |
+| Ejemplar | `especie` (texto libre), `perimetro_tronco`, `diametro_calculado`, `altura_aproximada`, `estado_copa`, `estado_tronco`, `estado_raices`, `inclinacion_ejemplar` |
 | Ubicación | `direccion_confirmada`, `calle_esquina`, `distancia_medianera`, `cantidad_frente`, `lat_captura`, `lng_captura` |
 | Intervención | `categoria_intervencion`, `extraccion[]`, `trabajos_aereos[]`, `trabajos_subterraneos[]`, `sin_trabajo[]`, `plantar[]` |
-| Clasificación | `dano_vereda`, `complejidad`, `urgencia`, `epoca_recomendada` |
+| Clasificación | `dano_vereda`, `complejidad`, `complejidad_sugerida`, `urgencia`, `epoca_recomendada` |
 | Banderas | `urgente`, `frente_garage`, `media_tension`, `de_oficio` |
 | Cierre | `observaciones_tecnicas`, `firma_ref`, `firma_hash`, `hash_documento`, `sello_tiempo`, `estado` |
 
@@ -269,14 +315,17 @@ Clave, valor, descripción, quién y cuándo lo cambió. Es RNF-09 y RF-32 hecho
 | `dias_ventana_tormenta` | 3 | RF-28 |
 | `ttl_reserva` | cierre de jornada | §6 |
 | `adaptador_ruteo` | `osrm` | RF-32 — se cambia a `google` sin deploy |
-| `origen_rutas` | coordenadas de Parques y Paseos | RF-22 |
+| `origen_rutas` | **Moreno 2350, Rosario** — sede de Parques y Paseos | RF-22 (A-02) |
+| `adaptador_geocodificacion` | proveedor abierto | B-02 |
+| `anios_selector_reclamo` | año en curso y los 10 anteriores | RF-12 (A-08) |
+| `sugerencia_complejidad_activa` | **apagada** hasta tener los cortes reales | RF-15 (A-10) |
 | `dias_aviso_vencimiento` | 30 | RF-05 |
 
 > El front usa hoy 7 minutos por dictamen, contra los 10 de RF-21. Se corrige al valor del documento y se anota el desvío.
 
 ### `arbolado.auditoria`
 
-Registra las acciones sensibles: firma de dictamen, cambio de rol o matrícula, cambio de parámetro, reserva y liberación, alta de reclamo, anulación. Guarda quién, cuándo, qué cambió y desde dónde.
+Registra las acciones sensibles: firma de dictamen, cambio de rol o de habilitación para firmar, cambio de parámetro, reserva y liberación, alta de reclamo, corrección del punto en el mapa, corrección de categoría, anulación. Guarda quién, cuándo, qué cambió y desde dónde.
 
 No es burocracia: es un sistema que emite documentos con validez legal. Si alguien pregunta quién autorizó extraer un árbol de treinta años, tiene que haber respuesta.
 
@@ -301,17 +350,19 @@ Ningún bucket público. Una foto puede mostrar el frente de la casa de un vecin
 
 Ninguna tabla sin política. Resumen:
 
-| Tabla | Lector | Operario | Administrador |
-| --- | --- | --- | --- |
-| `sua_sim.reclamo` | — | lee los derivados a Arbolado | lee todo |
-| `reclamo_estado` | lee agregados | lee | lee y ajusta |
-| `perfil` | lee el propio | lee el propio | administra todos |
-| `reserva` | — | crea y libera **las propias**; ve las ajenas en solo lectura | libera cualquiera |
-| `dictamen` | — | crea **con matrícula**; nunca actualiza ni borra | lee todo; puede anular |
-| `ruta` / `detalle_ruta` | — | solo las propias | lee todas |
-| `parametro` | — | lee | escribe |
-| `regla_prioridad` | — | lee | escribe |
-| `auditoria` | — | — | lee. **Nadie escribe directo** |
+| Tabla | Lector | Operario | Jefe | Administrador |
+| --- | --- | --- | --- | --- |
+| `sua_sim.reclamo` | — | lee los derivados a Arbolado | idem | lee todo |
+| `reclamo_estado` | lee agregados | lee | lee y ajusta | lee y ajusta |
+| `reclamo_geo` | — | lee; corrige el punto de lo que tiene reservado | idem | escribe |
+| `perfil` | lee el propio | lee el propio | lee los del equipo | administra todos |
+| `reserva` | — | crea y libera **las propias**; ve las ajenas en solo lectura | ve todas; libera cualquiera | libera cualquiera |
+| `dictamen` | — | crea; **firma solo si está habilitado**; nunca actualiza ni borra | idem | lee todo; puede anular |
+| `ruta` / `detalle_ruta` | — | solo las propias | lee las del equipo | lee todas |
+| `directiva_jornada` | — | lee la que le aplica | **escribe** | escribe |
+| `parametro` | — | lee | lee | escribe |
+| `regla_prioridad` | — | lee | lee | escribe |
+| `auditoria` | — | — | — | lee. **Nadie escribe directo** |
 
 El rol se valida en la Edge Function **y** en la base. Es redundante a propósito: si un token se filtra o alguien expone la base, RLS sigue conteniendo.
 
@@ -338,7 +389,8 @@ Se guarda el registro de cada generación, no solo el archivo: si mañana hay un
 
 ## 14. Pendiente de decidir
 
-- Cómo se generan las coordenadas de los reclamos inventados → `05-datos-semilla.md`
 - Qué exponen exactamente los endpoints → `04-contrato-api.md`
-- Retención del registro de auditoría y de las fotos → `07-seguridad-y-privacidad.md`
-- Qué campos exactos lleva el entregable para concesionarias y en qué formato
+- Retención del registro de auditoría, de las fotos y de las rutas → `07-seguridad-y-privacidad.md`
+- Qué campos exactos lleva el entregable para concesionarias y en qué formato (C-01)
+- **Los cortes de diámetro y altura que determinan la complejidad** (A-10): la tabla existe y la sugerencia queda apagada hasta tener los números reales
+- Si el rol `jefe` se confirma como se diseñó acá (A-09)

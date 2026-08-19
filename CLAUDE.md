@@ -21,7 +21,7 @@ El sistema ataca tres cuellos de botella: despapelización del dictamen, prioriz
 
 **El equipo no tiene permisos sobre el SUA ni sobre la autenticación institucional, y la conexión real no se va a realizar nunca.** Supabase (base, auth, storage) es andamio: **se va entero** el día hipotético de la transferencia.
 
-Por eso **todo acceso a datos vive detrás de un puerto**, no solo los dos que menciona el documento académico. Son doce: reclamos, auth, dictámenes, rutas, reservas, perfiles, storage, ruteo, parámetros, auditoría, reloj y certificación de firma. El detalle está en `docs-back/01-arquitectura.md`.
+Por eso **todo acceso a datos vive detrás de un puerto**, no solo los dos que menciona el documento académico. Son trece: reclamos, auth, dictámenes, rutas, reservas, perfiles, storage, ruteo, geocodificación, parámetros, auditoría, reloj y certificación de firma. El detalle está en `docs-back/01-arquitectura.md`.
 
 Pasar a producción debe ser **cambiar la implementación concreta del adaptador, sin tocar el núcleo** (RNF-08, RF-32). Toda lógica de negocio queda de este lado de la interfaz, nunca acoplada al proveedor.
 
@@ -42,17 +42,17 @@ Al citar una decisión, referenciar el ID (`RF-14`, `RNF-08`, `CU-04`, `HU-08`) 
 ## Reglas de negocio que no se negocian
 
 - **Alcance de entrada**: solo solicitudes del SUA con Tipo `Reclamo` / Subtipo `Problemas con el arbolado público`. Nada más.
-- **Clave de un reclamo**: el par **(N° SUA, año)**. Es el primer paso obligatorio del dictamen (RF-12): si no existe o ya está dictaminado, no se puede continuar.
+- **Clave de un reclamo**: el par **(N° SUA, año)**, dos campos separados — se elige el año y se busca el número dentro de ese año. Es el primer paso obligatorio del dictamen (RF-12): si no existe o ya está dictaminado, no se puede continuar.
 - **Prioridad por colores**: verde (baja) → amarillo (media) → naranja (alta) → rojo (urgente). Arranca en **verde por defecto** y sube por señales de riesgo en el texto del vecino (regla desactivable) o por **insistencia** (varios reclamos sobre el mismo árbol). Después escala sola con el tiempo, y el ritmo **depende de la categoría**: 30 días para riesgo estructural y cableado, 60 por defecto, 90 para poda estética. Rojo se queda en rojo (RF-11).
 - **Se toma con señal, se ejecuta sin señal**: no se dictamina un reclamo que no esté reservado a nombre del ingeniero. Tomar trabajo exige conexión; cargar y firmar el dictamen, no. La reserva es visible para todo el equipo y vence al cierre de la jornada.
 - **Al vencer el dictamen a los 18 meses**, el reclamo **vuelve a la cola** para re-dictaminar, con el dictamen viejo consultable.
 - **Intervenciones mutuamente excluyentes** (RF-14): extracción bloquea poda y corte de raíces, y viceversa. No se puede confirmar el dictamen con la combinación inconsistente.
-- **Firma digital** (RF-18): solo un Operario **con matrícula profesional registrada** puede firmar. Al firmar, el dictamen queda en **solo lectura**, con sello de tiempo, matrícula y hash (RF-19, RNF-06).
+- **Firma digital** (RF-18): solo un Operario **habilitado** puede firmar. La habilitación la registra el Administrador con su respaldo — hoy, el título profesional presentado en RRHH, no una matrícula con formato validable (A-07). Al firmar, el dictamen queda en **solo lectura**, con sello de tiempo, legajo del firmante, respaldo de la habilitación y hash (RF-19, RNF-06).
 - **Vencimiento del dictamen: 18 meses** desde la emisión (RF-19). El dashboard avisa los que vencen en ≤30 días (RF-05).
 - **Al firmar, el reclamo pasa a `dictaminado`** vía el adaptador (RF-20).
-- **Rutas** (RF-21→RF-27): parten de Parques y Paseos y **vuelven** a Parques y Paseos. **10 minutos por dictamen, configurable** (RNF-09). Modos: auto, a pie, bicicleta. El balanceador reparte la jornada por porcentaje de prioridad, con modos `urgentes primero` / `por porcentaje del jefe` / `automático equilibrado`, y **redistribuye si falta stock** de una prioridad (RF-25).
+- **Rutas** (RF-21→RF-27): parten de Parques y Paseos (**Moreno 2350**) y **vuelven** ahí. **10 minutos por dictamen, configurable** (RNF-09). Modos: auto, a pie, bicicleta. El balanceador reparte la jornada por porcentaje de prioridad, con modos `urgentes primero` / `por porcentaje del jefe` / `automático equilibrado`, y **redistribuye si falta stock** de una prioridad (RF-25).
 - **Protocolo de tormenta** (RF-28→RF-30): sección visible **solo si hay casos** etiquetados, últimos 3 días, **todos con la misma prioridad** (no aplica balanceador), ruta de mínima distancia.
-- **Roles**: Lector (consulta ejecutiva del dashboard), Operario (todo lo operativo; firma solo si tiene matrícula), Administrador (usuarios, roles, adaptadores, parámetros, y el entregable para concesionarias). **Las concesionarias no son usuarias del sistema**: reciben un export que solo genera el Administrador.
+- **Roles**: Lector (consulta ejecutiva del dashboard), Operario (todo lo operativo; firma solo si está habilitado), Jefe (operario + ve el trabajo del equipo y baja las directivas de jornada), Administrador (usuarios, roles, adaptadores, parámetros, y el entregable para concesionarias). **Las concesionarias no son usuarias del sistema**: reciben un export que solo genera el Administrador.
 - **El ingeniero sí puede abrir reclamos**, en tres situaciones: de oficio, a pedido de un vecino que lo aborda en la calle, y durante el protocolo de tormenta. Se crean **a través de `IReclamoProvider`** para que entren al circuito formal del SUA, no como reclamo paralelo — esa es la justificación que pedía la minuta del 12/08.
 
 ### Pedidos del cliente (minuta 12/08) que suelen olvidarse

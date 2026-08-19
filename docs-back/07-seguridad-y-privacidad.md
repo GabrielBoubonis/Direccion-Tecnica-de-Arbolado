@@ -13,7 +13,7 @@ El sistema emite documentos con validez legal y maneja datos de vecinos. Ninguna
 | Dirección exacta del reclamo | Vecino | **Identifica un domicilio.** Es dato personal aunque no haya nombre |
 | Descripción del motivo | Vecino | Texto libre: puede contener nombres, teléfonos o quejas sobre terceros |
 | Foto del reclamo | Vecino | Puede mostrar el frente de una casa, un vehículo con patente, personas |
-| Nombre, legajo y matrícula | Agente municipal | Identifica al profesional responsable |
+| Nombre, legajo y habilitación | Agente municipal | Identifica al profesional responsable |
 | Firma | Agente municipal | Dato biométrico comportamental |
 | Recorrido y horarios | Agente municipal | **Permite reconstruir dónde estuvo una persona y cuándo** |
 
@@ -64,7 +64,9 @@ Sin el punto 4, la inmutabilidad es una promesa. Con el punto 4, es una propieda
 
 **Solo inventados.** Ningún reclamo real, ni siquiera anonimizado: una dirección exacta identifica un domicilio, y quitarle el nombre no la vuelve anónima.
 
-Los usuarios de prueba usan el dominio reservado `@arbolado.test`, que no puede resolver a ninguna casilla real. Es imposible que una prueba mande un correo a una persona de la Municipalidad.
+Los usuarios de prueba se identifican con el **formato real de usuario de red** de la Municipalidad (`gboubon0`), pero con **nombres inventados**: ningún agente real figura en el repositorio. El adaptador les agrega puertas adentro el dominio reservado `@arbolado.test`, que no resuelve a ninguna casilla real, así que es imposible que una prueba le mande un correo a una persona de la Municipalidad.
+
+Imitar el formato sin usar personas reales es deliberado: la demo tiene que verse como el sistema que van a usar, y nadie tiene que quedar expuesto para lograrlo.
 
 ---
 
@@ -113,7 +115,7 @@ Las rutas se conservan menos que los dictámenes a propósito: pasado el valor e
 
 ## 9. Qué queda explícitamente fuera
 
-**La certificación oficial de la firma digital.** El sistema captura la firma, la vincula a la matrícula, le pone sello de tiempo y la vuelve inmutable, pero **no la certifica ante un organismo oficial**. El puerto existe y está sin implementar, marcado como tal.
+**La certificación oficial de la firma digital.** El sistema captura la firma, la vincula al agente habilitado y a su respaldo, le pone sello de tiempo y la vuelve inmutable, pero **no la certifica ante un organismo oficial**. El puerto existe y está sin implementar, marcado como tal.
 
 Es una limitación del alcance académico y se declara abiertamente, tanto en la documentación como en el entregable visual. Presentarla como firma digital con validez legal plena sería falso.
 
