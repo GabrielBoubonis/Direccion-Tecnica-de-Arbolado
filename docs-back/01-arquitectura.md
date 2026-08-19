@@ -58,7 +58,7 @@ La dependencia apunta **siempre hacia adentro**. El núcleo no sabe que existe P
 | `IParametroRepository` | Parámetros de negocio configurables | `PostgresParametroAdapter` | idem contra base muni |
 | `IAuditoriaRepository` | Registro de acciones sensibles | `PostgresAuditoriaAdapter` | idem contra base muni |
 | `IRelojProvider` | Fecha y hora actual | `RelojSistema` | idem |
-| `ICertificadoraFirma` | Certificación oficial de la firma | **sin implementar (placeholder)** | organismo certificador |
+| `ICertificadoraFirma` | Certificación oficial de la firma | **sin implementar (placeholder)** | organismo certificador, **elegido desde `config_firma`** |
 | `IGeocodificador` | Convertir una dirección escrita en un punto del mapa | `NominatimAdapter` | `GeocodificadorMuniAdapter` |
 
 Tres detalles deliberados:

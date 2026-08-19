@@ -62,7 +62,9 @@ verde ──► amarillo ──► naranja ──► rojo ──► (se mantiene
 
 La minuta propone 2 meses parejos para todos. El diseño lo afina: **un caso de interferencia con cableado no puede esperar lo mismo que una poda estética.**
 
-> **La categoría se deduce del texto.** El SUA no trae un motivo elegido de una lista: el reclamo llega con lo que escribió quien lo tomó, y nada más (B-03). La categoría la infiere el sistema con las mismas señales de §1, queda marcada como `inferida`, y **el ingeniero puede corregirla** cuando toma el caso o cuando lo dictamina. Corregida, se marca como tal y el escalamiento pasa a usar el ritmo de la categoría buena.
+> **La categoría se deduce del texto.** El SUA no trae un motivo elegido de una lista: el reclamo llega con lo que escribió quien lo tomó, y nada más (B-03). La categoría la infiere el sistema con las mismas señales de §1, queda marcada como `inferida`, y **el ingeniero puede corregirla**. Corregida, se marca como tal y el escalamiento pasa a usar el ritmo de la categoría buena.
+>
+> **Es un autocompletado, nunca una imposición** (D-52). Igual que el de especie: propone, no obliga, y tiene su toggle en configuración. Si el área concluye que la inferencia acierta poco, se apaga y los reclamos quedan sin categoría hasta que alguien se las ponga — que es honesto, y mejor que arrastrar una categoría mal puesta que además fija el ritmo de escalamiento.
 >
 > Es la diferencia entre un sistema que se equivoca en silencio y uno que muestra de dónde sacó cada dato. Y la corrección tiene un beneficio lateral: cada categoría corregida es evidencia de qué señales fallan, que es exactamente lo que hace falta para afinar la tabla de reglas.
 
@@ -105,16 +107,20 @@ También se bloquean las contradicciones dentro de un mismo campo: no se puede m
 
 ## 4. Firma y cierre del dictamen (RF-18, RF-19)
 
-**Solo firma quien está habilitado en su perfil.** Se valida contra el perfil, no contra lo que el cliente diga.
+**Firman los dos roles que van a la calle: Operario y Jefe.** Se valida contra el perfil del servidor, nunca contra lo que diga el cliente.
 
-RF-18 habla de *matrícula profesional registrada*. En la repartición nadie pudo precisar qué forma tiene esa matrícula ni quién la valida, y la propia Dirección propuso reemplazarla por el **título profesional presentado en RRHH** (A-07). El diseño toma esa respuesta: el Administrador marca a un agente como habilitado para firmar, deja registrado **qué respalda esa habilitación, desde cuándo y quién la cargó**, y eso queda en auditoría.
+El Administrador **no firma**, y el motivo está en el propio documento: la sección 3 lo define como *personal del CIL, el Centro de Informática*. No es un ingeniero agrónomo. Un dictamen técnico autoriza intervenir un árbol bajo la Ordenanza 5.118 y la Ley 13.836; que lo pueda firmar alguien de sistemas sería un problema real, no una formalidad. Administra la firma, no la ejerce.
 
-El cambio no debilita la firma, la fortalece: validar el formato de un número no prueba nada sobre la persona, mientras que un registro de habilitación con respaldo y responsable sí responde la pregunta que importa —*¿quién autorizó que esta persona firme, y con qué constancia?*—. Queda registrado en `99-desvios.md` (DV-10).
+Cómo se llegó acá. RF-18 pide *matrícula profesional registrada*; en la repartición nadie pudo precisar qué forma tiene esa matrícula ni quién la valida, y propusieron reemplazarla por el título presentado en RRHH (A-07). La definición funcional final es más simple: **la constancia la da el alta del usuario**. Si una persona está dada de alta como Operario en el sistema municipal, es porque el área ya verificó que puede hacer ese trabajo; pedirle al sistema que vuelva a certificar lo mismo con un campo aparte duplica un control que ya existe fuera.
+
+> **Esto contradice RF-02 y RF-18 como están escritos**, que distinguen al Operario del Operario matriculado. Es una decisión funcional tomada, no un olvido: está en `99-desvios.md` (DV-10) con lo que hay que corregir del documento antes de la entrega.
+
+**Lo que sí se configura en un solo lugar es cómo firma el sistema**, no quién. El apartado de firma digital (`config_firma`) concentra los roles habilitados, la certificadora, el algoritmo del hash, la leyenda legal del pie y qué datos se sellan. El día que la firma tenga que certificarse de verdad, se toca ese apartado y **sale andando**: la lógica de firmado no está desparramada por el código. Cada dictamen guarda **bajo qué versión de esa configuración se firmó**, porque un dictamen de marzo se defiende con las reglas de marzo.
 
 Al firmar, en un solo paso indivisible:
 
 1. Se calcula el **hash** del contenido del dictamen.
-2. Se registra el **sello de tiempo** del servidor, junto con el legajo del firmante y el respaldo de su habilitación.
+2. Se registra el **sello de tiempo** del servidor, junto con el legajo y el rol del firmante y la versión vigente de la configuración de firma.
 3. Se fija la **fecha de vencimiento** a 18 meses de la fecha de emisión.
 4. El dictamen pasa a **solo lectura**: no se actualiza ni se borra, y lo impide la base, no una convención.
 5. El reclamo pasa a **dictaminado** a través de `IReclamoProvider` (RF-20).
@@ -237,6 +243,34 @@ El resultado incluye orden de visita, horario estimado de llegada a cada caso, d
 
 ---
 
+## 8 bis. La pre-confirmación de la jornada
+
+Entre pedir trabajo y salir a la calle hay un momento, y es el único con señal garantizada. El diseño lo convierte en un paso propio.
+
+| Paso | Qué pasa |
+| --- | --- |
+| 1. El ingeniero define la jornada | Cuántas horas o cuántos casos, en qué zona, con qué modo de traslado |
+| 2. **El sistema reserva** | Los reclamos quedan tomados a su nombre **antes** de que empiece a configurar |
+| 3. Pantalla de pre-confirmación | Ve los casos ya reservados y puede ajustar sin apuro |
+| 4. Confirma | Se arma la ruta definitiva y se precarga todo para trabajar sin señal |
+
+**La reserva ocurre en el paso 2, no en el 4.** Es el punto entero: el ingeniero puede tomarse el tiempo que necesite para revisar la jornada sabiendo que nadie le va a sacar un caso mientras decide. Si la reserva esperara a la confirmación, cada minuto que se toma para revisar sería un minuto de riesgo de perder el trabajo, y el diseño lo empujaría a apurarse justo donde conviene que mire con calma.
+
+### Qué se ajusta en esa pantalla
+
+| Ajuste | Por qué acá |
+| --- | --- |
+| **Corregir puntos del mapa** que cayeron mal | Es el momento con señal y con el mapa a la vista. En la calle, con una barra y el sol de frente, no se corrige nada |
+| Sacar un caso de la jornada | Lo libera y vuelve a la cola para otro |
+| Corregir la categoría inferida | Antes de que la ruta se arme con una prioridad equivocada |
+| Reordenar o forzar una parada | El orden óptimo es una sugerencia, no una orden |
+
+Los reclamos con geocodificación `fallida` o `solo_calle` aparecen **destacados** en esta pantalla: son los que más se benefician de un minuto de atención antes de salir, y los que más tiempo hacen perder si se descubren recién en la calle.
+
+Una vez confirmada la jornada, el mapa **no se reinicia**: es el pedido explícito de la minuta, y solo se limpia con el botón de restablecer.
+
+---
+
 ## 9. Protocolo de tormenta (RF-28, RF-29, RF-30)
 
 | Regla | Detalle |
@@ -274,32 +308,38 @@ La complejidad no es criterio libre: en la repartición se decide **por el diám
 | --- | --- |
 | Entrada | Diámetro y altura, ya cargados en el dictamen |
 | Cálculo | Tabla `regla_complejidad`, con los cortes en la base y no en el código |
+| Quién carga los cortes | **El Administrador, desde el panel** (D-49). No vienen fijos de fábrica |
 | Salida | Un valor **sugerido**, que el ingeniero confirma o cambia |
 | Registro | Se guardan la sugerida y la elegida, para saber cuánto se aparta el criterio real de la tabla |
 
 **El ingeniero mide perímetro, la regla habla de diámetro.** El formulario físico —y el prototipo— piden perímetro de tronco, porque en la calle se mide con cinta métrica alrededor. La regla se expresa en diámetro. El sistema convierte (diámetro = perímetro ÷ π) y muestra los dos valores, para que nadie tenga que hacer la cuenta parado frente al árbol ni cargar un dato que no midió.
 
-> **Los cortes exactos todavía no los tenemos.** Mientras tanto la tabla existe vacía y la sugerencia queda **apagada** por parámetro: el campo funciona como hoy, a criterio del ingeniero. Encender la sugerencia con umbrales inventados sería mostrarle al ingeniero una automatización que no refleja su propio criterio.
+> **Los cortes los pone el Administrador, no nosotros.** La tabla arranca vacía y la sugerencia aparece recién cuando hay cortes cargados; hasta entonces el campo funciona como hoy, a criterio del ingeniero. Poner umbrales por defecto sería peor que no tenerlos: un número inventado por el equipo de desarrollo se ve exactamente igual que uno acordado con la repartición, y el ingeniero no tiene cómo distinguirlos.
 
 ---
 
 ## 11. Roles: qué puede hacer cada uno
 
-| | Lector | Operario | Operario habilitado | Jefe | Administrador |
-| --- | --- | --- | --- | --- | --- |
-| Dashboard y métricas | Sí | Sí | Sí | Sí | Sí |
-| Ver reclamos pendientes | — | Sí | Sí | Sí | Sí |
-| Tomar trabajo y planificar rutas | — | Sí | Sí | Sí | Sí |
-| Cargar dictamen | — | Sí | Sí | Sí | — |
-| **Firmar dictamen** | — | **No** | **Sí** | Sí, si está habilitado | — |
-| Dar de alta reclamos | — | Sí | Sí | Sí | Sí |
-| Ver el trabajo de todo el equipo | — | — | — | **Sí** | Sí |
-| **Bajar directivas de jornada** | — | — | — | **Sí** | Sí |
-| Gestionar usuarios y roles | — | — | — | — | Sí |
-| Configurar parámetros y adaptadores | — | — | — | — | Sí |
-| **Generar el entregable para concesionarias** | — | — | — | — | **Sí** |
+| | Lector | Operario | Jefe | Administrador |
+| --- | --- | --- | --- | --- |
+| Dashboard y métricas | Sí | Sí | Sí | Sí |
+| Ver reclamos pendientes | — | Sí | Sí | Sí |
+| Tomar trabajo y planificar rutas | — | Sí | Sí | — |
+| Cargar dictamen | — | Sí | Sí | — |
+| **Firmar dictamen** | — | **Sí** | **Sí** | **—** |
+| Dar de alta reclamos | — | Sí | Sí | Sí |
+| Ver el trabajo de todo el equipo | — | — | **Sí** | Sí |
+| **Bajar directivas de jornada** | — | — | **Sí** | Sí |
+| Gestionar usuarios y roles | — | — | — | Sí |
+| **Configurar la firma digital** | — | — | — | **Sí** |
+| Configurar parámetros y adaptadores | — | — | — | Sí |
+| **Generar el entregable para concesionarias** | — | — | — | **Sí** |
+
+> Antes había una columna más: el **Operario con matrícula**, que dejó de existir como categoría (D-50). La distinción que el documento hacía dentro del Operario se disolvió, y la que quedó en pie es otra: **quién va a la calle y quién administra el sistema**.
 
 **Lector** es un rol de consulta ejecutiva: dirección mirando "cómo venimos", y puestos periféricos que necesitan conocer el estado sin operar.
+
+**Administrador** es personal del CIL: configura el sistema, incluida la firma digital, pero **no dictamina ni firma**. Administrar la herramienta con la que se firma y firmar son dos cosas distintas, y el documento ya lo tenía claro al ubicarlo en el Centro de Informática.
 
 **Jefe** es un ingeniero más: dictamina y firma como cualquier otro. Lo que agrega es dirigir el trabajo del equipo —ver cómo viene el reparto del día y bajar las directivas de jornada— sin necesidad de ser administrador del sistema.
 
@@ -312,5 +352,5 @@ La complejidad no es criterio libre: en la repartición se decide **por el diám
 ## 12. Pendiente de validación funcional
 
 1. **Las señales de riesgo de §1** son una propuesta redactada desde el relevamiento. Siguen sin contrastarse con reclamos reales (A-12), y ahora pesan el doble: con el motivo en texto libre confirmado (B-03), de esas mismas señales sale también la categoría que fija el ritmo de escalamiento. Por eso la regla es desactivable y la categoría, corregible.
-2. **Los cortes de diámetro y altura** que determinan la complejidad (§10 bis). Sin ellos la sugerencia queda apagada.
+2. **Los cortes de diámetro y altura** que determinan la complejidad (§10 bis). Los carga el Administrador cuando la repartición los defina; el sistema ya está listo para recibirlos.
 3. **Qué campos lleva el entregable para concesionarias** y en qué formato (C-01).

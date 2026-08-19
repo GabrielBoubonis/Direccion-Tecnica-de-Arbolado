@@ -23,10 +23,10 @@ La peor de todas no es la falta de señal: es la **señal mala**, donde la petic
 
 En la calle no usan el celular propio: la Municipalidad entrega un equipo al que llaman **captor**, con los datos móviles incluidos y pagos por la repartición (A-04, A-05). Dos consecuencias de diseño:
 
-- **El parque de dispositivos es conocido y homogéneo.** No hay que diseñar para "cualquier celular que traiga cada uno". Si el captor es Android —falta confirmarlo—, la sincronización en segundo plano funciona como está diseñada y iOS queda fuera del alcance por una condición **real**, no por un supuesto de conveniencia.
+- **El parque de dispositivos es conocido, homogéneo y Android** (confirmado el 19/08). No hay que diseñar para "cualquier celular que traiga cada uno", la sincronización en segundo plano funciona como está diseñada, y **iOS queda fuera del alcance por una condición real de la repartición**, no por un supuesto de conveniencia nuestro. Es una diferencia importante para la defensa: una limitación heredada del entorno se justifica sola; una elegida por el equipo hay que defenderla.
 - **El costo de los datos no es del ingeniero.** Aun así las fotos se comprimen igual, y no por ahorrar plata: se comprimen porque **subir menos bytes con una barra de señal es la diferencia entre que el envío entre o quede colgado**. El cuello de botella en campo es la señal, no la factura.
 
-Como el plan de datos lo paga la repartición, sí se aprovecha para lo contrario: al planificar la jornada **con conexión**, se precarga todo lo que el ingeniero va a necesitar sin señal —reclamos reservados, geometría de la ruta, parámetros vigentes, catálogo de especies—, en vez de racionar la descarga.
+Como el plan de datos lo paga la repartición, sí se aprovecha para lo contrario: al **confirmar la jornada** —el último momento con señal garantizada, ver `03-reglas-de-negocio.md` §8 bis— se precarga todo lo que el ingeniero va a necesitar sin señal: reclamos reservados con su ficha completa, geometría de la ruta, parámetros vigentes, catálogo de especies y cortes de complejidad. Nada de racionar la descarga.
 
 ---
 

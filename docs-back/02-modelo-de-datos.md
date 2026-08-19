@@ -1,6 +1,6 @@
 # Modelo de datos
 
-> Última actualización: 19/08/2026 · Estado: **en diseño, sin aprobar**
+> Última actualización: 19/08/2026 (segunda vuelta) · Estado: **en diseño, sin aprobar**
 > Incorpora las respuestas de relevamiento del 18/08 (grupos A y B de `entregables/preguntas-abiertas.html`).
 > Especificación, no implementación. Las migraciones se escriben en Fase 2.
 
@@ -70,15 +70,30 @@ Consecuencia operativa: entre la dirección y el punto hay una geocodificación 
 | `nombre_apellido` | texto | |
 | `rol` | enum | `lector`, `operario`, `jefe`, `administrador` |
 | `distrito_asignado` | enum, nulo | Distrito de trabajo habitual. **Precarga los filtros, no restringe** |
-| `habilitado_para_firmar` | booleano | **Sin habilitación no se puede firmar** (RF-18) |
-| `habilitacion_respaldo` | texto | Qué la respalda. Hoy: título profesional presentado en RRHH |
-| `habilitacion_fecha` | fecha, nulo | Desde cuándo |
-| `habilitacion_cargada_por` | uuid, nulo | Qué administrador la registró. Va a auditoría |
 | `activo` | booleano | Desactivar revoca el acceso a la app sin tocar la cuenta institucional (RF-31) |
 
-**La habilitación para firmar es un campo, no un rol.** RF-02 distingue dentro del Operario a quien puede firmar de quien no. Si fuera un rol aparte, un operario no habilitado no podría hacer el resto de su trabajo.
+**No hay campo de matrícula ni de habilitación individual.** Firmar es atributo del **rol**: firman **Operario y Jefe**, que son los que van a la calle. Ni el Lector ni el Administrador firman. La decisión funcional es de Lucas y está registrada como D-50, y **contradice a RF-02 y RF-18** tal como están escritos hoy — el detalle y qué hay que corregir del documento están en `99-desvios.md` (DV-10).
 
-Lo que cambió respecto del documento: el requerimiento habla de *matrícula profesional*, pero en la repartición nadie supo precisar qué forma tiene ni quién la valida, y la propia Dirección propuso reemplazarla por el **título profesional presentado en RRHH** (A-07). El sistema no valida entonces un formato que nadie conoce: registra **quién está habilitado, con qué respaldo, desde cuándo y quién lo cargó**, que es lo que sostiene la firma ante una impugnación. Queda registrado en `99-desvios.md` (DV-10).
+Qué queda del recorrido: el requerimiento pedía *matrícula profesional registrada*; en la repartición nadie supo precisar qué forma tiene y propusieron el título presentado en RRHH (A-07); la definición final es que la constancia la da el alta del usuario con su rol, y lo que se configura en un solo lugar es **cómo firma el sistema**, no quién (§3 bis).
+
+### `arbolado.config_firma`
+
+El apartado único de firma digital. Existe para que el día que la firma tenga que certificarse de verdad **se toque un solo lugar y salga andando**, en vez de perseguir la lógica de firmado repartida por el código.
+
+| Campo | Notas |
+| --- | --- |
+| `version` | Cada cambio genera una versión nueva; el dictamen firmado guarda cuál regía |
+| `roles_habilitados` | Qué roles pueden firmar. Hoy: `operario`, `jefe` |
+| `exige_certificacion` | Si se exige certificación oficial antes de aceptar la firma |
+| `adaptador_certificadora` | Qué implementación de `ICertificadoraFirma` se usa. Hoy: ninguna |
+| `algoritmo_hash` | Con qué se calcula la huella del documento |
+| `leyenda_pie` | El texto legal que sale impreso al pie del dictamen |
+| `datos_sellados` | Qué se estampa junto a la firma: nombre, legajo, rol, fecha, hash |
+| `modificada_por`, `modificada_en` | Va a auditoría |
+
+**Por qué versionada.** Un dictamen firmado en marzo se defiende con las reglas de firma de marzo, no con las de hoy. Guardar la versión vigente en el dictamen es lo que permite explicar, dos años después, bajo qué configuración se firmó ese documento.
+
+**Por qué `roles_habilitados` es un dato y no una constante.** Hoy firman los dos roles de campo. Si mañana la repartición decide restringirlo —a los que tengan título registrado, por ejemplo— se cambia acá, sin deploy y sin tocar el núcleo. Es el mismo criterio de RNF-09 y RF-32 aplicado a la firma.
 
 ### El identificador es un usuario de red, no un correo
 
@@ -110,7 +125,7 @@ Estado del reclamo **desde la mirada del módulo**. Clave: (`nro_reclamo_sua`, `
 | `cantidad_reclamos_ejemplar` | entero | Insistencia del vecino: cuántos reclamos hay sobre el mismo árbol |
 | `id_ejemplar_agrupado` | texto | Agrupador de reclamos sobre el mismo ejemplar. Ver abajo |
 
-**Agrupación por ejemplar.** La insistencia del vecino solo se puede medir si el sistema sabe que tres reclamos hablan del mismo árbol. Se agrupa **por calle y altura normalizadas**, que es el único dato que da el origen, y se afina por cercanía menor a 15 metros solo cuando los dos puntos son de precisión `exacta` o corregidos en campo — dos puntos aproximados cercanos no prueban nada. El criterio se documenta explícitamente porque un mismo árbol de vereda puede recibir reclamos con la altura catastral corrida en un número, y agrupar de más sería tan malo como no agrupar.
+**Agrupación por ejemplar.** La insistencia del vecino solo se puede medir si el sistema sabe que tres reclamos hablan del mismo árbol. Se agrupa **por calle y altura normalizadas**, que es el único dato que da el origen, y se afina por cercanía menor a 15 metros solo cuando los dos puntos son de precisión `exacta` o corregidos por un usuario — dos puntos aproximados cercanos no prueban nada. El criterio se documenta explícitamente porque un mismo árbol de vereda puede recibir reclamos con la altura catastral corrida en un número, y agrupar de más sería tan malo como no agrupar.
 
 ### `arbolado.reclamo_geo`
 
@@ -120,7 +135,7 @@ El punto en el mapa de cada reclamo. Existe porque el SUA no lo da (B-02) y sin 
 | --- | --- |
 | `nro_reclamo_sua`, `anio` | Clave |
 | `lat`, `lng` | El punto vigente |
-| `origen_punto` | `geocodificado` o `corregido_en_campo` |
+| `origen_punto` | `geocodificado` o `corregido_por_usuario` |
 | `precision` | `exacta` (se halló la altura), `aproximada` (interpolada sobre la cuadra), `solo_calle`, `fallida` |
 | `direccion_normalizada` | Lo que efectivamente se geocodificó |
 | `proveedor`, `geocodificado_en` | Con qué y cuándo |
@@ -129,7 +144,7 @@ El punto en el mapa de cada reclamo. Existe porque el SUA no lo da (B-02) y sin 
 Tres decisiones detrás de esta tabla:
 
 - **La precisión se declara, no se oculta.** Un reclamo con precisión `solo_calle` se dibuja distinto en el mapa y el ingeniero sabe que tiene que buscar el ejemplar en la cuadra. Un punto falsamente exacto es peor que un punto declarado dudoso.
-- **El ingeniero puede corregirlo.** Está parado frente al árbol: es la única persona con el dato bueno. La corrección queda como `corregido_en_campo` y **ninguna geocodificación posterior la pisa**.
+- **El ingeniero puede corregirlo.** Está parado frente al árbol: es la única persona con el dato bueno. La corrección se hace en la **pre-confirmación de la jornada** (ver `03-reglas-de-negocio.md` §8 bis), queda como `corregido_por_usuario` y **ninguna geocodificación posterior la pisa**.
 - **La geocodificación va detrás de un puerto** (`IGeocodificador`), como todo lo demás. En la demo es un proveedor abierto; el día de la transferencia puede ser el servicio de la Municipalidad, que conoce la nomenclatura catastral de Rosario mejor que cualquier proveedor global.
 
 Un reclamo con `precision = fallida` **no se pierde**: entra igual al listado, al dashboard y a la consulta por dirección, y queda afuera solo del armado de ruta hasta que alguien le ponga el punto.
@@ -150,6 +165,20 @@ La matriz de priorización, en tabla y no en código: es la mejora central que p
 | `orden` | Cuál se evalúa primero |
 
 Que la regla de señales de riesgo sea desactivable es una decisión deliberada: el relevamiento dice que la calidad del dato de entrada es muy despareja, y una regla que interpreta texto libre se puede equivocar. Si el área concluye que genera más ruido que valor, se apaga y el sistema sigue funcionando con las demás reglas.
+
+### `arbolado.regla_complejidad`
+
+Los cortes que determinan la complejidad de la intervención (RF-15). Van en tabla porque **los carga el Administrador desde el panel** (D-49): la repartición no tenía los números a mano y no son nuestros para inventar.
+
+| Campo | Notas |
+| --- | --- |
+| `nivel` | `baja`, `media`, `alta`, `maxima` |
+| `diametro_desde`, `diametro_hasta` | En centímetros |
+| `altura_desde`, `altura_hasta` | En metros |
+| `orden` | Cuál se evalúa primero |
+| `activa` | |
+
+Mientras la tabla esté vacía, la sugerencia no aparece y el campo funciona como hoy, a criterio del ingeniero. **No hay valores por defecto inventados**: un umbral puesto por nosotros se vería igual que uno acordado con la repartición, y no lo es.
 
 ### `arbolado.escalamiento_historial`
 
@@ -209,7 +238,7 @@ Mientras está reservado, el resto del equipo lo ve en el listado marcado con qu
 | Grupo | Campos |
 | --- | --- |
 | Identidad | `id` (uuid **generado en el dispositivo**), `nro_reclamo_sua`, `anio` |
-| Autoría | `usuario_id`, `legajo_firmante`, `habilitacion_respaldo_usada`, `nro_expediente`, `nro_nota` |
+| Autoría | `usuario_id`, `legajo_firmante`, `rol_firmante`, `config_firma_version`, `nro_expediente`, `nro_nota` |
 | Tiempos | `fecha_dictamen` (reloj del dispositivo), `fecha_recepcion` (reloj del servidor), `fecha_vencimiento` |
 | Ejemplar | `especie` (texto libre), `perimetro_tronco`, `diametro_calculado`, `altura_aproximada`, `estado_copa`, `estado_tronco`, `estado_raices`, `inclinacion_ejemplar` |
 | Ubicación | `direccion_confirmada`, `calle_esquina`, `distancia_medianera`, `cantidad_frente`, `lat_captura`, `lng_captura` |
@@ -318,7 +347,9 @@ Clave, valor, descripción, quién y cuándo lo cambió. Es RNF-09 y RF-32 hecho
 | `origen_rutas` | **Moreno 2350, Rosario** — sede de Parques y Paseos | RF-22 (A-02) |
 | `adaptador_geocodificacion` | proveedor abierto | B-02 |
 | `anios_selector_reclamo` | año en curso y los 10 anteriores | RF-12 (A-08) |
-| `sugerencia_complejidad_activa` | **apagada** hasta tener los cortes reales | RF-15 (A-10) |
+| `sugerencia_complejidad_activa` | se enciende sola cuando el admin carga los cortes | RF-15 (A-10, D-49) |
+| `autocompletado_categoria_activo` | encendido | D-52 — toggle, nunca obligatorio |
+| `autocompletado_especie_activo` | encendido | D-52 |
 | `dias_aviso_vencimiento` | 30 | RF-05 |
 
 > El front usa hoy 7 minutos por dictamen, contra los 10 de RF-21. Se corrige al valor del documento y se anota el desvío.
@@ -356,8 +387,10 @@ Ninguna tabla sin política. Resumen:
 | `reclamo_estado` | lee agregados | lee | lee y ajusta | lee y ajusta |
 | `reclamo_geo` | — | lee; corrige el punto de lo que tiene reservado | idem | escribe |
 | `perfil` | lee el propio | lee el propio | lee los del equipo | administra todos |
+| `config_firma` | — | lee | lee | escribe |
+| `regla_complejidad` | — | lee | lee | escribe |
 | `reserva` | — | crea y libera **las propias**; ve las ajenas en solo lectura | ve todas; libera cualquiera | libera cualquiera |
-| `dictamen` | — | crea; **firma solo si está habilitado**; nunca actualiza ni borra | idem | lee todo; puede anular |
+| `dictamen` | — | crea y firma; nunca actualiza ni borra | idem | lee todo; puede anular. **No crea ni firma** |
 | `ruta` / `detalle_ruta` | — | solo las propias | lee las del equipo | lee todas |
 | `directiva_jornada` | — | lee la que le aplica | **escribe** | escribe |
 | `parametro` | — | lee | lee | escribe |
@@ -392,5 +425,4 @@ Se guarda el registro de cada generación, no solo el archivo: si mañana hay un
 - Qué exponen exactamente los endpoints → `04-contrato-api.md`
 - Retención del registro de auditoría, de las fotos y de las rutas → `07-seguridad-y-privacidad.md`
 - Qué campos exactos lleva el entregable para concesionarias y en qué formato (C-01)
-- **Los cortes de diámetro y altura que determinan la complejidad** (A-10): la tabla existe y la sugerencia queda apagada hasta tener los números reales
 - Si el rol `jefe` se confirma como se diseñó acá (A-09)

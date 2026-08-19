@@ -682,7 +682,7 @@
             <tr><td>Un dictamen firmado no se modifica ni se borra</td><td>Lo impide la base. Corregir es anular y reemitir; ambos quedan</td></tr>
             <tr><td>Un solo dictamen vigente por reclamo</td><td>Índice único sobre el par número de reclamo y año</td></tr>
             <tr><td>Un solo ingeniero por reclamo a la vez</td><td>Índice único parcial sobre las reservas activas</td></tr>
-            <tr><td>Solo firma quien está habilitado en su perfil</td><td>Se valida contra el perfil, nunca contra lo que diga el cliente</td></tr>
+            <tr><td>Firman Operario y Jefe; el Administrador administra la firma pero no la ejerce</td><td>Se valida contra el perfil, nunca contra lo que diga el cliente</td></tr>
             <tr><td>Extracción excluye poda y corte de raíces</td><td>Se valida en el servidor además del navegador</td></tr>
             <tr><td>Un rol no accede a lo que no le corresponde</td><td>Se valida en la API y otra vez en la base</td></tr>
           </tbody>
@@ -802,7 +802,7 @@
             <tr><td>Adelantar el reloj catorce meses</td><td>El escalamiento y el vencimiento, sin esperar catorce meses</td></tr>
             <tr><td>Dos usuarios piden el mismo reclamo a la vez</td><td>Que la reserva es exclusiva de verdad</td></tr>
             <tr><td>Enviar el mismo dictamen tres veces</td><td>Que no entran tres</td></tr>
-            <tr><td>Firmar sin habilitación</td><td>Que el bloqueo existe</td></tr>
+            <tr><td>Firmar con un rol sin permiso</td><td>Que el bloqueo existe y lo aplica el servidor</td></tr>
             <tr><td>Un rol de solo lectura llamando a la API operativa</td><td>Mínimo privilegio real, no botones ocultos</td></tr>
             <tr><td>Cambiar el proveedor de mapas en caliente</td><td>Que el desacoplamiento no es una promesa</td></tr>
             <tr><td>Recorrer el código buscando referencias prohibidas</td><td>Que la regla de arquitectura no se erosiona sola</td></tr>
@@ -853,8 +853,8 @@
       <span class="sec-num">12</span>
       <h2>Dónde nos apartamos del documento entregado</h2>
       <p>
-        Un desvío no documentado es una pregunta sin respuesta. Estos son los quince, con la aclaración de cuáles
-        conviene incorporar al documento técnico antes de la entrega final. Los siete últimos salieron de las
+        Un desvío no documentado es una pregunta sin respuesta. Estos son los dieciséis, con la aclaración de
+        cuáles conviene incorporar al documento técnico antes de la entrega final. Los ocho últimos salieron de las
         respuestas de la Dirección Técnica del 18 de agosto: son el diseño corrigiéndose contra el relevamiento,
         no contra sí mismo.
       </p>
@@ -871,12 +871,13 @@
             <tr><td>Las directivas restringen más que la prioridad</td><td>Así se dirige el trabajo realmente</td><td>Sí</td></tr>
             <tr><td>Prioridad media en amarillo</td><td>El prototipo la pintaba de azul, contra la escala del relevamiento</td><td>No — se corrige el prototipo</td></tr>
             <tr><td>La etiqueta de tormenta todavía no existe</td><td>La tiene que agregar el CIL: es mejora propuesta, no integración</td><td>Sí</td></tr>
-            <tr><td>Habilitación para firmar, no matrícula</td><td>Nadie supo describir la matrícula; la Dirección propuso el título presentado en RRHH</td><td>Sí</td></tr>
+            <tr><td><strong>Firmar es atributo del rol</strong></td><td>Nadie supo describir la matrícula. Firman Operario y Jefe; el Administrador es del CIL y no firma</td><td>Sí — el más importante</td></tr>
             <tr><td>El Ingeniero en Jefe es un rol del sistema</td><td>La jefatura existe, y dos historias de usuario ya le hablaban</td><td>Sí</td></tr>
             <tr><td>Geocodificar es trabajo del módulo</td><td>El SUA no tiene coordenadas: el censo nunca se geolocalizó</td><td>Sí</td></tr>
             <tr><td>La credencial es un usuario de red</td><td>Se identifican con usuario y contraseña, no con correo</td><td>Sí — menor</td></tr>
             <tr><td>La especie se escribe a mano</td><td>No hay lista oficial; la sugerencia de época pasa a ser best effort</td><td>Sí</td></tr>
             <tr><td>La complejidad tiene criterio objetivo</td><td>Se decide por diámetro y altura, así que se puede sugerir</td><td>Sí</td></tr>
+            <tr><td>La reserva ocurre antes de pre-confirmar la jornada</td><td>Reservar primero es lo que vuelve gratis revisar la jornada sin apuro</td><td>Sí</td></tr>
           </tbody>
         </table>
       </div>

@@ -18,13 +18,13 @@ Cinco, uno por situación real, con contraseña conocida y documentada fuera del
 
 | Usuario | Nombre ficticio | Rol | Firma | Para probar qué |
 | --- | --- | --- | --- | --- |
-| `mparede0` | Marta Paredes | Lector | — | Que solo ve el dashboard y que **no puede** acceder a lo operativo |
-| `jgutier0` | Julián Gutiérrez | Operario | **No** | Que trabaja con reclamos y rutas pero **no puede firmar** |
-| `cbenite0` | Carla Benítez | Operario | **Sí** | El circuito completo, incluida la firma |
-| `dmolina0` | Diego Molina | Jefe | **Sí** | Que baja directivas y ve el trabajo del equipo, **sin** poder administrar el sistema |
-| `rquirog0` | Raúl Quiroga | Administrador | — | Usuarios, parámetros, directivas, adaptadores y entregables |
+| `mparede0` | Marta Paredes | Lector | **No** | Que solo ve el dashboard y que **no puede** acceder a lo operativo |
+| `jgutier0` | Julián Gutiérrez | Operario | Sí | El circuito completo, y el **choque de reserva** contra el otro operario |
+| `cbenite0` | Carla Benítez | Operario | Sí | El circuito completo: tomar, dictaminar, firmar |
+| `dmolina0` | Diego Molina | Jefe | Sí | Que baja directivas y ve el trabajo del equipo, **sin** poder administrar el sistema |
+| `rquirog0` | Raúl Quiroga | Administrador | **No** | Usuarios, parámetros, firma digital, adaptadores y entregables — y que **el servidor le rechaza firmar** aunque configure la firma |
 
-No alcanza con tres: RF-02 distingue al Operario habilitado del que no lo está, y **esa distinción no se puede verificar con un solo usuario**. El operario sin habilitación existe para demostrar en vivo que el bloqueo de firma funciona. El jefe existe para demostrar el límite contrario: que dirigir el trabajo no da acceso a la administración del sistema.
+Hacen falta **dos operarios**, no uno: el escenario del choque —dos personas pidiendo el mismo reclamo a la vez— no se puede montar con un solo usuario, y es el que demuestra que la reserva es exclusiva de verdad. El Administrador cubre el límite de la firma, y es el escenario más interesante de los dos: desde que firmar es atributo del rol (D-50), hay que demostrar que **quien configura la firma digital no puede usarla** aunque le pegue directo a la API. Es personal del CIL, no un ingeniero agrónomo. El Jefe demuestra el límite contrario: dirigir el trabajo no da acceso a la administración.
 
 Además hay un **par de coincidencia** preparado —dos apellidos que colisionan en el mismo usuario base— para mostrar de dónde sale el número correlativo del formato municipal.
 
@@ -85,7 +85,7 @@ RF-02  Lector no accede a reclamos ................... PASA
 RF-12  Rechaza par SUA/año inexistente ............... PASA
 RF-14  Bloquea extracción + poda ..................... FALLA
        esperado 422, recibido 201
-RF-18  Operario no habilitado no puede firmar ....... PASA
+RF-18  Un Administrador no puede firmar ............. PASA
 ```
 
 ## B2. Regla de crecimiento
@@ -101,7 +101,7 @@ Los fáciles se escriben solos. Estos son los que le dan valor real al driver:
 | **Adelantar el reloj 14 meses** | El escalamiento de prioridad y el vencimiento a 18 meses. Imposible de probar sin el puerto de reloj |
 | **Dos usuarios piden el mismo reclamo a la vez** | Que la reserva es exclusiva de verdad, no solo en teoría |
 | **Enviar el mismo dictamen tres veces** | Que la idempotencia funciona y no entran tres |
-| **Firmar sin habilitación** | El bloqueo de RF-18 |
+| **Firmar con un rol sin permiso** | El bloqueo de RF-18: ni Lector ni Administrador firman, validado en el servidor |
 | **Lector llamando a endpoints operativos** | Mínimo privilegio real, no solo botones ocultos en el front |
 | **Cambiar el adaptador de ruteo** | RF-32 en vivo, sin deploy |
 | **Pedir 25% de urgentes sin stock** | La redistribución de RF-25 |

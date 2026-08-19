@@ -123,19 +123,26 @@ Existe porque el documento se entrega y se defiende. Un desvío no documentado e
 
 ---
 
-## DV-10 — La matrícula profesional se reemplaza por la habilitación registrada
+## DV-10 — Firmar es atributo del rol: se cae la matrícula y también la habilitación individual
 
-**Qué dice el documento.** RF-18 exige "matrícula profesional registrada" para firmar, y CU-08 lista "matrícula con formato inválido" como excepción del caso de uso.
+> **Es el desvío más fuerte de la lista y contradice dos requerimientos.** Se documenta completo porque es exactamente el tipo de cosa que el profesor va a preguntar.
 
-**Qué nos respondieron (A-07).** Que no tienen idea de qué forma tiene la matrícula, y la propuesta de la propia Dirección es reemplazarla por **el título profesional presentado en RRHH**.
+**Qué dice el documento.** RF-02 distingue dentro del rol Operario a los **matriculados**, que son los únicos que pueden firmar. RF-18 exige "matrícula profesional registrada". CU-08 lista "matrícula con formato inválido" como excepción del caso de uso.
 
-**Qué hacemos.** El perfil deja de tener un campo `matricula` y pasa a tener una **habilitación para firmar**: quién está habilitado, con qué respaldo, desde cuándo y qué administrador la cargó. El dictamen firmado sella el legajo del firmante y el respaldo de su habilitación, en vez de un número de matrícula. La excepción de CU-08 deja de ser "formato inválido" y pasa a ser "el usuario no está habilitado para firmar".
+**Qué pasó, en dos pasos.**
 
-**Por qué.** Validar el formato de un número que nadie sabe describir es una validación decorativa. Registrar quién habilitó a quién, con qué constancia y desde cuándo, responde la pregunta que realmente importa ante una impugnación. Además saca del sistema un dato personal que no hacía falta guardar.
+1. Se preguntó qué forma tiene la matrícula (A-07). La respuesta de la Dirección fue que **no lo saben**, y que se podría reemplazar por el título profesional presentado en RRHH.
+2. Se repreguntó quién decide entonces que alguien queda habilitado. La definición funcional fue que **firma quien tiene rol operativo, por ser usuario operativo**, y que lo que hace falta es un apartado único para configurar la firma digital. Al revisar el alcance se acotó a **Operario y Jefe**: el Administrador queda afuera porque la sección 3 del propio documento lo define como *personal del CIL*, y un dictamen técnico no lo firma alguien de sistemas.
 
-**Consecuencia en el front.** `index.html` pide hoy "N° Matrícula Profesional" como campo a tipear en cada dictamen. Ese dato no lo tipea el ingeniero: sale de su perfil. Es un cambio de front pendiente, junto con el de la pantalla de acceso (DV-13).
+**Qué hacemos.** Desaparecen el campo `matricula` y la habilitación individual. Firmar es atributo del **rol**: firman **Operario y Jefe**, los dos que van a la calle. El Lector no firma porque no opera, y el Administrador tampoco: administra la firma, no la ejerce. En su lugar aparece `config_firma`, el apartado único donde el Administrador configura **cómo** firma el sistema: qué roles pueden hacerlo, qué certificadora se usa, con qué algoritmo se calcula el hash, qué leyenda legal sale al pie y qué datos se sellan. Cada dictamen guarda la versión de esa configuración con la que se firmó.
 
-**¿Corregir el `.docx`?** **Sí.** RF-18, la excepción de CU-08 y el atributo del MER.
+**Por qué se sostiene.** La constancia profesional ya la hace la Municipalidad al dar de alta a la persona con su rol: si figura como Operario de la Dirección Técnica, el área verificó antes que puede hacer ese trabajo. Un campo propio que repita esa verificación no agrega control, agrega un lugar más donde el dato puede quedar desactualizado — y el sistema no tiene forma de auditar contra RRHH, así que sería un control que aparenta más de lo que puede.
+
+**Qué se pierde, dicho de frente.** El sistema deja de poder impedir que firme un operario que en el papel no debería. Ese control queda del lado del alta de usuarios, fuera del módulo. Lo que **no** se pierde es la separación que importa: quien configura la firma digital no puede usarla. Se mitiga con dos cosas: la lista de roles habilitados es un dato configurable, así que restringirla más adelante es un cambio de configuración y no de código; y toda firma queda auditada con usuario, legajo, rol y versión de configuración.
+
+**Consecuencia en el front.** `index.html` pide hoy "N° Matrícula Profesional" como campo a tipear en cada dictamen. Ese campo se saca: no lo tipea el ingeniero y ya no existe. Es un cambio de front pendiente, junto con el de la pantalla de acceso (DV-13).
+
+**¿Corregir el `.docx`?** **Sí, y es el más importante de todos.** RF-02 (se cae la distinción Operario / Operario matriculado), RF-18 (la condición pasa a ser el rol), RF-19 (el sello guarda legajo, rol y versión de configuración en vez de matrícula), la excepción de CU-08 (deja de ser "formato inválido" y pasa a ser "el rol no puede firmar") y el atributo `matricula` del MER. Conviene además sumar el apartado de configuración de firma como requerimiento nuevo: hoy no existe en el documento.
 
 ---
 
@@ -205,6 +212,20 @@ Existe porque el documento se entrega y se defiende. Un desvío no documentado e
 
 **Qué hacemos.** Se agrega una tabla `regla_complejidad` con los cortes en la base, y el sistema **sugiere** la complejidad a partir de dos datos que el dictamen ya carga. El ingeniero confirma o cambia, y se guardan la sugerida y la elegida. Además, como en la calle se mide el **perímetro** con cinta y la regla se expresa en **diámetro**, el sistema convierte y muestra los dos valores.
 
-**Estado.** La sugerencia queda **apagada por parámetro** hasta tener los cortes reales. Con umbrales inventados le mostraríamos al ingeniero una automatización que no refleja su criterio, que es peor que no tenerla.
+**Quién carga los cortes.** El **Administrador, desde el panel** (D-49). No vienen fijos de fábrica y no los define el equipo de desarrollo: la tabla arranca vacía, la sugerencia aparece recién cuando hay cortes cargados y hasta entonces el campo funciona como hoy. Un umbral puesto por nosotros se vería exactamente igual que uno acordado con la repartición, y el ingeniero no tendría cómo distinguirlos.
 
 **¿Corregir el `.docx`?** **Sí.** RF-15 tiene que incorporar el criterio objetivo; hoy se lee como una casilla a completar a ojo.
+
+---
+
+## DV-16 — La reserva ocurre antes de la pre-confirmación, no después
+
+**Qué dice el documento.** RF-21 a RF-23 describen la planificación como un cálculo: el ingeniero elige criterio y zona, y el sistema devuelve la ruta. No hay un paso intermedio.
+
+**Qué hacemos.** Se agrega la **pre-confirmación de la jornada**: el ingeniero define horas o cantidad de casos, **el sistema reserva en ese mismo momento**, y recién entonces muestra una pantalla donde puede ajustar sin apuro —corregir puntos del mapa que cayeron mal, sacar un caso, corregir la categoría inferida, reordenar— antes de confirmar y salir.
+
+**Por qué la reserva va antes.** Es el punto entero de la pantalla. Si la reserva esperara a la confirmación, cada minuto que el ingeniero se toma para revisar sería un minuto de riesgo de que otro le saque un caso, y el diseño lo estaría empujando a apurarse justo donde conviene que mire con calma. Reservando primero, la revisión es gratis.
+
+**Por qué importa además.** Es el último momento con señal garantizada. Concentrar ahí las correcciones que necesitan mapa y conexión —y la precarga de todo lo que va a hacer falta offline— es lo que hace que la jornada en la calle no dependa de la señal. Corregir un punto del mapa parado frente al árbol, con una barra y el sol de frente, no es un escenario realista.
+
+**¿Corregir el `.docx`?** **Sí.** Suma un paso al caso de uso de planificación de ruta (CU-06) y conviene reflejarlo en el diagrama de secuencia correspondiente.

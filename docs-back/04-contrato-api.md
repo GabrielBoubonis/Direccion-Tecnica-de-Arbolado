@@ -36,7 +36,7 @@ La distinción entre `409` y `422` importa: el `409` significa "llegaste tarde, 
 
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
-| `POST` | `/auth/login` | Recibe `{identificador, password}`, devuelve token y perfil con rol y si está habilitado para firmar |
+| `POST` | `/auth/login` | Recibe `{identificador, password}`, devuelve token y perfil con rol y si ese rol puede firmar |
 | `POST` | `/auth/logout` | Invalida el token vigente |
 | `GET` | `/auth/perfil` | Perfil del usuario de la sesión |
 
@@ -73,6 +73,9 @@ También incluye el estado de reserva: si está tomado, por quién y desde cuán
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
 | `POST` | `/reservas` | Toma uno o varios reclamos para el usuario. **Requiere conexión** |
+| `POST` | `/jornadas/preparar` | Define la jornada, **reserva en el mismo paso** y devuelve la propuesta a pre-confirmar |
+| `PATCH` | `/jornadas/{id}` | Los ajustes de la pre-confirmación: corregir puntos, sacar casos, corregir categoría, reordenar |
+| `POST` | `/jornadas/{id}/confirmar` | Cierra la jornada, arma la ruta definitiva y devuelve el paquete de precarga offline |
 | `GET` | `/reservas/mias` | Las reservas activas del usuario |
 | `DELETE` | `/reservas/{id}` | Libera una reserva propia |
 
@@ -89,7 +92,7 @@ Si un reclamo ya está tomado, responde `409` indicando quién lo tiene. Si se p
 | `GET` | `/dictamenes` | Listado filtrable, incluye próximos a vencer |
 | `POST` | `/dictamenes/{id}/anular` | Solo Administrador. Anula para permitir uno nuevo |
 
-`POST /dictamenes` valida en orden: reserva propia vigente, habilitación para firmar, coherencia de intervenciones (RF-14, RF-15). Recién entonces firma. Todo ocurre **en un solo paso indivisible**: o el dictamen queda entero y firmado con el reclamo actualizado y la reserva liberada, o no queda nada.
+`POST /dictamenes` valida en orden: reserva propia vigente, rol habilitado para firmar según `config_firma`, coherencia de intervenciones (RF-14, RF-15). Recién entonces firma. Todo ocurre **en un solo paso indivisible**: o el dictamen queda entero y firmado con el reclamo actualizado y la reserva liberada, o no queda nada.
 
 Devuelve el hash, el sello de tiempo y la fecha de vencimiento calculada. **No existe `PUT` ni `DELETE`**: un dictamen firmado es inmutable (RF-19, RNF-06).
 
@@ -138,7 +141,9 @@ Si una directiva obligatoria alcanza al usuario, los parámetros fuera de su alc
 
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
-| `GET` `POST` `PATCH` | `/admin/usuarios` | Vincula cuentas a roles, registra la habilitación para firmar, desactiva (RF-31) |
+| `GET` `POST` `PATCH` | `/admin/usuarios` | Vincula cuentas a roles, desactiva (RF-31) |
+| `GET` `PUT` | `/admin/firma-digital` | El apartado único de firma: roles habilitados, certificadora, hash, leyenda del pie (D-51) |
+| `GET` `POST` `PATCH` | `/admin/reglas-complejidad` | Los cortes de diámetro y altura de RF-15 (D-49) |
 | `GET` `PUT` | `/admin/parametros` | Parámetros de negocio (RNF-09) |
 | `GET` `POST` `PATCH` | `/admin/directivas` | Directivas de jornada (D-27) |
 | `GET` `POST` `PATCH` | `/admin/reglas-prioridad` | Matriz de priorización, incluye activar y desactivar reglas |
