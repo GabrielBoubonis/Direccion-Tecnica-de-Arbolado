@@ -53,8 +53,11 @@ Qué se revisa:
 - Cada código de error, contra el nombre canónico de `T6` §10.
 - Cada tabla del modelo de datos, contra su DDL en `T5`.
 - Cada puerto de `01-arquitectura.md`, contra su interfaz en `T2`.
+- **Cada desvío de `99-desvios.md`, contra lo que hoy dice el código y los documentos.** No contra lo que decían cuando se escribió el desvío.
 
 **Método:** lista de hechos verificables, uno por fila, con las tres referencias al lado. Un hecho que aparece en un solo documento no es un error, pero **un hecho que aparece en dos y no coincide sí lo es**.
+
+**El caso DV-02 fija el estándar de este eje.** Ese desvío decía que el front usa 7 minutos por dictamen y citaba `app/rutas.tsx` — un archivo de la app Expo, borrada el 18/08. El prototipo estático usa 10, el valor correcto. **Un registro de desvíos que describe archivos que ya no existen deja de ser confiable en bloque**: si el docente verifica uno y no coincide, no tiene motivo para creerle a los otros veintiuno. Se encontró de casualidad, revisando el front para otra cosa.
 
 ### Eje 2 · Cobertura de requerimientos
 
@@ -241,6 +244,8 @@ No son hallazgos: son **puntos que quedaron marcados** al aplicar la auditoría 
 | 4 | El **blindaje se escribe en el módulo 4 y se respeta en el módulo 2**. Si los trabajos del 2 no aprenden el `not exists`, el blindaje existe y no protege nada | 2 |
 | 5 | **El trigger de inmutabilidad tuvo que reescribirse** al sumar los campos de certificación: como estaba, rechazaba cualquier `update` que dejara el dictamen en `firmado`, incluido marcar `sincronizado_origen`. **Hay que buscar si hay más triggers o `check` con el mismo problema** | 1, 5 |
 | 6 | **`sua_sim` no tiene tabla de fotos** y `reclamo_foto` es nuestra. Verificar que el día de la transferencia el `IReclamoProvider` real pueda recibirlas, o declarar que no | 6 |
+| 9 | **El registro de desvíos puede tener más entradas desactualizadas.** DV-02 describía archivos borrados y un valor que ya no está; se encontró de casualidad al revisar el front. **Hay que verificar los 22 uno por uno contra el código y los documentos actuales** | 1 |
+| 10 | **El front no tiene noción de rol**: el menú es el mismo para todos. Verificar que cada pantalla oculta tenga además su política RLS y su validación de rol en el servidor — **ocultar no es proteger** | 2, 7 |
 | 7 | ~~El protocolo de tormenta no interactúa con el blindaje~~ · **Resuelto el 21/08** (D-70): el blindaje aguanta y solo el Jefe puede forzarlo; con señal, el ingeniero se entera en el momento (D-77) | — |
 | 8 | **El balanceador y la directiva de jornada pueden pedir cosas incompatibles**: una directiva obligatoria que restringe categoría y zona, más una distribución por porcentaje de prioridad, puede no tener solución. `RF-25` redistribuye por falta de stock, pero **no está escrito qué gana cuando la directiva vuelve el cupo imposible** | 2, 4 |
 

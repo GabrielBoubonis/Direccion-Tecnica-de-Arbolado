@@ -23,15 +23,19 @@ Existe porque el documento se entrega y se defiende. Un desvío no documentado e
 
 ---
 
-## DV-02 — Tiempo por dictamen: 10 minutos, no 7
+## DV-02 — El tiempo por dictamen está bien, pero escrito en el código
 
-**Qué dice el documento.** RF-21: 10 minutos por dictamen, configurable.
+**Qué dice el documento.** RF-21: 10 minutos por dictamen, **configurable**.
 
-**Qué hay en el código.** `app/rutas.tsx` y `app/tormenta.tsx` usan la constante `T_DICT = 7`, y además fija en el código.
+**Qué había en el código.** `app/rutas.tsx` y `app/tormenta.tsx` usaban `T_DICT = 7`, fija en el código. **Esos archivos ya no existen**: eran de la app Expo, eliminada el 18/08 (D-33, DV-06).
 
-**Qué hacemos.** Se toma el valor del documento (10) y se lo lleva a la tabla de parámetros, como pide RNF-09.
+**Qué hay hoy.** El prototipo estático usa **10**, que es el valor correcto: `Math.floor((horas * 60) / 10)` en `calcularRutaOptima`, y la métrica ya dice "10m/caso". Revisado el 21/08 sobre `ArboladoRosario/index.html`.
 
-**¿Corregir el `.docx`?** No. El documento está bien; era el código el que estaba desalineado.
+**Qué queda del desvío, entonces.** No el número: **la configurabilidad**. El 10 sigue escrito en el código en dos lugares del cálculo de ruta, y RF-21 lo pide configurable (RNF-09). Se lee de la tabla de parámetros, que ya lo tiene.
+
+**Por qué se corrige la redacción de este desvío en vez de darlo por cerrado.** Un registro de desvíos que describe archivos borrados y valores que ya no están **deja de ser confiable en bloque**: si el docente verifica uno y no coincide, no tiene motivo para creerle a los otros veintiuno. Se encontró revisando el front para T12.
+
+**¿Corregir el `.docx`?** No. El documento está bien; era el código el que estaba desalineado, y ya está a mitad de camino.
 
 ---
 

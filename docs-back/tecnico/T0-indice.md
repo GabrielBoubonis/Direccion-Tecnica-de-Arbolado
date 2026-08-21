@@ -30,7 +30,7 @@ Cada documento se puede leer solo. Eso implica que se repiten definiciones entre
 | **T9** | [Trabajos programados y reloj](T9-jobs-y-reloj.md) | Escalamiento diario, vencimientos, liberación de reservas, retención, y por qué el reloj se inyecta |
 | **T10** | [Seguridad técnica](T10-seguridad-tecnica.md) | Autenticación, sesión única, baja de captor, claims del token, RLS, storage privado, auditoría |
 | **T11** | [Driver de escenarios](T11-driver-de-escenarios.md) | El programa que demuestra en vivo que el sistema hace lo que la documentación dice |
-| **T12** | [Integración del front](T12-integracion-del-front.md) | Cómo el prototipo estático pasa de datos simulados a la API sin cambiar lo que se ve |
+| **T12** | [Integración del front](T12-integracion-del-front.md) | Del mock al SDK, y **el catálogo completo de lo que hay que cambiarle al front**: correcciones, campos que faltan, restricciones y pantallas nuevas |
 | **T13** | [Plan de implementación](T13-plan-de-implementacion.md) | Orden de construcción, dependencias entre módulos y qué entra en cada corte semanal |
 
 ## Las cinco reglas que atraviesan todo

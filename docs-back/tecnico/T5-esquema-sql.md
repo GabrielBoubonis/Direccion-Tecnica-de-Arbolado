@@ -841,7 +841,7 @@ Cada cambio en el panel inserta una fila nueva; ninguna se actualiza. Es un regi
 
 | Clave | Valor inicial | Fundamento |
 | --- | --- | --- |
-| `minutos_por_dictamen` | 10 | RF-21. El front usa 7 y hay que corregirlo (DV-02) |
+| `minutos_por_dictamen` | 10 | RF-21. El front ya usa 10, pero **escrito en el código**: tiene que leerlo de acá (DV-02) |
 | `dias_escalamiento_defecto` | 60 | Dos meses (minuta) |
 | `dias_escalamiento_riesgo` | 30 | D-22 |
 | `dias_escalamiento_poda` | 90 | D-22 |

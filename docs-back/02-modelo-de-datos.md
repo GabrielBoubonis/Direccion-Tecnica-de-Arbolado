@@ -524,7 +524,7 @@ Cuándo y cuánto trabajo se puede **tomar**. No limita dictaminar ni sincroniza
 
 **La tabla arranca vacía y sin filas no limita nada** — mismo criterio que `regla_complejidad` (D-49). Un horario puesto por nosotros se vería igual que uno acordado con la repartición, y no lo es.
 
-> El front usa hoy 7 minutos por dictamen, contra los 10 de RF-21. Se corrige al valor del documento y se anota el desvío.
+> El front **ya usa 10 minutos**, el valor de RF-21 (revisado el 21/08). Lo que falta es que lo **lea de acá** en vez de tenerlo escrito en el código, que es lo que pide RNF-09. Ver DV-02.
 
 ### `arbolado.auditoria`
 

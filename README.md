@@ -100,7 +100,7 @@ Detalle en [`docs-back/01-arquitectura.md`](docs-back/01-arquitectura.md).
 │       ├── T9-jobs-y-reloj.md            Trabajos programados y reloj inyectable
 │       ├── T10-seguridad-tecnica.md      Token, RLS, storage, auditoría, retención
 │       ├── T11-driver-de-escenarios.md   El verificador ejecutable en la defensa
-│       ├── T12-integracion-del-front.md  Del mock al SDK sin cambiar lo que se ve
+│       ├── T12-integracion-del-front.md  Del mock al SDK + catálogo de cambios del front
 │       └── T13-plan-de-implementacion.md Orden de construcción y datos semilla
 └── CLAUDE.md              Contexto del proyecto y reglas de negocio
 ```
