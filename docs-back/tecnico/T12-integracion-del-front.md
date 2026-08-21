@@ -3,6 +3,8 @@
 > Diseño técnico · Última actualización: 21/08/2026 · Estado: **sin aprobar**
 > Responde: cómo el prototipo estático pasa de datos simulados a la API, y **qué hay que cambiarle exactamente**.
 > El front es de **Ale**. Este documento no lo reescribe: le dice qué toca y por qué, con el `id` y la línea al lado.
+>
+> **Para trabajar, la versión de Ale es `docs-back/12-contrato-front.md`**: la misma información ordenada por pantalla, con el objeto exacto que recibe cada una y sin justificaciones de diseño. Este archivo es la versión técnica —**el porqué de cada cambio**— y es el que se defiende.
 
 ---
 
