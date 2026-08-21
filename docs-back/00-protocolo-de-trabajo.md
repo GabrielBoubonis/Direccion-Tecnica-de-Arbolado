@@ -221,6 +221,10 @@ La auditoría produjo **cuatro requerimientos funcionales que el `.docx` no tien
 
 **Cuarta vuelta del 21/08.** Al aplicar las decisiones aparecieron cuatro problemas que leer no había encontrado, el más serio un **trigger de inmutabilidad que rechazaba el propio paso de sincronización con el SUA**. Están listados en `09` §9. Y quedó preparada la **segunda auditoría, esta vez sobre todo el sistema**: `docs-back/10-auditoria-previa-al-desarrollo.md`, ocho ejes, que se corre después del feedback del docente y **es lo que habilita empezar a codear**.
 
+**Quinta vuelta del 21/08 — los caminos alternativos.** Se adelantaron los **ejes 3 y 4** de esa auditoría, porque eran decisiones funcionales que no dependían de nadie externo: veinte situaciones de campo y de oficina que el diseño no tenía escritas. Salieron **D-68 a D-92**, dos requerimientos nuevos —**RF-37** ventana laboral y **RF-38** cierre de duplicados—, **dos exclusiones declaradas** (no se reasigna trabajo entre ingenieros, no vuelve el resultado de la ejecución) y **un error del esquema**: un dictamen podía firmarse sin autorizar nada ni declarar que no hacía falta nada. El razonamiento está en `docs-back/11-decisiones-20260821.md`.
+
+**Tres de los nueve puntos marcados de la auditoría cayeron ahí**, sin auditar: el versionado de parámetros, el cruce entre tormenta y blindaje, y buena parte de la cobertura de flujos alternativos.
+
 **Segunda vuelta del 19/08.** Se cerraron A-04 (el captor es Android) y A-10 (los cortes los carga el Administrador, D-49), y se tomaron cuatro decisiones más: la firma pasa a ser atributo del rol con un apartado único de configuración (D-50, D-51), los autocompletados nunca son obligatorios (D-52) y la jornada se pre-confirma con la reserva ya hecha (D-53).
 
 **D-50 es la única decisión del proyecto que contradice de frente un requerimiento aprobado** (RF-02 y RF-18). Está documentada en DV-10 con lo que se pierde y cómo se mitiga, porque en una defensa oral conviene ser el primero en decirlo.

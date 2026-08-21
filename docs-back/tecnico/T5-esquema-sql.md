@@ -1,7 +1,8 @@
 # T5 — Esquema de base de datos
 
 > Diseño técnico · Última actualización: 21/08/2026 · Estado: **sin aprobar**
-> Absorbe la auditoría del 20/08: blindaje, captores, cuarentena, fotos de reclamo, certificación diferida, discrepancia de reloj y purga de idempotencia.
+> Absorbe la auditoría del 20/08 —blindaje, captores, cuarentena, fotos de reclamo, certificación diferida, reloj, purga de idempotencia—
+> y las decisiones del 21/08 (`11-decisiones-20260821.md`): motivo de "sin trabajo", completitud del dictamen, ventana laboral y parámetros versionados.
 > Responde: el DDL completo — tipos, tablas, restricciones, índices, triggers y políticas de seguridad por fila.
 
 ---
@@ -25,7 +26,8 @@ Que la frontera con el mundo externo sea visible en la base —y no solo en el c
 create type arbolado.prioridad       as enum ('verde','amarillo','naranja','rojo');
 create type arbolado.rol             as enum ('lector','operario','jefe','administrador');
 create type arbolado.distrito        as enum ('Centro','Norte','Noroeste','Oeste','Sudoeste','Sur');
-create type arbolado.estado_modulo   as enum ('sin_dictaminar','reservado','dictaminado','vencido_redictaminar');
+create type arbolado.estado_modulo   as enum
+  ('sin_dictaminar','reservado','dictaminado','vencido_redictaminar','cerrado_definitivo');
 create type arbolado.categoria       as enum ('riesgo_estructural','cableado','infraestructura','obstruccion','poda_estetica');
 create type arbolado.origen_categoria as enum ('inferida','corregida');
 create type arbolado.modo_traslado   as enum ('auto','pie','bicicleta');
@@ -41,6 +43,11 @@ create type arbolado.estado_captor    as enum ('activo','de_baja');
 create type arbolado.motivo_baja_captor as enum ('robo','extravio','destruccion','reasignacion');
 create type arbolado.estado_cuarentena as enum ('en_cuarentena','liberada','descartada');
 create type arbolado.estado_borrador  as enum ('activo','inactivo','descartado');
+create type arbolado.motivo_sin_trabajo as enum
+  ('no_requiere_intervencion','ejemplar_inexistente','ya_intervenido','fuera_de_alcance');
+create type arbolado.ambito_ventana  as enum ('global','distrito','usuario');
+create type arbolado.motivo_no_visita as enum
+  ('sin_acceso','vecino_se_opone','animal_suelto','obra_en_vereda','falta_de_tiempo','otro');
 create type arbolado.estado_jornada  as enum ('pre_confirmada','confirmada','cerrada','cancelada');
 create type arbolado.ambito_directiva as enum ('global','distrito','usuario');
 create type arbolado.origen_alta     as enum ('sua','oficio','vecino','tormenta');
@@ -144,12 +151,17 @@ create table arbolado.reclamo_estado (
   categoria_corregida_por uuid references arbolado.perfil(usuario_id),
   senal_riesgo_detectada text,
   cantidad_reclamos_ejemplar integer not null default 1,
+  insistencia_aplicada boolean not null default false,   -- sube UN nivel, UNA vez (D-92)
   id_ejemplar_agrupado text not null,
+  cerrado_por_dictamen_id uuid,                          -- puede ser el dictamen de OTRO reclamo
+  cerrado_por_nro_sua text, cerrado_por_anio smallint,   -- RF-38, D-87
   primary key (nro_reclamo_sua, anio),
   foreign key (nro_reclamo_sua, anio) references sua_sim.reclamo (nro_reclamo_sua, anio)
 );
 
 create index ix_estado_cola     on arbolado.reclamo_estado (estado_modulo, prioridad_vigente);
+create index ix_estado_ejemplar on arbolado.reclamo_estado (id_ejemplar_agrupado)
+  where estado_modulo in ('sin_dictaminar','reservado');
 create index ix_estado_tormenta on arbolado.reclamo_estado (fecha_tormenta desc) where etiqueta_tormenta;
 create index ix_estado_ejemplar on arbolado.reclamo_estado (id_ejemplar_agrupado);
 ```
@@ -332,7 +344,7 @@ create table arbolado.dictamen (
 
   fecha_dictamen   timestamptz not null,     -- reloj del DISPOSITIVO: fecha legal
   fecha_recepcion  timestamptz not null default now(),
-  fecha_vencimiento date not null,
+  fecha_vencimiento date,                    -- NULO si no autoriza intervención (D-83)
 
   especie text not null,
   especie_normalizada text,
@@ -351,6 +363,7 @@ create table arbolado.dictamen (
   trabajos_aereos       text[] not null default '{}',
   trabajos_subterraneos text[] not null default '{}',
   sin_trabajo           text[] not null default '{}',
+  sin_trabajo_motivo    arbolado.motivo_sin_trabajo,
   plantar               text[] not null default '{}',
 
   dano_vereda text,
@@ -390,6 +403,19 @@ create table arbolado.dictamen (
     cardinality(sin_trabajo) = 0
     or (cardinality(extraccion) = 0 and cardinality(trabajos_aereos) = 0
         and cardinality(trabajos_subterraneos) = 0)
+  ),
+
+  -- Un dictamen tiene que DECIR algo: o autoriza, o declara que no hace falta (D-89)
+  constraint ck_dictamen_no_vacio check (
+    cardinality(extraccion) > 0 or cardinality(trabajos_aereos) > 0
+    or cardinality(trabajos_subterraneos) > 0 or cardinality(sin_trabajo) > 0
+  ),
+  constraint ck_sin_trabajo_motivo check (
+    (cardinality(sin_trabajo) = 0) = (sin_trabajo_motivo is null)
+  ),
+  -- Solo vence lo que autoriza una intervención (D-83)
+  constraint ck_vencimiento check (
+    (cardinality(sin_trabajo) > 0) = (fecha_vencimiento is null)
   )
 );
 
@@ -398,7 +424,7 @@ create unique index ux_dictamen_vigente
   where estado = 'firmado';
 
 create index ix_dictamen_vencimiento on arbolado.dictamen (fecha_vencimiento)
-  where estado = 'firmado';
+  where estado = 'firmado' and fecha_vencimiento is not null;
 create index ix_dictamen_pendiente_sync on arbolado.dictamen (fecha_recepcion)
   where not sincronizado_origen and estado = 'firmado';
 
@@ -423,6 +449,12 @@ create index ix_dictamen_reloj_grave on arbolado.dictamen (fecha_recepcion)
 **`ux_dictamen_vigente` garantiza un dictamen válido por reclamo** (RNF-07), contando solo los firmados. Es la red de seguridad final debajo de la reserva: si por algún camino imprevisto dos dictámenes llegaran al mismo reclamo, la base rechaza el segundo.
 
 **`hash_documento`** es la huella del contenido al momento de firmar. Cualquier modificación posterior se detecta comparando. Es lo que sostiene la inmutabilidad de RNF-06 más allá de la promesa.
+
+**`ck_dictamen_no_vacio` es la restricción que faltaba, y es la más importante de las tres.** `ck_exclusion_extraccion` y `ck_sin_trabajo` garantizan que las intervenciones **no se contradigan**; no garantizaban que **hubiera alguna**. Con las cuatro listas vacías las dos pasaban y el dictamen se firmaba: un documento con validez legal que **no autoriza nada ni declara que no hace falta nada**. Era el resultado más probable de abrir el formulario, cargar las medidas y firmar sin marcar la intervención.
+
+Apareció al distinguir dos casos que se veían iguales: *no hace falta trabajo* frente a *hace falta y no se indicó ninguno*. El primero es un dictamen válido; el segundo es un formulario a medio llenar. **Es el segundo error de este tipo que aparece escribiendo la regla y no leyéndola** — el primero fue el trigger de inmutabilidad.
+
+**`fecha_vencimiento` es nulo cuando no hay intervención autorizada** (D-83). El vencimiento a 18 meses existe porque **una autorización para intervenir caduca**; si el dictamen no autorizó nada, no hay nada que caduque, y el reclamo pasa a `cerrado_definitivo` en vez de volver a la cola. Mandar a alguien a re-mirar un árbol que un ingeniero agrónomo declaró sano —o que directamente no existe— es gastar una visita para desconfiar de un dictamen técnico propio. Contradice RF-19 como está escrito (DV-22).
 
 **`estado` y `estado_certificacion` son dos columnas y no una.** Firmar es local y no puede fallar; certificar sale de nuestra frontera y sí (D-65). Mezclarlas dejaría que un timeout de red produjera un dictamen legalmente ambiguo. Un dictamen `firmado` + `pendiente` es válido puertas adentro —inmutable, auditable, cuenta para el vencimiento— y lo único que no puede hacer es salir en un entregable a concesionarias.
 
@@ -554,6 +586,7 @@ Además es mejor operativamente: con una barra de señal conviene que salga prim
 create table arbolado.jornada (
   id uuid primary key default gen_random_uuid(),
   usuario_id uuid not null references arbolado.perfil(usuario_id),
+  parametro_version integer not null,       -- con qué valores se armó (D-76)
   fecha date not null,
   criterio text not null check (criterio in ('horas','casos')),
   valor_criterio numeric(5,2) not null,
@@ -591,6 +624,8 @@ create table arbolado.detalle_ruta (
   orden_forzado boolean not null default false,
   visitado boolean not null default false,
   visitado_en timestamptz,
+  no_visitado_motivo arbolado.motivo_no_visita,   -- D-71
+  no_visitado_nota text,
   unique (ruta_id, orden_visita)
 );
 
@@ -620,6 +655,10 @@ create table arbolado.perfil_distribucion (
 );
 
 ```
+
+**`no_visitado_motivo` no es estadística: es información para el próximo** (D-71). Si el ingeniero no pudo evaluar el ejemplar —perro suelto, portón cerrado, vecino que se opone, vereda en obra— el reclamo vuelve a la cola **con esa nota visible**, así nadie pierde el viaje dos veces por lo mismo.
+
+Dictaminar desde la vereda con lo que se alcance a ver quedó descartado: sería imprudencia profesional, y un dictamen autoriza intervenir un árbol bajo la Ordenanza 5.118. El caso queda pendiente y el trabajo se hace.
 
 ### La retención de rutas es una consolidación, no un borrado (D-56)
 
@@ -668,13 +707,46 @@ create index ix_directiva_vigente on arbolado.directiva_jornada (vigencia_desde,
 ## 9. Configuración, firma y auditoría
 
 ```sql
+-- Cada cambio crea una VERSIÓN del conjunto; ninguna fila se actualiza (D-76)
+create table arbolado.parametro_version (
+  version serial primary key,
+  motivo text,
+  creada_por uuid references arbolado.perfil(usuario_id),
+  creada_en timestamptz not null default now()
+);
+
 create table arbolado.parametro (
-  clave text primary key,
+  version integer not null references arbolado.parametro_version(version),
+  clave text not null,
   valor text not null,
   descripcion text not null,
-  modificado_por uuid references arbolado.perfil(usuario_id),
-  modificado_en timestamptz not null default now()
+  primary key (version, clave)
 );
+
+create or replace view arbolado.parametro_vigente as
+  select p.* from arbolado.parametro p
+   where p.version = (select max(version) from arbolado.parametro_version);
+
+create table arbolado.ventana_laboral (          -- RF-37
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null,
+  ambito arbolado.ambito_ventana not null,
+  ambito_valor text,
+  hora_desde time not null,
+  hora_hasta time not null,
+  dias_semana smallint[] not null default '{1,2,3,4,5}',
+  cupo_reclamos smallint,
+  cupo_periodo text check (cupo_periodo in ('dia','semana')),
+  vigencia_desde date not null,
+  vigencia_hasta date,
+  creada_por uuid references arbolado.perfil(usuario_id),
+  activa boolean not null default true,
+  constraint ck_ambito_valor check (ambito = 'global' or ambito_valor is not null),
+  constraint ck_cupo check ((cupo_reclamos is null) = (cupo_periodo is null))
+);
+
+create index ix_ventana_vigente on arbolado.ventana_laboral (ambito, ambito_valor)
+  where activa;
 
 create table arbolado.config_firma (
   version serial primary key,
@@ -741,6 +813,24 @@ create index ix_entregable_dictamenes
 
 **`ix_entregable_dictamenes` es un índice GIN sobre el arreglo**, y existe por una sola consulta: al anular un dictamen hay que preguntar *"¿este salió en algún entregable?"* en tiempo constante. Si sale, se enciende `tiene_anulaciones` y el panel muestra **a qué empresa hay que notificar**. El sistema no puede des-enviar un PDF; lo que no hace es dejarlo pasar en silencio, porque del otro lado hay una autorización de extracción que ya no vale.
 
+### `parametro` también es versionada, y por el mismo motivo (D-76)
+
+Un dictamen firmado en marzo se defiende con las reglas de marzo. **Una jornada calculada con 10 minutos por dictamen se ejecuta y se mide con 10.**
+
+`jornada` guarda `parametro_version`, y las confirmadas siguen usando esa. Si el Administrador cambia `minutos_por_dictamen` a 15 con tres ingenieros en la calle, sus rutas no se mueven: el cambio rige para las jornadas que se armen después.
+
+Sin esto, una ruta calculada con un número quedaría ejecutándose contra otro y **el porcentaje de eficiencia del día dejaría de significar algo** — se estaría midiendo el rendimiento contra un objetivo que se movió después de arrancar. Es la regla del blindaje (RF-34) llevada a la configuración: **nada se mueve bajo los pies del que está en la calle.**
+
+La vista `parametro_vigente` es lo que lee todo el resto del sistema, así que el versionado no complica ninguna consulta que no lo necesite.
+
+### `ventana_laboral` limita tomar, no trabajar (RF-37)
+
+`ck_ambito_valor` impide una ventana de distrito sin distrito. `ck_cupo` impide un cupo sin período — "20 reclamos" no significa nada sin decir si es por día o por semana.
+
+**La tabla arranca vacía, y vacía no limita nada.** Mismo criterio que `regla_complejidad` (D-49): un horario puesto por nosotros se vería igual que uno acordado con la repartición, y no lo es.
+
+**Resolución por ámbito, gana el más específico**, exactamente como `directiva_jornada`. No se inventa un mecanismo nuevo para el mismo problema.
+
 ### `config_firma` es versionada, y eso no es un detalle
 
 Un dictamen firmado en marzo **se defiende con las reglas de firma de marzo**, no con las de hoy. Guardar `config_firma_version` en cada dictamen es lo que permite explicar, dos años después, bajo qué configuración se firmó ese documento.
@@ -776,6 +866,8 @@ Cada cambio en el panel inserta una fila nueva; ninguna se actualiza. Es un regi
 | `max_fotos_dictamen` | 6 | RF-17 — acota el peso de la cola |
 | `kb_max_foto` | 400 | Condición de campo, no de costo |
 | `minutos_espera_recalculo_ruta` | 2 | H-12 — evita castigar al servicio de ruteo |
+| `cierre_duplicados_activo` | `true` | RF-38 — **toggle**: apagado, vuelve al circuito documentado |
+| `insistencia_sube_un_nivel` | `true` | D-92 — sin tope, la insistencia premia a la zona que ya reclama |
 
 ---
 
@@ -813,6 +905,8 @@ $$;
 | `certificacion_intento` | — | — | lee | lee y fuerza reintento |
 | `concesionaria` / `entregable_concesionaria` | — | — | — | **exclusivo** |
 | `ruta_resumen` | lee agregados | los propios | los del equipo | lee todo |
+| `ventana_laboral` | — | lee la que le aplica | **escribe** | escribe |
+| `parametro_version` | — | lee | lee | escribe |
 | `auditoria` | — | — | — | lee. **Nadie escribe directo** |
 
 Ejemplo de política, la más importante:
@@ -852,7 +946,7 @@ Archivos `NNNN_descripcion.sql` en `backend/db/migraciones/`, aplicados en orden
 | `0006` | **`captor`**, y recién después `reserva` con blindaje y su índice único parcial |
 | `0007` | `dictamen`, `dictamen_foto`, `reclamo_foto`, borradores, `certificacion_intento`, trigger de inmutabilidad |
 | `0008` | Jornadas, rutas, `detalle_ruta`, **`ruta_resumen`**, distribuciones, directivas |
-| `0009` | Parámetros, `config_firma`, auditoría, idempotencia, **`concesionaria`**, entregables, **`operacion_cuarentena`** |
+| `0009` | **`parametro_version`** y `parametro`, `config_firma`, auditoría, idempotencia, **`concesionaria`**, entregables, **`operacion_cuarentena`**, **`ventana_laboral`** |
 | `0010` | Políticas RLS de todas las tablas |
 | `0011` | Trabajos programados (T9), incluida la purga de idempotencia |
 | `0012` | Valores iniciales de parámetros, reglas de prioridad **provisorias** (D-59) y captores de prueba |

@@ -2,7 +2,8 @@
 
 > Última actualización: 21/08/2026 (tercera vuelta) · Estado: **en diseño, sin aprobar**
 > Incorpora las respuestas de relevamiento del 18/08 (grupos A y B de `entregables/preguntas-abiertas.html`)
-> y **absorbe D-54 a D-67 y los hallazgos H-01 a H-12** de la auditoría del 20/08 (`09-decisiones-20260820.md`).
+> y absorbe **D-54 a D-67** con los hallazgos H-01 a H-12 (`09-decisiones-20260820.md`)
+> y **D-68 a D-92**, los caminos alternativos (`11-decisiones-20260821.md`).
 > Especificación, no implementación. Las migraciones se escriben en Fase 2.
 
 ## 1. Dos esquemas, una frontera visible
@@ -115,7 +116,10 @@ Estado del reclamo **desde la mirada del módulo**. Clave: (`nro_reclamo_sua`, `
 | `prioridad_base` | enum | `verde`, `amarillo`, `naranja`, `rojo`. Calculada al ingresar según riesgo |
 | `prioridad_vigente` | enum | La que rige hoy, ya escalada |
 | `fecha_ultimo_escalamiento` | fecha | |
-| `estado_modulo` | enum | `sin_dictaminar`, `reservado`, `dictaminado`, `vencido_redictaminar` |
+| `estado_modulo` | enum | `sin_dictaminar`, `reservado`, `dictaminado`, `vencido_redictaminar`, `cerrado_definitivo` |
+| `cerrado_por_dictamen_id` | uuid, nulo | Qué dictamen lo cerró. Se llena también cuando lo cierra el dictamen **de otro reclamo** (RF-38) |
+| `cerrado_por_reclamo` | texto, nulo | El par (N° SUA, año) del reclamo que lo cubrió, si se cerró por duplicado |
+| `insistencia_aplicada` | booleano | La insistencia ya subió el color. **No vuelve a subirlo** (D-92) |
 | `etiqueta_tormenta` | booleano | Habilita la sección de emergencia (RF-28). Llega del SUA **o** la marca el Administrador mientras el CIL no la implemente (A-03) |
 | `fecha_tormenta` | fecha y hora | Para la ventana de 3 días |
 | `origen_alta` | enum | `sua`, `oficio`, `vecino`, `tormenta` |
@@ -125,6 +129,10 @@ Estado del reclamo **desde la mirada del módulo**. Clave: (`nro_reclamo_sua`, `
 | `senal_riesgo_detectada` | texto, nulo | Qué frase del texto del vecino disparó el salto de color. Nunca hay un color inexplicable |
 | `cantidad_reclamos_ejemplar` | entero | Insistencia del vecino: cuántos reclamos hay sobre el mismo árbol |
 | `id_ejemplar_agrupado` | texto | Agrupador de reclamos sobre el mismo ejemplar. Ver abajo |
+
+**`cerrado_definitivo` es un estado nuevo y hace falta.** Un reclamo cerrado por un dictamen "sin trabajo" (D-83) o por ser duplicado de otro (RF-38) **no vence a los 18 meses y no vuelve a la cola**. `dictaminado` a secas sí vuelve. Sin distinguirlos, el trabajo de vencimientos manda a alguien a re-mirar un árbol que ya no existe.
+
+**`insistencia_aplicada` es la que evita el sesgo.** La insistencia sube el color **un escalón, una sola vez** (D-92). Sin la bandera, un árbol muy visible en una esquina céntrica junta diez reclamos y llega a rojo, mientras uno peligroso en un barrio donde nadie sabe reclamar se queda en verde: la insistencia mide **cuánto reclama la gente, no cuánto riesgo hay**. Priorizar por demanda ciudadana premia a la zona que ya está mejor atendida, que es el sesgo que la matriz vino a corregir.
 
 **Agrupación por ejemplar.** La insistencia del vecino solo se puede medir si el sistema sabe que tres reclamos hablan del mismo árbol. Se agrupa **por calle y altura normalizadas**, que es el único dato que da el origen, y se afina por cercanía menor a 15 metros solo cuando los dos puntos son de precisión `exacta` o corregidos por un usuario — dos puntos aproximados cercanos no prueban nada. El criterio se documenta explícitamente porque un mismo árbol de vereda puede recibir reclamos con la altura catastral corrida en un número, y agrupar de más sería tan malo como no agrupar.
 
@@ -292,7 +300,7 @@ Los dispositivos son **provistos por la repartición**, no personales. Que exist
 | Tiempos | `fecha_dictamen` (reloj del dispositivo), `fecha_recepcion` (reloj del servidor), `fecha_vencimiento` |
 | Ejemplar | `especie` (texto libre), `perimetro_tronco`, `diametro_calculado`, `altura_aproximada`, `estado_copa`, `estado_tronco`, `estado_raices`, `inclinacion_ejemplar` |
 | Ubicación | `direccion_confirmada`, `calle_esquina`, `distancia_medianera`, `cantidad_frente`, `lat_captura`, `lng_captura` |
-| Intervención | `categoria_intervencion`, `extraccion[]`, `trabajos_aereos[]`, `trabajos_subterraneos[]`, `sin_trabajo[]`, `plantar[]` |
+| Intervención | `categoria_intervencion`, `extraccion[]`, `trabajos_aereos[]`, `trabajos_subterraneos[]`, `sin_trabajo[]`, `sin_trabajo_motivo`, `plantar[]` |
 | Clasificación | `dano_vereda`, `complejidad`, `complejidad_sugerida`, `urgencia`, `epoca_recomendada` |
 | Banderas | `urgente`, `frente_garage`, `media_tension`, `de_oficio` |
 | Cierre | `observaciones_tecnicas`, `firma_trazo`, `firma_hash`, `hash_documento`, `sello_tiempo`, `estado` |
@@ -316,6 +324,21 @@ Separarlos es la decisión D-65 hecha esquema. **Firmar y certificar no son lo m
 Un dictamen `firmado` + `pendiente` **es válido puertas adentro**: es inmutable, auditable y cuenta para el vencimiento. Lo único que no puede hacer es **salir en un entregable a concesionarias** (§13), porque ahí es donde la validez se ejerce frente a un tercero.
 
 **`discrepancia_reloj` (D-67).** Toma `ninguna`, `leve` o `grave`. Es `grave` cuando la diferencia entre `fecha_dictamen` y `fecha_recepcion` supera las 24 horas. Un dictamen con discrepancia grave **se acepta igual** —no se castiga a nadie por el reloj del equipo que le dieron— pero **el job de vencimientos no lo procesa** hasta que el Administrador confirme o corrija la fecha, y esa corrección queda auditada con la fecha vieja y la nueva. Un vencimiento legal es una fecha que alguien tiene que poder defender; que la fije un reloj demostrablemente roto y que después un job la ejecute sin preguntarle a nadie es peor que pedirle a una persona que la mire.
+
+**`sin_trabajo_motivo` decide si el reclamo cierra para siempre (D-89).** Es obligatorio cuando `sin_trabajo` tiene contenido, y es un enum, no texto libre:
+
+| Motivo | Cuándo |
+| --- | --- |
+| `no_requiere_intervencion` | El ejemplar está sano; el vecino se equivocó, o el árbol es así |
+| `ejemplar_inexistente` | Ya no está: tormenta, extracción privada, dirección errada |
+| `ya_intervenido` | Una cuadrilla o un privado hizo el trabajo antes de la visita |
+| `fuera_de_alcance` | Árbol privado, otra jurisdicción, no es un árbol |
+
+**Por qué enum y no observaciones.** El formulario físico tiene una casilla y el ingeniero explica al lado; en papel alcanza porque lo lee una persona. Acá **de ese dato depende que un trabajo automático decida si el reclamo vuelve o no**, y ningún trabajo automático puede leer texto libre.
+
+**Un dictamen tiene que decir algo.** Las restricciones de exclusión garantizaban que las intervenciones no se contradijeran; **no garantizaban que hubiera alguna**. Con las cuatro listas vacías, las dos pasaban y el dictamen se firmaba — un documento con validez legal que no autoriza nada ni declara que no hace falta nada. Se suma la regla de completitud: **o hay intervención, o hay "sin trabajo" con motivo**.
+
+**Vencimiento: solo vence lo que autoriza algo (D-83).** Un dictamen con `sin_trabajo` **no lleva `fecha_vencimiento`** y su reclamo pasa a `cerrado_definitivo`. El vencimiento existe porque una autorización para intervenir caduca; si no se autorizó nada, no hay nada que caduque. Contradice RF-19 como está escrito — ver `99-desvios.md` (DV-22).
 
 **Inmutabilidad (RF-19).** Un dictamen firmado no se actualiza ni se borra: lo impide una regla en la base, no una convención del código. Corregir implica anular y emitir uno nuevo, y ambos quedan en el historial.
 
@@ -451,7 +474,11 @@ La tabla `ruta` guarda `directiva_aplicada`: qué directiva regía cuando se arm
 
 ### `arbolado.parametro`
 
-Clave, valor, descripción, quién y cuándo lo cambió. Es RNF-09 y RF-32 hechos tabla: cambiar el negocio sin tocar código.
+Clave, valor, descripción, quién y cuándo lo cambió, **y una versión**. Es RNF-09 y RF-32 hechos tabla: cambiar el negocio sin tocar código.
+
+**Los parámetros se versionan, igual que `config_firma` (D-76).** Cada cambio inserta una versión nueva del conjunto; ninguna fila se actualiza. La `jornada` guarda **con qué versión se armó**, y las jornadas ya confirmadas siguen usando esa.
+
+**Por qué.** Si el Administrador cambia `minutos_por_dictamen` de 10 a 15 con tres ingenieros en la calle, una ruta calculada con 10 quedaría ejecutándose contra un cálculo de 15 y **el porcentaje de eficiencia del día dejaría de significar algo** — se estaría midiendo el rendimiento contra un objetivo que se movió después. Es la misma regla del blindaje (RF-34) llevada a la configuración: **nada se mueve bajo los pies del que está en la calle.**
 
 | Clave | Valor inicial | Fundamento |
 | --- | --- | --- |
@@ -475,6 +502,27 @@ Clave, valor, descripción, quién y cuándo lo cambió. Es RNF-09 y RF-32 hecho
 | `horas_aviso_cola_pendiente` | 48 | D-58 |
 | `max_fotos_dictamen` | 6 | RF-17 · acota el peso de la cola |
 | `kb_max_foto` | 400 | Condición de campo |
+| `cierre_duplicados_activo` | encendido | RF-38 — **toggle**: apagado, vuelve al circuito documentado |
+| `insistencia_sube_un_nivel` | `true` | D-92 |
+
+### `arbolado.ventana_laboral` (RF-37)
+
+Cuándo y cuánto trabajo se puede **tomar**. No limita dictaminar ni sincronizar.
+
+| Campo | Notas |
+| --- | --- |
+| `id`, `nombre` | |
+| `ambito` | `global`, `distrito`, `usuario` |
+| `ambito_valor` | Qué distrito o qué usuario |
+| `hora_desde`, `hora_hasta` | Franja en la que se puede tomar trabajo |
+| `dias_semana` | Qué días aplica |
+| `cupo_reclamos`, `cupo_periodo` | Cuántos casos como máximo, por día o por semana |
+| `vigencia_desde`, `vigencia_hasta` | Caduca sola |
+| `creada_por`, `activa` | |
+
+**Resolución de conflictos: gana la de ámbito más específico** (usuario > distrito > global); a igual ámbito, la más reciente. **Es exactamente el mecanismo de `directiva_jornada`**, y no se inventa uno nuevo.
+
+**La tabla arranca vacía y sin filas no limita nada** — mismo criterio que `regla_complejidad` (D-49). Un horario puesto por nosotros se vería igual que uno acordado con la repartición, y no lo es.
 
 > El front usa hoy 7 minutos por dictamen, contra los 10 de RF-21. Se corrige al valor del documento y se anota el desvío.
 
@@ -530,6 +578,8 @@ Ninguna tabla sin política. Resumen:
 | `operacion_cuarentena` | — | — | — | lee y resuelve |
 | `certificacion_intento` | — | — | lee | lee y fuerza reintento |
 | `concesionaria` / `entregable_concesionaria` | — | — | — | **exclusivo** |
+| `ventana_laboral` | — | lee la que le aplica | **escribe** | escribe |
+| `parametro_version` | — | lee | lee | escribe |
 | `ruta_resumen` | lee agregados | los propios | los del equipo | lee todo |
 | `auditoria` | — | — | — | lee. **Nadie escribe directo** |
 

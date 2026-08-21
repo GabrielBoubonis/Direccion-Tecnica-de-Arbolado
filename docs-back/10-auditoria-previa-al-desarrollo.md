@@ -1,6 +1,6 @@
 # Auditoría previa al desarrollo
 
-> Última actualización: 21/08/2026 · Estado: **preparada, sin ejecutar**
+> Última actualización: 21/08/2026 · Estado: **preparada, sin ejecutar** — con los ejes 3 y 4 **adelantados** (ver §3)
 > Se corre **después del feedback del docente** y **antes de escribir la primera línea de código de producción**.
 > La ejecuta Claude; Lucas fija el alcance, resuelve lo funcional y aprueba el resultado.
 
@@ -73,7 +73,7 @@ Cuatro columnas por requerimiento, y las cuatro tienen que estar llenas:
 
 Un diseño con todos los flujos principales y sin alternativos es un diseño que funciona en la demo y se rompe la primera semana.
 
-**Alcance:** RF-01 a RF-36 y RNF-01 a RNF-14. Treinta y seis más catorce, ninguno se saltea.
+**Alcance:** RF-01 a RF-38 y RNF-01 a RNF-14. Treinta y ocho más catorce, ninguno se saltea.
 
 ### Eje 3 · La jornada de campo, otra vez y completa
 
@@ -81,24 +81,25 @@ Un diseño con todos los flujos principales y sin alternativos es un diseño que
 
 La auditoría anterior recorrió la jornada **sin conexión**. Esta recorre la jornada **entera**, incluyendo lo que pasa con señal, y sobre todo lo que pasa **a mitad de camino** — que es donde vive lo incómodo.
 
-Situaciones que hay que poder contestar sin dudar:
+> **Adelantado el 21/08.** Las doce situaciones se resolvieron antes de correr la auditoría, porque eran decisiones **funcionales** que no dependían de nadie externo. El razonamiento está en `11-decisiones-20260821.md`.
 
-| Situación | ¿Está contestada? |
+| Situación | Cómo se resolvió |
 | --- | --- |
-| El árbol del reclamo **ya no está**: lo sacó una tormenta o un vecino | |
-| El árbol está, pero **la dirección apunta a otra cuadra** | |
-| Hay **dos árboles** en la dirección y el reclamo no dice cuál | |
-| El vecino **no deja** medir el ejemplar, o hay un perro suelto | |
-| El ingeniero llega y el caso **ya fue intervenido** por una cuadrilla | |
-| Se **cambia de modo de traslado** a mitad de jornada | |
-| La jornada se **corta antes de tiempo**: lluvia, urgencia, salud | |
-| Aparece una **urgencia en la calle** que no estaba en la ruta | |
-| El ingeniero **se equivoca de reclamo** y carga el dictamen en otro | |
-| Dos ingenieros **se cruzan** en la misma cuadra | |
-| El captor **se le cae y se rompe** a media jornada | |
-| El ingeniero **termina antes** y quiere tomar más trabajo | |
+| El árbol **ya no está** | Dictamen "sin trabajo", motivo `ejemplar_inexistente`; cierra definitivo (D-68, D-83) |
+| El árbol está, pero **la dirección apunta a otra cuadra** | Corrige el punto en la pre-confirmación; ninguna geocodificación posterior lo pisa |
+| Hay **dos árboles** y no dice cuál | Elige uno y corrige el punto; el otro va como alta de oficio (D-79) |
+| El vecino **no deja** medir, o hay un perro suelto | Parada no visitada con motivo; **no se dictamina a medias** (D-71) |
+| El caso **ya fue intervenido** | Dictamen "sin trabajo", motivo `ya_intervenido` (D-68) |
+| **Derivado por error**: árbol privado, otra jurisdicción | Dictamen "sin trabajo", motivo `fuera_de_alcance` (D-91) |
+| La jornada se **corta antes de tiempo** | Cierre anticipado con motivo: desblinda y devuelve en el momento (D-74) |
+| Aparece una **urgencia en la calle** | Alta de oficio con la prioridad que fija el ingeniero (D-18, D-85) |
+| **Se equivoca de reclamo** y firma | Solicita la anulación; la ejecuta el Administrador (D-69) |
+| Dos ingenieros **se cruzan** | Cubierto por la reserva exclusiva y el blindaje |
+| El captor **se rompe** a media jornada | Baja de captor y cuarentena (RF-35, D-63); lo cargado se pierde solo si no vuelve |
+| **Termina antes** y quiere más trabajo | Amplía la jornada desde donde está, sujeto a la ventana laboral (D-72, RF-37) |
+| **Le sacan un caso** a media jornada | Novedades con señal: aviso con motivo y ruta recalculada (D-77) |
 
-**Ninguna de las doce está resuelta hoy con nombre propio en el diseño.** Algunas probablemente se resuelvan solas con lo que ya está escrito —el mapa corregible, el alta de oficio, la reserva liberable—; otras seguramente no. El trabajo del eje es **decidir cuáles y escribir la respuesta**, no dar por sentado que el diseño ya las cubre.
+**Lo que queda para el eje 3 cuando se corra:** verificar que estas trece estén efectivamente escritas en los documentos temáticos y con escenario en el driver, y **buscar las que todavía no se nos ocurrieron**. Trece respuestas no son la garantía de que no falte una decimocuarta.
 
 > **Este eje es funcional, no técnico.** Las preguntas se le llevan a Lucas en términos de comportamiento observable —*"el ingeniero llega y el árbol no está: ¿qué ve, y qué le queda al reclamo?"*— y el mecanismo se decide después.
 
@@ -106,20 +107,23 @@ Situaciones que hay que poder contestar sin dudar:
 
 > *¿Qué pasa dentro de la repartición, más allá de la calle?*
 
-El diseño está muy trabajado del lado del ingeniero en campo y **menos del lado de la oficina**. Situaciones a cubrir:
+> **Adelantado el 21/08**, igual que el eje 3.
 
-| Situación | ¿Está contestada? |
+| Situación | Cómo se resolvió |
 | --- | --- |
-| Un agente **se va de la repartición** con reclamos reservados y dictámenes firmados | |
-| Un agente **cambia de rol** — el Operario pasa a Jefe, o al revés | |
-| Un dictamen firmado **se impugna** desde afuera | |
-| La cuadrilla **no puede ejecutar** lo que el dictamen autoriza | |
-| Llega un **pedido de informe** de otra área sobre un expediente | |
-| El SUA **cambia** el formato de un campo, o agrega un subtipo | |
-| Se **vuelve a cargar** un reclamo que ya existe con otro número | |
-| El Administrador **cambia un parámetro** con jornadas en curso | |
+| Un agente **se va** con reclamos blindados y dictámenes sin subir | El panel corta el paso y muestra qué queda colgando; el Administrador decide (D-78) |
+| Un agente **cambia de rol** | Mismo control que la baja |
+| La cuadrilla **no puede ejecutar** lo autorizado | **No vuelve al sistema.** La reentrada es un reclamo nuevo. Exclusión declarada (D-80) |
+| Se **vuelve a cargar** un reclamo que ya existe con otro número | El dictamen puede cerrar los duplicados del mismo ejemplar (RF-38) |
+| El Administrador **cambia un parámetro** con jornadas en curso | `parametro` pasa a versionada; las jornadas confirmadas siguen con la suya (D-76) |
+| El Jefe quiere **reasignar** trabajo entre ingenieros | **No se puede.** Exclusión declarada: la facultad del Jefe es la directiva (D-86) |
+| El **rezago histórico** inunda la matriz de prioridad | Escala igual y se separa por antigüedad (D-81) |
 
-La última merece atención especial: `config_firma` está versionada justamente para eso, pero **`parametro` no lo está**, y `minutos_por_dictamen` cambiado a mitad de una jornada confirmada puede dejar una ruta calculada con un número y ejecutándose con otro.
+**Lo que queda abierto para el eje 4:**
+
+- Un dictamen firmado **se impugna** desde afuera. Probablemente se resuelva con la anulación que ya existe, pero **no está escrito** y conviene decirlo con nombre propio.
+- Llega un **pedido de informe** de otra área sobre un expediente.
+- El SUA **cambia** el formato de un campo o agrega un subtipo. Es el escenario que pone a prueba `IReclamoProvider`, que es la promesa central de la arquitectura.
 
 ### Eje 5 · Concurrencia y carrera
 
@@ -231,20 +235,22 @@ No son hallazgos: son **puntos que quedaron marcados** al aplicar la auditoría 
 
 | # | Punto | Eje |
 | --- | --- | --- |
-| 1 | **`parametro` no está versionada** y `config_firma` sí. Cambiar `minutos_por_dictamen` con jornadas confirmadas puede dejar rutas calculadas con un número y ejecutándose con otro | 4 |
-| 2 | **No hay procedimiento de copia de seguridad ni de restauración**, en un sistema que emite documentos legales | 6 |
+| 1 | ~~`parametro` no está versionada~~ · **Resuelto el 21/08** (D-76): pasa a versionada y la jornada guarda con cuál se armó | — |
+| 2 | **Copia de seguridad**: el objetivo quedó fijado el 21/08 (D-88, cero pérdida de dictámenes firmados), pero **el procedimiento de restauración sigue sin escribirse ni probarse** | 6 |
 | 3 | **No está escrito qué pasa si llega la misma `Idempotency-Key` con un cuerpo distinto** | 7 |
 | 4 | El **blindaje se escribe en el módulo 4 y se respeta en el módulo 2**. Si los trabajos del 2 no aprenden el `not exists`, el blindaje existe y no protege nada | 2 |
 | 5 | **El trigger de inmutabilidad tuvo que reescribirse** al sumar los campos de certificación: como estaba, rechazaba cualquier `update` que dejara el dictamen en `firmado`, incluido marcar `sincronizado_origen`. **Hay que buscar si hay más triggers o `check` con el mismo problema** | 1, 5 |
 | 6 | **`sua_sim` no tiene tabla de fotos** y `reclamo_foto` es nuestra. Verificar que el día de la transferencia el `IReclamoProvider` real pueda recibirlas, o declarar que no | 6 |
-| 7 | **El protocolo de tormenta no interactúa con el blindaje** en ningún documento. Una tormenta que entra con jornadas ya confirmadas no tiene comportamiento definido | 3, 5 |
+| 7 | ~~El protocolo de tormenta no interactúa con el blindaje~~ · **Resuelto el 21/08** (D-70): el blindaje aguanta y solo el Jefe puede forzarlo; con señal, el ingeniero se entera en el momento (D-77) | — |
 | 8 | **El balanceador y la directiva de jornada pueden pedir cosas incompatibles**: una directiva obligatoria que restringe categoría y zona, más una distribución por porcentaje de prioridad, puede no tener solución. `RF-25` redistribuye por falta de stock, pero **no está escrito qué gana cuando la directiva vuelve el cupo imposible** | 2, 4 |
 
 **El punto 5 es el más instructivo de los ocho** y conviene decirlo en la defensa: se encontró **escribiendo** el esquema, no leyéndolo. Es la diferencia entre revisar un documento y ejercitarlo.
 
 > Un noveno punto se encontró y **se corrigió en el acto**, porque costaba una línea: `ruta` guardaba minutos y eficiencia pero **ninguna distancia**, así que el resumen de la jornada prometía kilómetros que la tabla no tenía. Se sumó `distancia_metros`. Queda anotado como ejemplo de la diferencia de costo entre encontrar algo ahora y encontrarlo con el módulo 4 escrito.
 
-**El punto 7 es el que más huele a hallazgo grave.** El protocolo de tormenta arma rutas de emergencia sobre casos etiquetados de los últimos tres días; el blindaje impide tocar reclamos que otro tiene en la calle. Qué gana cuando se cruzan no está escrito en ninguna parte, y una tormenta es exactamente el momento en que el sistema no puede quedarse pensando.
+**El punto 7 era el que más olía a hallazgo grave y se resolvió antes de correr la auditoría**, junto con el 1 y buena parte del 8. Es la mejor señal de que adelantar los ejes 3 y 4 valía la pena: **tres de los nueve puntos marcados cayeron sin necesidad de auditar nada, solo preguntando lo que faltaba preguntar.**
+
+Los que quedan —el 2, el 3, el 4, el 5 y el 6— son técnicos y se resuelven mirando el diseño, no preguntándole al analista.
 
 ---
 

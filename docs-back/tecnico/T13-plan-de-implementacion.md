@@ -60,6 +60,16 @@ Ningún requerimiento nuevo abre un módulo nuevo: **todos caen dentro de módul
 | **H-06** · Cola por dependencias | **8** | |
 | **H-08** · Almacenamiento persistente | **8** | |
 | **H-11** · Purga de idempotencia | **0** | Es un trabajo programado de la migración `0011` |
+| **RF-37** · Ventana laboral | **4**, con panel en **7** | Limita tomar trabajo, que es lo que hace el módulo de rutas |
+| **RF-38** · Cierre de duplicados | **3** | Ocurre al firmar |
+| **D-89** · Completitud del dictamen | **0** y **3** | La restricción va en la migración; la validación, en el caso de uso |
+| **D-83** · "Sin trabajo" cierra y no vence | **3**, con efecto en **0** | El trabajo de vencimientos deja de verlos solo |
+| **D-76** · Parámetros versionados | **0** | Cambia el esquema base y lo lee todo el resto |
+| **D-72**, **D-74**, **D-77** · Ampliar, cerrar antes, novedades | **4** y **8** | Son operaciones de jornada, con su parte offline |
+| **D-69** · Solicitud de anulación | **3** y **7** | La pide el ingeniero, la ejecuta el Administrador |
+| **D-78** · Baja con trabajo pendiente | **7** | |
+
+**D-76 es el que hay que hacer primero de los nuevos, aunque parezca menor.** Versionar `parametro` cambia cómo lee la configuración **todo el resto del sistema**; meterlo después de tener cinco módulos escritos significa tocarlos los cinco.
 
 **El único que cruza módulos es el blindaje**, y conviene decirlo en la defensa: se **escribe** en el módulo 4 pero se **respeta** en el módulo 2. Si los trabajos programados del módulo 2 no aprenden el `not exists`, el blindaje existe en la tabla y no protege nada. Es la clase de dependencia que se pierde si no está anotada.
 
@@ -169,6 +179,8 @@ La distinción entre "diseñado" y "funcionando" es lo que hace confiable el ent
 | **El navegador descarta IndexedDB con dictámenes adentro** | Pérdida de trabajo con validez legal | `storage.persist()` + **PWA instalada como requisito de despliegue**. Si aun así ocurre, se declara |
 | **Un módulo 2 que no respeta el blindaje del módulo 4** | El blindaje existe y no protege | Escenario propio en el driver: adelantar el reloj con una jornada blindada y verificar que la prioridad **no** cambió |
 | **La certificadora externa nunca responde** | Dictámenes que no salen en entregables | Quedan firmados y válidos; cola visible, reintento forzable, alerta en el dashboard |
+| **La ventana laboral se configura mal y frena el trabajo** | Ingenieros sin poder tomar casos | La pantalla muestra la consecuencia antes de guardar (RF-37), la tabla arranca vacía, y la vigencia caduca sola |
+| **El interruptor de duplicados se apaga y nadie se entera** | Vuelven las visitas repetidas | El panel muestra el estado del interruptor junto al de las señales de riesgo; ambos son decisiones, no defectos |
 
 El anteúltimo merece énfasis: **cada módulo cierra con driver verde y documentación**, así que si el proyecto se corta en el módulo cinco, lo entregado son cinco módulos verificables — no un sistema a medio hacer.
 
@@ -183,6 +195,7 @@ Las tres preguntas del equipo se cerraron el 20/08. Lo que queda **no depende de
 | A-12 | Diez o quince descripciones reales de reclamos | Dirección Técnica | Abierta. Mitigada: las señales arrancan cargadas y **marcadas como provisorias** (D-59) |
 | A-10 bis | Los cortes de diámetro y altura | Dirección Técnica | Abierta. Mitigada: la tabla arranca vacía y no se sugiere nada (D-49) |
 | A-09 | Si el rol Jefe se confirma como se diseñó | Dirección Técnica | Abierta |
+| **Nuevo** | Qué franja horaria y qué cupo van en la ventana laboral | Dirección Técnica | Abierta. Mitigada: la tabla arranca vacía y no limita nada |
 | — | Política propia de datos personales | La repartición | Abierta. Los plazos son parámetros |
 | C-01 | Qué lleva el entregable para concesionarias | Equipo | **Cerrada** → RF-33, D-54, D-55 |
 | C-02 | Cuánto se guarda el historial de recorridos | Equipo | **Cerrada** → D-56: 90 días el rastro, indefinido el resumen |
@@ -192,7 +205,7 @@ Las tres preguntas del equipo se cerraron el 20/08. Lo que queda **no depende de
 
 **Ninguna bloquea el diseño**: para todas hay un supuesto tomado y documentado. Lo que cambia es cuánto habría que rehacer si el supuesto está mal — y en todos los casos, poco: son parámetros, tablas o texto, **no arquitectura**.
 
-**Lo que sí hay que hacer antes de codear, y no depende de terceros: los cinco requerimientos nuevos tienen que entrar al `.docx`** — RF-33, RF-34, RF-35, RF-36 y RNF-14 (DV-17, DV-18, DV-19). El diseño ya los tiene absorbidos; el documento académico todavía no.
+**Lo que sí hay que hacer antes de codear, y no depende de terceros: los siete requerimientos nuevos tienen que entrar al `.docx`** — RF-33 a RF-38 y RNF-14 (DV-17 a DV-22). El diseño ya los tiene absorbidos; el documento académico todavía no.
 
 ---
 

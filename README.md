@@ -85,6 +85,7 @@ Detalle en [`docs-back/01-arquitectura.md`](docs-back/01-arquitectura.md).
 │   ├── 08-datos-semilla-y-driver.md  Seed reproducible y escenarios de verificación
 │   ├── 09-decisiones-20260820.md     Auditoría del trabajo sin conexión: D-54 a D-67
 │   ├── 10-auditoria-previa-al-desarrollo.md  Los 8 ejes de la auditoría que habilita codear
+│   ├── 11-decisiones-20260821.md     Los caminos alternativos: D-68 a D-92, RF-37 y RF-38
 │   ├── 99-desvios.md                 Qué hacemos distinto del .docx y por qué
 │   └── tecnico/                      EL CÓMO: diseño técnico completo
 │       ├── T0-indice.md                  Mapa de la carpeta y cómo leerla

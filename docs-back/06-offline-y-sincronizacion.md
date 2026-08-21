@@ -140,6 +140,11 @@ Si la persistencia no se puede garantizar, el ingeniero **sale igual**, pero avi
 | Sacar fotos y adjuntarlas | Sí, se encolan |
 | Marcar una parada como visitada | Sí |
 | Dar de alta un reclamo de oficio | Sí |
+| Marcar una parada como **no visitada**, con motivo | Sí |
+| Dictaminar "sin trabajo" con su motivo | Sí |
+| **Solicitar** la anulación de un dictamen propio | Sí, se encola |
+| **Cerrar la jornada** anticipadamente | Se encola; el desblindaje ocurre al llegar |
+| **Ampliar la jornada** | **No** — es tomar trabajo nuevo (D-14) |
 | **Tomar trabajo nuevo** | **No** — requiere conexión por diseño (D-14) |
 | **Seguir cargando después de que se apagó el equipo** | **No** — hay que reautenticar, y eso exige conexión (RNF-14) |
 | Ver el dashboard | No, muestra los últimos datos conocidos |
@@ -228,6 +233,28 @@ Un borrador puede tener adentro trabajo de campo real —para eso existe, ver §
 | Pasadas **48 horas** con cola pendiente | Aviso al abrir la aplicación, que hay que confirmar para seguir |
 
 **Nunca bloquea el trabajo.** Pero deja de ser algo que se pueda no ver: son dictámenes firmados, con validez legal, que existen en un solo lugar y ese lugar es un celular.
+
+---
+
+## 10 bis. Novedades a media jornada
+
+Hasta acá el dispositivo hablaba con el servidor **dos veces**: al confirmar la jornada y al cerrarla. Todo lo demás era cola de salida — el captor mandaba, nunca preguntaba.
+
+Eso alcanzaba mientras nada podía cambiar durante el día. **Con el desblindaje forzado por tormenta (D-70), sí puede**: el Jefe le puede sacar un caso al ingeniero que está en la calle.
+
+| Cuándo | Qué trae |
+| --- | --- |
+| Cada vez que hay señal confirmada | Si le sacaron un caso: quién y por qué |
+| | Si apareció un caso de tormenta en su zona |
+| | Si el Administrador liberó o desblindó algo suyo |
+
+**Qué hace el dispositivo con eso.** El caso sale de la ruta, el orden se recalcula **desde donde está parado**, y si lo tenía cargado a medias **la carga se guarda como borrador** — no se pierde.
+
+**La consulta es barata y no compite con la cola.** Va después de vaciar la cola, nunca antes: si el celular se queda sin batería en el medio, lo que se salvó es el trabajo de campo y no la lista de novedades. Es la misma prioridad de §8.
+
+> No se entera, en el peor caso, y solo si no ve el cielo. Si claramente ve el cielo, y se supone que existe una comunicación lateral con los mismos, ya se puede ir viendo y sabiendo no solo al empezar el día sino también a media jornada.
+
+**El "no se entera" queda acotado al que está realmente sin señal**, que es una condición del entorno y no del diseño. Sin esta consulta, el ingeniero podía manejar treinta cuadras hasta un árbol que ya no le correspondía.
 
 ---
 

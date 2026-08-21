@@ -145,6 +145,9 @@ Se valida **en el dispositivo antes de llamar**: número solo dígitos, año den
 | `PATCH` | `/jornadas/{id}` | Ajustes de la pre-confirmación |
 | `POST` | `/jornadas/{id}/confirmar` | **Blinda**, renueva la sesión, arma la ruta definitiva y devuelve el paquete offline |
 | `POST` | `/jornadas/{id}/cancelar` | Libera todas las reservas y descarta |
+| `POST` | `/jornadas/{id}/ampliar` | Suma casos **desde la posición actual** (D-72). Requiere conexión |
+| `POST` | `/jornadas/{id}/cerrar` | Cierre anticipado con motivo: desblinda y devuelve a la cola (D-74) |
+| `GET` | `/jornadas/{id}/novedades` | Qué cambió mientras estaba en la calle (D-77) |
 
 ```jsonc
 // POST /api/v1/jornadas/preparar
@@ -187,6 +190,37 @@ Se valida **en el dispositivo antes de llamar**: número solo dígitos, año den
 **`sinPunto` viene aparte y no se pierde.** Son los reclamos que la geocodificación no pudo resolver: entran al listado pero no a la ruta, y la pantalla de pre-confirmación los destaca para que se resuelvan antes de salir.
 
 **`ocupados` explica lo que falta.** Si se pidieron catorce y entraron doce, el ingeniero ve por qué y quién los tiene.
+
+### Ampliar, cerrar antes, y enterarse a media jornada
+
+```jsonc
+// POST /api/v1/jornadas/{id}/ampliar
+{ "cantidad": 4, "desde": { "lat": -32.9601, "lng": -60.6712 } }
+```
+
+Reserva, blinda, **recalcula la ruta desde donde está parado** —no desde Moreno 2350— y devuelve el paquete de precarga incremental. Requiere conexión, como todo lo que sea tomar trabajo (D-14).
+
+Si una **ventana laboral** (RF-37) lo alcanza, responde `422 FUERA_DE_VENTANA_LABORAL` o `422 CUPO_AGOTADO`, con el texto de por qué: *"desde las 17:00 no se toman reclamos nuevos"*. **Lo que ya tiene tomado no se toca**: sigue dictaminando y sincronizando, fuera de horario si hace falta.
+
+```jsonc
+// POST /api/v1/jornadas/{id}/cerrar
+{ "motivo": "lluvia" }     // lluvia | urgencia | salud | fin_de_jornada | otro
+```
+
+Desblinda lo no visitado y lo **devuelve a la cola en el momento**, disponible para quien esté cerca esa misma tarde, y consolida el resumen (D-56). No espera al vencimiento de las 20:00: serían seis horas de casos fuera de circulación por nada.
+
+```jsonc
+// GET /api/v1/jornadas/{id}/novedades
+{ "ok": true, "datos": {
+  "retirados": [ { "nroSua": "7788", "anio": 2026, "porQuien": "D. Molina",
+                   "motivo": "protocolo_tormenta", "cuando": "…" } ],
+  "tormentaEnZona": 2
+}}
+```
+
+**Esto es lo único que el dispositivo *pregunta* durante la jornada.** Hasta acá hablaba con el servidor dos veces —al confirmar y al cerrar— y todo lo demás era cola de salida. Hizo falta porque el Jefe puede forzar el desblindaje de un caso por tormenta (D-70), y el ingeniero tiene que enterarse antes de manejar treinta cuadras hasta un árbol que ya no le corresponde.
+
+Se llama **después de vaciar la cola, nunca antes**: si el celular se queda sin batería en el medio, lo que se salvó es el trabajo de campo y no la lista de novedades.
 
 ### Ajustes
 
@@ -244,6 +278,8 @@ Del lado del cliente, antes de aceptar el paquete se pide `navigator.storage.per
 | `POST` | `/dictamenes/{id}/fotos` | Sube una foto y la referencia |
 | `POST` | `/dictamenes/{id}/anular` | Anula, solo Administrador, con motivo |
 | `GET` | `/dictamenes/borradores` | Los rescatados de un choque (D-16) |
+| `POST` | `/dictamenes/{id}/solicitar-anulacion` | El ingeniero la pide; el Administrador la ejecuta (D-69) |
+| `GET` | `/dictamenes/duplicados?nroSua=&anio=` | Otros reclamos vigentes del mismo ejemplar (RF-38) |
 
 ```jsonc
 // POST /api/v1/dictamenes
@@ -259,6 +295,8 @@ Del lado del cliente, antes de aceptar el paquete se pide `navigator.storage.per
     "trabajosSubterraneos": [], "sinTrabajo": [], "plantar": []
   },
   "complejidad": "media", "urgencia": "programada",
+  "sinTrabajoMotivo": null,        // obligatorio SI sinTrabajo tiene contenido
+  "cierraDuplicados": [ { "nroSua": "1240", "anio": 2026 } ],   // RF-38, opcional
   "observacionesTecnicas": "…",
   "fotosDeclaradas": 3,                   // cuántas fotos vienen DESPUÉS
   "captorId": "captor-01",
@@ -305,6 +343,26 @@ Y conviene operativamente: con una barra de señal sale primero **lo chico y lo 
 Si `config_firma.exigeCertificacion` está encendida y la certificadora no responde, **el dictamen queda firmado igual** con `estadoCertificacion: "pendiente"` y la respuesta es `201`.
 
 **Firmar es local y no puede fallar; certificar sale de nuestra frontera y sí.** La única consecuencia, deliberadamente acotada: ese dictamen **no puede salir en un entregable a concesionarias** hasta certificarse, porque el entregable es donde la validez se ejerce frente a un tercero. Un trabajo reintenta y el Administrador puede forzarlo.
+
+### Un dictamen tiene que decir algo (D-89)
+
+`extraccion`, `trabajosAereos`, `trabajosSubterraneos` y `sinTrabajo` **no pueden estar los cuatro vacíos**: `422 DICTAMEN_VACIO`. Y si `sinTrabajo` tiene contenido, `sinTrabajoMotivo` es obligatorio: `422 SIN_TRABAJO_SIN_MOTIVO`.
+
+Los motivos son `no_requiere_intervencion`, `ejemplar_inexistente`, `ya_intervenido` y `fuera_de_alcance`. **De ese dato depende que el reclamo cierre para siempre**, así que es un enum y no texto libre: ningún trabajo automático puede leer observaciones.
+
+Las reglas de exclusión de RF-14 garantizaban que las intervenciones no se contradijeran; **no garantizaban que hubiera alguna**. Con las cuatro listas vacías el dictamen se firmaba igual: un documento con validez legal que no autoriza nada ni declara que no hace falta nada.
+
+**La respuesta trae `fechaVencimiento: null` cuando el dictamen no autoriza nada** (D-83), y el reclamo pasa a `cerrado_definitivo` en vez de `dictaminado`.
+
+### `cierraDuplicados` cierra los otros reclamos del mismo árbol (RF-38)
+
+`GET /dictamenes/duplicados` devuelve los reclamos vigentes agrupados sobre el mismo ejemplar. **El ingeniero elige cuáles**, y viajan en el cuerpo del dictamen.
+
+Cada uno pasa a `dictaminado` con referencia al dictamen y al reclamo que lo cubrió, así **el vecino recibe respuesta** y la repartición puede rastrear por qué se cerró sin visita propia (D-87).
+
+**El ingeniero elige, no el sistema**: el agrupamiento por calle y altura puede juntar de más —un mismo número catastral con dos árboles— y cerrar un reclamo ajeno por error es peor que dejarlo abierto.
+
+Si `cierre_duplicados_activo` está apagado, el campo se ignora y **el sistema se comporta exactamente como el circuito documentado**.
 
 ### `discrepanciaReloj` acepta pero marca (D-67)
 
@@ -412,6 +470,9 @@ El **Lector ve agregados, no detalle**: no accede al texto del vecino ni a la fi
 | `POST` | `/admin/jornadas/{id}/desblindar` | Libera un blindaje a mano (RF-34) | Administrador |
 | `GET` `POST` | `/admin/certificaciones-pendientes` | La cola y el forzado de reintento (D-65) | Administrador |
 | `POST` | `/admin/dictamenes/{id}/confirmar-fecha` | Confirma o corrige una fecha con reloj discrepante (D-67) | Administrador |
+| `GET` `POST` | `/admin/anulaciones-solicitadas` | Las que pidieron los ingenieros: ejecutar o rechazar (D-69) | Administrador |
+| `GET` `POST` `PATCH` | `/ventanas-laborales` | Franja horaria y cupo, por ámbito (RF-37) | **Jefe** y Administrador |
+| `GET` | `/admin/usuarios/{id}/pendientes` | Qué queda colgando antes de dar de baja o cambiar rol (D-78) | Administrador |
 | `GET` | `/admin/auditoria` | Consulta de acciones sensibles | Administrador |
 
 ```jsonc
@@ -428,6 +489,12 @@ El **Lector ve agregados, no detalle**: no accede al texto del vecino ni a la fi
   { "motivo": "vencido", "cantidad": 1 }
 ] } }
 ```
+
+`GET /admin/usuarios/{id}/pendientes` **corta el paso antes de desactivar o cambiar el rol** (D-78): devuelve cuántos reclamos tiene blindados, cuántos dictámenes no llegaron al servidor y qué captor tiene asignado. El Administrador libera lo que corresponda y decide si el captor va a cuarentena.
+
+No se libera todo automáticamente porque, si el captor todavía tiene dictámenes firmados sin subir, devolver esos reclamos a circulación permite que **alguien los dictamine de nuevo** — el problema que el blindaje existe para evitar, reintroducido por la puerta de atrás. Y no se bloquea la baja hasta tener todo limpio porque **alguien que ya se fue no va a sincronizar nunca**, y eso dejaría al Administrador sin poder revocarle el acceso.
+
+`POST /ventanas-laborales` devuelve, además de la fila creada, **la consecuencia calculada**: hasta qué hora terminaría de trabajar un ingeniero con esa ventana, y cuántos casos quedarían sin repartir con ese cupo. **Es la mitad del requerimiento (RF-37), no un extra de interfaz**: si el Administrador configura un cupo sin ver el efecto, el requerimiento no evita repartir trabajo en horarios imposibles — solo mueve el problema de la calle al panel.
 
 **Se propone antes de emitir, y no es un detalle técnico.** `/proponer` devuelve los paquetes armados y **no escribe nada**; el Administrador saca lo que no corresponda y recién entonces llama a `POST`. Es el mismo patrón del balanceador (RF-25), de la pre-confirmación de jornada (§4) y de las sugerencias de especie y categoría (D-52): **el sistema propone, la persona ajusta, después confirma.** La repetición conviene decirla en la defensa: el sistema nunca ejecuta sobre una persona una decisión que ella no pudo mirar antes.
 
@@ -463,6 +530,11 @@ Cambiar la configuración de firma **nunca actualiza la fila anterior**: inserta
 | `RECLAMO_BLINDADO` | 409 | Está en la jornada blindada de otro (RF-34) |
 | `FECHA_SIN_CONFIRMAR` | 409 | Se quiso vencer un dictamen con reloj discrepante sin confirmar (D-67) |
 | `DICTAMEN_SIN_CERTIFICAR` | 422 | Se quiso incluir en un entregable un dictamen pendiente de certificación (D-65) |
+| `DICTAMEN_VACIO` | 422 | Ninguna intervención y ningún "sin trabajo" (D-89) |
+| `SIN_TRABAJO_SIN_MOTIVO` | 422 | `sinTrabajo` cargado sin motivo taxonómico |
+| `FUERA_DE_VENTANA_LABORAL` | 422 | Se quiso tomar trabajo fuera de la franja horaria (RF-37) |
+| `CUPO_AGOTADO` | 422 | Se alcanzó el cupo de reclamos del período |
+| `RECLAMO_CERRADO_DEFINITIVO` | 409 | Se quiso dictaminar un reclamo cerrado por "sin trabajo" o por duplicado |
 | `ROL_SIN_PERMISO` | 403 | El rol no puede ejecutar esta operación |
 | `ROL_NO_FIRMA` | 403 | El rol no está habilitado para firmar |
 | `RECLAMO_NO_ENCONTRADO` | 404 | El par (N° SUA, año) no existe |

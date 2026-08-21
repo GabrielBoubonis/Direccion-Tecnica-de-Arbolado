@@ -170,11 +170,41 @@ La clave pública del proyecto viaja al navegador y no es secreta, pero igual se
 
 ---
 
+## 8 bis. Respaldo y restauración (D-88)
+
+El diseño no decía una palabra sobre respaldo, en un sistema que emite documentos con validez legal. Lo dice ahora.
+
+| Dato | Pérdida aceptable |
+| --- | --- |
+| **Dictámenes firmados y su auditoría** | **Ninguna** |
+| Rutas, reservas, jornadas, borradores del servidor | Hasta 24 h |
+| Reclamos y estados | Hasta 24 h |
+
+**Por qué la primera fila no admite negociación.** Un dictamen firmado documenta el estado de un árbol que probablemente ya se intervino: **no se puede rehacer**, porque el estado que documentaba ya no existe. Perder una jornada de dictámenes es perder trabajo de campo de forma definitiva, y es lo único del sistema del que eso es cierto. Todo lo demás se rehace — una ruta se recalcula, una reserva se vuelve a tomar, un reclamo se vuelve a leer del origen.
+
+**El procedimiento de restauración tiene que estar probado, no supuesto.** Que el proveedor haga copias no es lo mismo que saber restaurarlas: se verifica una restauración completa antes de dar el sistema por entregado, y se documenta cuánto tardó.
+
+Es coherente con el resto del criterio de retención: **se conserva lo que no se puede reconstruir y se acepta perder lo que sí.**
+
+---
+
 ## 9. Qué queda explícitamente fuera
 
 **La certificación oficial de la firma digital.** El sistema captura la firma, la vincula al agente habilitado y a su respaldo, le pone sello de tiempo y la vuelve inmutable, pero **no la certifica ante un organismo oficial**. El puerto existe y está sin implementar, marcado como tal.
 
 Es una limitación del alcance académico y se declara abiertamente, tanto en la documentación como en el entregable visual. Presentarla como firma digital con validez legal plena sería falso.
+
+**La gestión del rendimiento individual** (D-86). El sistema no reasigna trabajo entre ingenieros ni mide a nadie: el Jefe define **cuánto y qué** se trabaja mediante directivas, no **quién** hace cada caso. Los ingenieros toman de la cola.
+
+> Si un ingeniero no hace nada, se despide al ingeniero, no nos consta. La idea es que el Jefe pueda elegir cuánto y qué trabajan.
+
+Es coherente con la retención de rutas (§8), que destruye el rastro de recorridos a los 90 días justamente para que no se use con ese fin. **Un sistema que guarda dónde estuvo cada empleado y además permite asignarle tareas individualmente es una herramienta de control de personal**, y este no lo es.
+
+**El resultado de la ejecución** (D-80). La cuadrilla que no puede ejecutar lo autorizado —cable nuevo, obra, un auto que no se mueve— no tiene por dónde informarlo: no es usuaria del sistema. La vuelta es **un reclamo nuevo**, que puede abrir el propio personal de cuadrilla, un agente de oficio, o el vecino que sigue viendo el problema.
+
+> Se espera, y ojalá que no, porque atrasa.
+
+Se declara con el costo incluido. Meter a la ejecución en el alcance significaría darle acceso a actores que el relevamiento dejó afuera.
 
 ---
 

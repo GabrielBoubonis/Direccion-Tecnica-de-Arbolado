@@ -1,7 +1,8 @@
 # T9 — Trabajos programados y el reloj
 
 > Diseño técnico · Última actualización: 21/08/2026 · Estado: **sin aprobar**
-> Absorbe la auditoría del 20/08: **ningún trabajo toca un reclamo blindado**, consolidación antes de purgar, certificación diferida, purga de idempotencia y freno por reloj discrepante.
+> Absorbe la auditoría del 20/08 —**ningún trabajo toca un reclamo blindado**, consolidación antes de purgar, certificación diferida, purga de idempotencia, freno por reloj discrepante—
+> y las decisiones del 21/08: el color con el que vuelve un reclamo vencido, y los dictámenes que no vencen.
 > Responde: qué corre solo, cuándo, con qué garantías, y por qué la hora se pide por interfaz.
 
 ---
@@ -17,7 +18,7 @@ Calcular al leer también complicaría filtrar y ordenar por prioridad cuando el
 
 ---
 
-## 2. Los nueve trabajos
+## 2. Los diez trabajos
 
 Se programan con `pg_cron` en la migración `0011`. Horario de Argentina.
 
@@ -32,6 +33,9 @@ Se programan con `pg_cron` en la migración `0011`. Horario de Argentina.
 | 7 | `purgar_idempotencia` | 04:30 domingos | Borra claves de más de 30 días | No aplica |
 | 8 | `reintentar_certificacion` | cada 30 min | Reintenta la certificación externa con espera creciente | No aplica |
 | 9 | `marcar_borradores_inactivos` | 05:00 diario | A los 30 días sin actividad pasan a `inactivo`. **Nunca los borra** | No aplica |
+| 10 | `caducar_ventanas_laborales` | 05:10 diario | Desactiva las ventanas y directivas cuya vigencia terminó | No aplica |
+
+El trabajo 10 existe por la misma razón que la vigencia de las directivas: **nadie tiene que acordarse de apagar una campaña.** Una ventana laboral de verano que sigue vigente en junio limitaría la jornada sin que nadie entienda por qué.
 
 **El orden de 1 y 2 no es casual.** Primero escalan las prioridades, después se marcan los vencimientos: así un reclamo que vuelve a la cola por vencimiento entra ya con la prioridad del día, y no con una de ayer.
 
@@ -91,12 +95,27 @@ Para cada reclamo sin dictaminar o vencido_redictaminar:
 
 ```
 Para cada dictamen firmado con fecha_vencimiento < hoy:
+    -- fecha_vencimiento es NULA si el dictamen no autoriza nada: no entra   (D-83)
     -- SALTEAR si discrepancia_reloj = 'grave' y fecha_confirmada_en es nula  (D-67)
     -- SALTEAR si el reclamo está blindado                                    (RF-34)
     dictamen.estado ← 'vencido'
     reclamo_estado.estado_modulo ← 'vencido_redictaminar'
+    -- conserva prioridad_vigente y reinicia el reloj de escalamiento (D-82)
+    reclamo_estado.fecha_ultimo_escalamiento ← hoy
     -- el dictamen viejo NUNCA se borra: queda consultable como historial
 ```
+
+### Vuelve con el color que tenía, y sigue escalando (D-82)
+
+El reclamo **conserva `prioridad_vigente`** y el reloj de escalamiento cuenta desde el vencimiento. Rojo se queda en rojo.
+
+Se había propuesto volver en verde —la evaluación venció, nadie sabe hoy qué riesgo tiene— y se descartó: **lo que venció es la autorización, no el problema.** Un árbol que necesitaba poda hace 18 meses y no se podó no necesita menos poda, necesita más. Volver en verde reiniciaría el reloj de un caso que ya esperó año y medio, que es la mecánica que produce rezago.
+
+### Los dictámenes "sin trabajo" no entran a este trabajo (D-83)
+
+No tienen `fecha_vencimiento` —es nula por restricción de la base— así que el `where` los deja afuera solo. **No hay que acordarse de exceptuarlos: no pueden entrar.**
+
+El vencimiento existe porque una autorización para intervenir caduca. Si el dictamen no autorizó nada, no hay nada que caduque, y el reclamo quedó en `cerrado_definitivo`.
 
 ### El freno por reloj discrepante (D-67)
 

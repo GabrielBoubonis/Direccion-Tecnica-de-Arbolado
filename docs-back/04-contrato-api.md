@@ -46,6 +46,9 @@ La distinción entre `409` y `422` importa: el `409` significa "llegaste tarde, 
 | `CAPTOR_DE_BAJA` | 403 al sincronizar | Avisa que el envío quedó **en cuarentena**, no perdido |
 | `DIRECTIVA_OBLIGATORIA_VIOLADA` | 422 al planificar | Explica qué directiva lo impide |
 | `SIN_PUNTO_GEOGRAFICO` | 422 al armar ruta | Manda a corregir el punto en la pre-confirmación |
+| `DICTAMEN_VACIO` | 422 | El dictamen no autoriza nada ni declara que no hace falta nada (D-89) |
+| `FUERA_DE_VENTANA_LABORAL` | 422 al ampliar | *"Desde las 17:00 no se toman reclamos nuevos"* (RF-37) |
+| `CUPO_AGOTADO` | 422 al ampliar | Se alcanzó el cupo del período |
 
 Los nombres son los canónicos de `tecnico/T6-api-http.md` §10, que es el contrato técnico completo. El `mensaje` se muestra; el `codigo` decide. **`SESION_DESPLAZADA` y `NO_AUTENTICADO` no se pueden confundir**: uno significa "alguien entró con tu usuario en otro lado" y el otro "pasó el tiempo". Mostrarlos igual sería tapar un problema de seguridad con un cartel de red.
 
@@ -105,6 +108,9 @@ También incluye el estado de reserva: si está tomado, por quién y desde cuán
 | `POST` | `/jornadas/preparar` | Define la jornada, **reserva en el mismo paso** y devuelve la propuesta a pre-confirmar |
 | `PATCH` | `/jornadas/{id}` | Los ajustes de la pre-confirmación: corregir puntos, sacar casos, corregir categoría, reordenar |
 | `POST` | `/jornadas/{id}/confirmar` | Cierra la jornada, arma la ruta definitiva y devuelve el paquete de precarga offline |
+| `POST` | `/jornadas/{id}/ampliar` | Suma casos **desde donde está parado** (D-72). Requiere conexión |
+| `POST` | `/jornadas/{id}/cerrar` | Cierre anticipado con motivo: desblinda y devuelve a la cola (D-74) |
+| `GET` | `/jornadas/{id}/novedades` | Qué le cambiaron mientras estaba en la calle (D-77) |
 | `GET` | `/reservas/mias` | Las reservas activas del usuario |
 | `DELETE` | `/reservas/{id}` | Libera una reserva propia |
 
@@ -131,7 +137,9 @@ La respuesta incluye `blindaje_hasta` y la lista exacta de reclamos blindados. E
 | `GET` | `/dictamenes/{id}` | Consulta uno |
 | `GET` | `/dictamenes` | Listado filtrable, incluye próximos a vencer |
 | `POST` | `/dictamenes/{id}/fotos` | Sube una foto. Se llama **después** de que el dictamen entró (RF-17) |
+| `POST` | `/dictamenes/{id}/solicitar-anulacion` | El ingeniero la pide con motivo (D-69) |
 | `POST` | `/dictamenes/{id}/anular` | Solo Administrador. Anula para permitir uno nuevo |
+| `GET` | `/dictamenes/duplicados` | Otros reclamos vigentes del mismo ejemplar (RF-38) |
 | `GET` | `/dictamenes/borradores` | Los propios, con los inactivos en bandeja aparte (D-57) |
 | `DELETE` | `/dictamenes/borradores/{id}` | Lo descarta **el ingeniero**, nunca el sistema |
 
@@ -204,6 +212,9 @@ Si una directiva obligatoria alcanza al usuario, los parámetros fuera de su alc
 | `POST` | `/admin/entregable-concesionaria` | Emite el entregable ya ajustado (RF-33) |
 | `GET` | `/admin/entregable-concesionaria` | Historial de emisiones, con las que tienen anulaciones marcadas |
 | `GET` `POST` `PATCH` | `/admin/captores` | Alta, asignación y **baja** de dispositivos (RF-35) |
+| `GET` `POST` `PATCH` | `/ventanas-laborales` | Franja horaria y cupo, por ámbito. **Jefe** y Administrador (RF-37) |
+| `GET` `POST` | `/admin/anulaciones-solicitadas` | Las que pidieron los ingenieros (D-69) |
+| `GET` | `/admin/usuarios/{id}/pendientes` | Qué queda colgando antes de una baja o un cambio de rol (D-78) |
 | `GET` `POST` | `/admin/cuarentena` | Operaciones retenidas de un captor de baja: liberar o descartar (D-63) |
 | `POST` | `/admin/jornadas/{id}/desblindar` | Libera un blindaje a mano (RF-34) |
 | `GET` `POST` | `/admin/certificaciones-pendientes` | La cola de certificación y el forzado de reintento (D-65) |

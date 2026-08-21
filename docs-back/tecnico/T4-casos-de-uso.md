@@ -55,6 +55,15 @@ export async function nombreDelCaso(
 | 27 | Confirmar una fecha con reloj discrepante | Administrador | nuevo (D-67) |
 | 28 | Retomar o descartar un borrador inactivo | Operario | nuevo (D-57) |
 | 29 | Adjuntar fotos a un reclamo de campo | Operario | nuevo (RF-36) |
+| 30 | Ampliar la jornada desde la posición actual | Operario | nuevo (D-72) |
+| 31 | Cerrar la jornada anticipadamente, con motivo | Operario | nuevo (D-74) |
+| 32 | Consultar novedades a media jornada | Operario | nuevo (D-77) |
+| 33 | Marcar una parada como no visitada, con motivo | Operario | nuevo (D-71) |
+| 34 | Solicitar la anulación de un dictamen propio | Operario | nuevo (D-69) |
+| 35 | Cerrar duplicados del mismo ejemplar al firmar | Operario | nuevo (RF-38) |
+| 36 | Configurar la ventana laboral | Jefe | nuevo (RF-37) |
+| 37 | Resolver anulaciones solicitadas | Administrador | nuevo (D-69) |
+| 38 | Dar de baja un usuario con trabajo pendiente | Administrador | nuevo (D-78) |
 
 Los ocho últimos salieron de la auditoría del 20/08. **Siete de los ocho son del Administrador o del Operario sobre su propio trabajo, y ninguno es un flujo principal**: son los caminos alternativos que faltaban — qué pasa cuando el dispositivo se pierde, cuando la certificadora no responde, cuando el reloj está mal, cuando un borrador queda abandonado. Un diseño que solo tiene flujos principales es un diseño que todavía no se auditó.
 
@@ -175,6 +184,9 @@ La ruta registra **bajo qué directiva se armó** (D-28). Sin ese dato, en dos m
 | 6 | Hay **reserva activa a nombre del actor** | `SIN_RESERVA_PROPIA` |
 | 6 bis | Si está blindado, **el blindaje es del actor y su captor** | `RECLAMO_BLINDADO` |
 | 6 ter | El captor que envía **no está dado de baja** | `CAPTOR_DE_BAJA` → cuarentena |
+| 6 quater | El reclamo **no está cerrado definitivamente** | `RECLAMO_CERRADO_DEFINITIVO` |
+| 8 bis | **El dictamen dice algo**: hay intervención o hay "sin trabajo" | `DICTAMEN_VACIO` |
+| 8 ter | Si hay "sin trabajo", **tiene motivo** | `SIN_TRABAJO_SIN_MOTIVO` |
 | 7 | Coherencia de intervenciones | `INTERVENCIONES_EXCLUYENTES` |
 | 8 | Coherencia de clasificación (urgente vs largo plazo) | `CLASIFICACION_CONTRADICTORIA` |
 | 9 | Campos obligatorios del formulario físico completos | `DATOS_INVALIDOS` |
@@ -187,8 +199,9 @@ La ruta registra **bajo qué directiva se armó** (D-28). Sin ese dato, en dos m
 | --- | --- |
 | 1 | Se calcula el **hash** del contenido, con serialización canónica |
 | 2 | Se registra el **sello de tiempo** del servidor, con legajo, rol y versión de `config_firma` |
-| 3 | Se fija el **vencimiento a 18 meses** desde `fecha_dictamen` |
+| 3 | Se fija el **vencimiento a 18 meses** desde `fecha_dictamen` — **salvo que no autorice nada** (D-83) |
 | 4 | Se crean las filas de `dictamen_foto` en estado `esperando`, tantas como `fotos_declaradas` |
+| 4 bis | Si hay duplicados seleccionados, **se cierran** con referencia a este dictamen (RF-38) |
 | 5 | El dictamen queda en **solo lectura**: no se actualiza ni se borra |
 | 6 | Se **libera la reserva** con motivo `dictaminado` |
 | 7 | Se registra en **auditoría** |

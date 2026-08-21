@@ -151,6 +151,34 @@ El último no toca la base: recorre los archivos. Es lo que evita que la regla d
 
 El anteúltimo es el más incómodo de escribir y el más importante de tener: **es la única forma de verificar que el sistema no destruye trabajo humano**, que es una propiedad que ningún test de funcionalidad detecta si falta.
 
+### Los escenarios de los caminos alternativos (21/08)
+
+Los flujos principales se prueban solos; **estos son los que el sistema recorre cuando el día no sale como se planificó**, que es casi siempre.
+
+| Escenario | Qué demuestra | Decisión |
+| --- | --- | --- |
+| **Dictamen con las cuatro listas vacías** | Que la base lo **rechaza**. Antes se firmaba: un documento legal que no dice nada | D-89 |
+| **"Sin trabajo" sin motivo** | Que se rechaza: de ese dato depende que el reclamo cierre para siempre | D-89 |
+| **"Sin trabajo" por ejemplar inexistente** | Que el reclamo pasa a `cerrado_definitivo`, **sin fecha de vencimiento** | D-83 |
+| **Adelantar el reloj 19 meses sobre un "sin trabajo"** | Que el trabajo de vencimientos **no lo toca** y no vuelve a la cola | D-83 |
+| **Adelantar el reloj 19 meses sobre un dictamen normal** | Que vuelve con **el color que tenía**, no en verde, y sigue escalando | D-82 |
+| **Firmar con tres duplicados del mismo ejemplar** | Que se ofrecen, que el ingeniero elige, y que los cerrados quedan con la referencia | RF-38 |
+| **Apagar `cierre_duplicados_activo` y repetir** | Que el sistema vuelve **exactamente** al circuito documentado | RF-38 |
+| **Diez reclamos sobre el mismo árbol** | Que la insistencia sube **un solo nivel**, no diez | D-92 |
+| **Ampliar la jornada a las 17:30 con ventana hasta las 17:00** | `FUERA_DE_VENTANA_LABORAL`, y que **lo ya tomado se sigue dictaminando igual** | RF-37 |
+| **Crear una ventana laboral desde el panel** | Que la respuesta trae **la consecuencia calculada**, no solo la fila | RF-37 |
+| **Cerrar la jornada por lluvia con seis casos sin visitar** | Que se desblindan y vuelven a la cola **en el momento**, no a las 20:00 | D-74 |
+| **El Jefe desblinda por tormenta y el ingeniero pide novedades** | Que aparece el retiro con motivo y que su borrador **no se pierde** | D-70, D-77 |
+| **Cambiar `minutos_por_dictamen` con una jornada confirmada** | Que esa jornada **sigue con el valor viejo** y la siguiente toma el nuevo | D-76 |
+| **Dar de baja un usuario con dos dictámenes sin subir** | Que el panel **corta el paso** y muestra qué queda colgando | D-78 |
+| **Parada no visitada por vecino que se opone** | Que el reclamo vuelve a la cola **con el motivo visible** para el próximo | D-71 |
+| **Solicitar la anulación de un dictamen propio** | Que el ingeniero **no puede anular** y que la solicitud le llega al Administrador | D-69 |
+| **Restaurar desde un respaldo** | Que el procedimiento existe, funciona, y **no se pierde ningún dictamen firmado** | D-88 |
+
+**El primero es el más barato de escribir y el que más habría dolido.** Un dictamen vacío pasaba las dos restricciones de exclusión de RF-14 y se firmaba; el escenario son cuatro líneas y es la diferencia entre descubrirlo ahora o descubrirlo cuando alguien pregunte por qué un expediente autoriza la nada.
+
+**El último no toca ninguna funcionalidad y es el único que verifica que el sistema sobreviva a sí mismo.** Un respaldo que nunca se restauró no es un respaldo: es una carpeta.
+
 ## B4. Los tres modos
 
 | Modo | Para qué |

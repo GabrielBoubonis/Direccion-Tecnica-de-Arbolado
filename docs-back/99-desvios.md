@@ -5,7 +5,7 @@
 
 Existe porque el documento se entrega y se defiende. Un desvío no documentado es una pregunta del profesor sin respuesta.
 
-> Estado al 21/08/2026: **19 desvíos**, de los cuales **16 exigen corregir el `.docx`**. Los cinco requerimientos nuevos que el documento académico no tiene son **RF-33, RF-34, RF-35, RF-36 y RNF-14**, registrados en DV-17, DV-18 y DV-19.
+> Estado al 21/08/2026: **22 desvíos**, de los cuales **19 exigen corregir el `.docx`**. Los siete requerimientos nuevos que el documento académico no tiene son **RF-33 a RF-38 y RNF-14**, registrados en DV-17 a DV-22.
 
 ---
 
@@ -291,3 +291,68 @@ El dictamen se firma **siempre**, en el paso indivisible de RF-18. Si la certifi
 **Dónde se ve.** El dashboard muestra los pendientes de certificar como alerta, junto a los que vencen en ≤30 días (RF-05). **No es problema del ingeniero**: él firmó y su dictamen está cerrado; la pendencia es del sistema y se resuelve del lado de la administración.
 
 **¿Corregir el `.docx`?** **Sí.** RF-18 y RF-19 tienen que distinguir los dos actos, y RNF-13 tiene que decir qué pasa mientras la certificación no exista y qué pasa cuando falla.
+
+---
+
+## DV-20 — La jornada laboral no tiene ventana, y el trabajo se reparte en horarios imposibles
+
+**Qué dice el documento.** RF-21 deja que el ingeniero defina la jornada por horas o por cantidad de casos, y RF-23 a RF-25 reparten esa carga por prioridad. **Nada acota cuándo ni cuánto se puede tomar**: nada impide armar una jornada de nueve casos a las 17:30.
+
+**Qué hacemos.** Se redacta **RF-37**: una **ventana laboral** configurable —franja horaria y cupo máximo de reclamos por día o por semana— que limita **tomar** trabajo, no dictaminarlo ni sincronizarlo. Se resuelve por ámbito `global`, `distrito` o `usuario`, gana el más específico, exactamente como las directivas de jornada.
+
+**Cómo se entera el ingeniero.** No ve la configuración ni recibe avisos previos: **se entera al pedir más trabajo**, con el motivo escrito — *"desde las 17:00 no se toman reclamos nuevos"*. Lo que ya tiene tomado no se toca.
+
+**La otra mitad del requerimiento está en la pantalla de configuración, y no es un detalle de interfaz.** El panel tiene que mostrar **la consecuencia** del límite: *"esto haría que el ingeniero trabaje hasta las 18:30"*, *"con este cupo quedan 40 casos sin repartir"*.
+
+**Por qué.** El daño que RF-37 evita es **repartir trabajo en horarios imposibles, que después queda sin hacer** — que es, en pequeño, el mismo mecanismo que produjo tres años de rezago. Si el Administrador configura un cupo sin ver el efecto, el requerimiento no evita nada: mueve el problema de la calle al panel. Es el patrón que el sistema ya aplica en el balanceador, en la pre-confirmación y en el entregable a concesionarias —**el sistema propone, la persona ajusta, después confirma**— aplicado por primera vez a la configuración en vez de a la operación.
+
+**La tabla arranca vacía y sin filas no limita nada**, mismo criterio que los cortes de complejidad (D-49): un horario puesto por nosotros se vería igual que uno acordado con la repartición.
+
+**¿Corregir el `.docx`?** **Sí.** Alta de RF-37 y de su caso de uso. Qué franja y qué cupo van adentro lo define la Dirección Técnica.
+
+---
+
+## DV-21 — Un dictamen cierra un solo reclamo, y los duplicados mandan a alguien de nuevo al mismo árbol
+
+**Qué dice el documento.** RNF-07 pide **un dictamen vigente por reclamo**, y todo el circuito está armado sobre el par (N° SUA, año): se valida un reclamo, se dictamina ese reclamo, se cierra ese reclamo. Un árbol con tres reclamos exige tres visitas.
+
+**Qué hacemos.** Se redacta **RF-38**: al firmar, el sistema **ofrece los demás reclamos vigentes agrupados sobre el mismo ejemplar** y el ingeniero selecciona cuáles quedan cerrados por ese mismo dictamen. Cada uno pasa a `dictaminado` con la referencia de qué dictamen y qué reclamo lo cubrió.
+
+**Por qué.**
+
+> Esto puede pasar, y muy seguido. Un árbol en medio de la calle, medio mundo lo va a querer reclamar.
+
+Sin esto, cada duplicado manda a alguien de nuevo al mismo árbol: **exactamente el desperdicio de visitas que el proyecto vino a atacar**. Y el sistema ya tenía el dato —agrupa reclamos por ejemplar para medir la insistencia— y no lo usaba para esto.
+
+**El ingeniero elige, no el sistema.** El agrupamiento por calle y altura puede juntar de más: un mismo número catastral con dos árboles distintos. **Cerrar un reclamo ajeno por error es peor que dejarlo abierto.**
+
+**Lleva interruptor, y esa es la parte importante para la aceptación.**
+
+> La opción 1 es la idea y es la que vamos a desarrollar, pero dejar un toggle para que sea opción 2 y evitar conflictos de condiciones para que el software sea aceptado.
+
+Apagado, el sistema se comporta **exactamente** como el circuito aprobado. Es el mismo patrón que la regla de señales de riesgo (D-21) y la sugerencia de complejidad (D-49): **funcionalidad nueva que se puede apagar para volver a lo acordado**, en vez de funcionalidad nueva que obliga a re-acordar.
+
+**No se inventa un estado nuevo en el SUA**: no tenemos permiso para agregarle estados, así que la referencia viaja como dato del estado `dictaminado`.
+
+**¿Corregir el `.docx`?** **Sí.** Alta de RF-38, y aclarar que RNF-07 sigue valiendo — sigue habiendo **un** dictamen vigente por reclamo; lo que cambia es que un dictamen puede cerrar más de uno.
+
+---
+
+## DV-22 — Un dictamen que no autoriza nada no debería vencer, y el documento lo hace vencer igual
+
+**Qué dice el documento.** RF-19 fija el vencimiento del dictamen en **18 meses**, sin distinguir qué dictaminó. Con esa regla, un dictamen que constató que **el árbol ya no existe** vence a los 18 meses y el reclamo vuelve a la cola para que alguien vaya a mirar un árbol que no está.
+
+**Qué hacemos.** Un dictamen que **no autoriza ninguna intervención** —el que usa la opción "sin trabajo" del formulario físico— **no tiene fecha de vencimiento** y su reclamo pasa a `cerrado_definitivo`. El motivo es obligatorio y taxonómico: `no_requiere_intervencion`, `ejemplar_inexistente`, `ya_intervenido` o `fuera_de_alcance`.
+
+**Por qué.**
+
+> Alguien lo miró, y un ingeniero constató. Por algo constatamos que el ingeniero dictamina técnicamente. Y además, si en año y medio el árbol tiene un problema, para eso existe el reclamo: alguien lo va a mirar.
+
+**El vencimiento existe porque una autorización para intervenir caduca.** Si no se autorizó nada, no hay nada que caduque. Volver a mirar un árbol que un ingeniero agrónomo declaró sano es gastar una visita para desconfiar de un dictamen técnico propio — y el sistema no queda ciego, porque el circuito de reclamos ya es el mecanismo de vigilancia.
+
+**Y el motivo es enum, no texto libre**, porque de ese dato depende que un trabajo automático decida si el reclamo vuelve. Ningún trabajo automático puede leer observaciones. Un cierre definitivo apoyado en una frase escrita a mano es un cierre que nadie puede auditar.
+
+**Lo que apareció al escribir esta regla.** Distinguir *no hace falta trabajo* de *hace falta y no se indicó ninguno* destapó que **el esquema aceptaba las dos cosas como lo mismo**: con las cuatro listas de intervención vacías, las restricciones de exclusión de RF-14 pasaban igual y **el dictamen se firmaba**. Un documento con validez legal que no autoriza nada ni declara que no hace falta nada. Se suma la restricción de completitud: **o hay intervención, o hay "sin trabajo" con motivo.**
+
+**¿Corregir el `.docx`?** **Sí.** RF-19 tiene que distinguir el dictamen que autoriza del que constata, y RF-13 tiene que exigir el motivo de "sin trabajo" y la completitud del formulario.
+
