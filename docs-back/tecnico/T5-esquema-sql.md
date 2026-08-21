@@ -1,6 +1,7 @@
 # T5 — Esquema de base de datos
 
-> Diseño técnico · Última actualización: 19/08/2026 · Estado: **sin aprobar**
+> Diseño técnico · Última actualización: 21/08/2026 · Estado: **sin aprobar**
+> Absorbe la auditoría del 20/08: blindaje, captores, cuarentena, fotos de reclamo, certificación diferida, discrepancia de reloj y purga de idempotencia.
 > Responde: el DDL completo — tipos, tablas, restricciones, índices, triggers y políticas de seguridad por fila.
 
 ---
@@ -31,8 +32,15 @@ create type arbolado.modo_traslado   as enum ('auto','pie','bicicleta');
 create type arbolado.complejidad     as enum ('baja','media','alta','maxima');
 create type arbolado.precision_punto as enum ('exacta','aproximada','solo_calle','fallida');
 create type arbolado.origen_punto    as enum ('geocodificado','corregido_por_usuario');
-create type arbolado.motivo_liberacion as enum ('dictaminado','vencida','manual','liberada_por_admin');
+create type arbolado.motivo_liberacion as enum ('dictaminado','vencida','manual','liberada_por_admin','cierre_jornada');
 create type arbolado.estado_dictamen as enum ('firmado','vencido','anulado');
+create type arbolado.estado_certificacion as enum ('no_requerida','pendiente','certificado','fallida');
+create type arbolado.discrepancia_reloj  as enum ('ninguna','leve','grave');
+create type arbolado.estado_foto      as enum ('esperando','subida','fallida');
+create type arbolado.estado_captor    as enum ('activo','de_baja');
+create type arbolado.motivo_baja_captor as enum ('robo','extravio','destruccion','reasignacion');
+create type arbolado.estado_cuarentena as enum ('en_cuarentena','liberada','descartada');
+create type arbolado.estado_borrador  as enum ('activo','inactivo','descartado');
 create type arbolado.estado_jornada  as enum ('pre_confirmada','confirmada','cerrada','cancelada');
 create type arbolado.ambito_directiva as enum ('global','distrito','usuario');
 create type arbolado.origen_alta     as enum ('sua','oficio','vecino','tormenta');
@@ -227,7 +235,13 @@ create table arbolado.reserva (
   tomada_en timestamptz not null default now(),
   vence_en  timestamptz not null,
   liberada_en timestamptz,
-  motivo_liberacion arbolado.motivo_liberacion
+  motivo_liberacion arbolado.motivo_liberacion,
+
+  blindada   boolean not null default false,
+  captor_id  uuid references arbolado.captor(id),
+  blindada_en timestamptz,
+
+  constraint ck_blindaje_con_captor check (not blindada or captor_id is not null)
 );
 
 create unique index ux_reserva_activa
@@ -236,7 +250,64 @@ create unique index ux_reserva_activa
 
 create index ix_reserva_usuario on arbolado.reserva (usuario_id) where liberada_en is null;
 create index ix_reserva_vencimiento on arbolado.reserva (vence_en) where liberada_en is null;
+
+-- Índice que usan TODOS los trabajos programados para saltear lo blindado (RF-34)
+create index ix_reserva_blindada on arbolado.reserva (nro_reclamo_sua, anio)
+  where liberada_en is null and blindada;
 ```
+
+### El blindaje son tres columnas, no una tabla (RF-34)
+
+Tomar un caso lo **reserva**; confirmar la jornada lo **blinda**. Se resolvió con columnas sobre `reserva` y no con una tabla aparte porque **la reserva ya es el candado exclusivo del reclamo**: un segundo candado abriría la puerta a que los dos se contradigan, y no habría forma de decidir cuál manda.
+
+`ck_blindaje_con_captor` impide blindar sin decir en qué dispositivo salió el caso. Es la columna que permite responder, con el captor perdido, exactamente qué se fue con él.
+
+**Todo trabajo programado filtra por este índice.** No es una convención: es la mitad del valor de RF-34.
+
+```sql
+-- El patrón que repiten los jobs de T9
+where not exists (
+  select 1 from arbolado.reserva r
+   where r.nro_reclamo_sua = e.nro_reclamo_sua and r.anio = e.anio
+     and r.liberada_en is null and r.blindada
+)
+```
+
+Sin ese `not exists`, el trabajo de escalamiento le sube la prioridad a un reclamo de madrugada mientras el ingeniero lleva en el bolsillo una copia precargada con la prioridad vieja. **El dato no se puede mover bajo los pies del que está en la calle**, y en la calle no hay forma de enterarse de que se movió.
+
+### `arbolado.captor` y la cuarentena (RF-35, D-63)
+
+```sql
+create table arbolado.captor (
+  id uuid primary key default gen_random_uuid(),
+  etiqueta text not null unique,
+  asignado_a uuid references arbolado.perfil(usuario_id),
+  estado arbolado.estado_captor not null default 'activo',
+  motivo_baja arbolado.motivo_baja_captor,
+  dado_de_baja_por uuid references arbolado.perfil(usuario_id),
+  dado_de_baja_en timestamptz,
+  constraint ck_baja_con_motivo check (estado = 'activo' or motivo_baja is not null)
+);
+
+create table arbolado.operacion_cuarentena (
+  id uuid primary key default gen_random_uuid(),
+  captor_id uuid not null references arbolado.captor(id),
+  usuario_id uuid references arbolado.perfil(usuario_id),
+  tipo_operacion text not null,
+  carga jsonb not null,
+  recibida_en timestamptz not null default now(),
+  estado arbolado.estado_cuarentena not null default 'en_cuarentena',
+  resuelta_por uuid references arbolado.perfil(usuario_id),
+  resuelta_en timestamptz, motivo text
+);
+
+create index ix_cuarentena_pendiente on arbolado.operacion_cuarentena (recibida_en)
+  where estado = 'en_cuarentena';
+```
+
+`carga` guarda el cuerpo original **tal como llegó**, sin normalizar. Si el Administrador libera la operación, se reprocesa por el mismo camino que cualquier envío de la cola; si la descarta, queda la evidencia de qué se descartó y quién lo decidió.
+
+**Por qué cuarentena y no descarte.** Un equipo robado no debe poder escribir dictámenes; un equipo olvidado en un cajón y recuperado a la semana puede traer trabajo de campo perfectamente válido. La cuarentena **separa la decisión de seguridad —automática e inmediata— de la decisión sobre el contenido**, que la toma una persona mirando. Descartar sin mirar violaría el principio que el proyecto sostiene en todos lados: no se tira trabajo de campo.
 
 **`ux_reserva_activa` es la garantía dura del sistema.** Un índice único parcial permite **una sola reserva activa por reclamo**, y no depende de que el código se acuerde de chequear: lo impone la base. Dos peticiones simultáneas, una gana y la otra recibe un rechazo limpio.
 
@@ -293,12 +364,23 @@ create table arbolado.dictamen (
   de_oficio boolean not null default false,
 
   observaciones_tecnicas text,
-  firma_ref text not null, firma_hash text not null,
+  firma_trazo jsonb not null,                -- vectores de signature_pad.toData(), NO un PNG
+  firma_hash text not null,
   hash_documento text not null, sello_tiempo timestamptz not null,
   estado arbolado.estado_dictamen not null default 'firmado',
   anulado_por uuid references arbolado.perfil(usuario_id),
   anulado_en timestamptz, motivo_anulacion text,
   sincronizado_origen boolean not null default false,
+
+  estado_certificacion arbolado.estado_certificacion not null default 'no_requerida',
+  certificadora text, certificado_en timestamptz,
+  intentos_certificacion smallint not null default 0,
+
+  captor_id uuid references arbolado.captor(id),
+  discrepancia_reloj arbolado.discrepancia_reloj not null default 'ninguna',
+  fecha_confirmada_por uuid references arbolado.perfil(usuario_id),
+  fecha_confirmada_en timestamptz,
+  fotos_declaradas smallint not null default 0,
 
   constraint ck_exclusion_extraccion check (
     cardinality(extraccion) = 0
@@ -319,9 +401,16 @@ create index ix_dictamen_vencimiento on arbolado.dictamen (fecha_vencimiento)
   where estado = 'firmado';
 create index ix_dictamen_pendiente_sync on arbolado.dictamen (fecha_recepcion)
   where not sincronizado_origen and estado = 'firmado';
+
+create index ix_dictamen_pendiente_cert on arbolado.dictamen (fecha_recepcion)
+  where estado_certificacion = 'pendiente' and estado = 'firmado';
+
+-- El job de vencimientos SALTEA los de discrepancia grave hasta que un humano confirme (D-67)
+create index ix_dictamen_reloj_grave on arbolado.dictamen (fecha_recepcion)
+  where discrepancia_reloj = 'grave' and fecha_confirmada_en is null;
 ```
 
-### Seis decisiones que vale la pena justificar
+### Siete decisiones que vale la pena justificar
 
 **`id` generado en el dispositivo.** Es la clave de idempotencia: si el celular reintenta el envío tres veces porque la señal va y viene, entra **un** dictamen, no tres. Sin esto, la cola offline duplicaría trabajo de campo.
 
@@ -335,7 +424,11 @@ create index ix_dictamen_pendiente_sync on arbolado.dictamen (fecha_recepcion)
 
 **`hash_documento`** es la huella del contenido al momento de firmar. Cualquier modificación posterior se detecta comparando. Es lo que sostiene la inmutabilidad de RNF-06 más allá de la promesa.
 
+**`estado` y `estado_certificacion` son dos columnas y no una.** Firmar es local y no puede fallar; certificar sale de nuestra frontera y sí (D-65). Mezclarlas dejaría que un timeout de red produjera un dictamen legalmente ambiguo. Un dictamen `firmado` + `pendiente` es válido puertas adentro —inmutable, auditable, cuenta para el vencimiento— y lo único que no puede hacer es salir en un entregable a concesionarias.
+
 ### Inmutabilidad, impuesta por la base
+
+El contenido técnico del dictamen es intocable. Pero **hay campos que no son contenido y tienen que poder cambiar después de firmar**: el resultado de la certificación externa, la marca de sincronización con el SUA, la confirmación de una fecha con reloj discrepante. El trigger tiene que distinguirlos, y la forma segura de hacerlo es **enumerar lo que puede cambiar**, no lo que no.
 
 ```sql
 create or replace function arbolado.impedir_modificacion_dictamen()
@@ -344,12 +437,37 @@ begin
   if TG_OP = 'DELETE' then
     raise exception 'Un dictamen firmado no se borra (RF-19, RNF-06)';
   end if;
-  if OLD.estado = 'firmado' and NEW.estado not in ('vencido','anulado') then
-    raise exception 'Un dictamen firmado es de solo lectura (RF-19, RNF-06)';
+
+  -- Lo único mutable después de firmar, enumerado. Todo lo demás se congela.
+  if NEW is distinct from (OLD).* then
+    if (NEW.estado, NEW.estado_certificacion, NEW.certificadora, NEW.certificado_en,
+        NEW.intentos_certificacion, NEW.sincronizado_origen, NEW.fecha_vencimiento,
+        NEW.fecha_confirmada_por, NEW.fecha_confirmada_en, NEW.discrepancia_reloj,
+        NEW.anulado_por, NEW.anulado_en, NEW.motivo_anulacion)
+       is not distinct from
+       (OLD.estado, OLD.estado_certificacion, OLD.certificadora, OLD.certificado_en,
+        OLD.intentos_certificacion, OLD.sincronizado_origen, OLD.fecha_vencimiento,
+        OLD.fecha_confirmada_por, OLD.fecha_confirmada_en, OLD.discrepancia_reloj,
+        OLD.anulado_por, OLD.anulado_en, OLD.motivo_anulacion)
+    then
+      raise exception 'Un dictamen firmado es de solo lectura (RF-19, RNF-06)';
+    end if;
   end if;
-  if OLD.hash_documento is distinct from NEW.hash_documento then
-    raise exception 'No se puede alterar el hash de un dictamen firmado';
+
+  if OLD.hash_documento is distinct from NEW.hash_documento
+     or OLD.firma_trazo is distinct from NEW.firma_trazo
+     or OLD.sello_tiempo is distinct from NEW.sello_tiempo
+     or OLD.fecha_dictamen is distinct from NEW.fecha_dictamen then
+    raise exception 'No se puede alterar la firma ni el hash de un dictamen firmado';
   end if;
+
+  if OLD.estado = 'firmado' and NEW.estado not in ('firmado','vencido','anulado') then
+    raise exception 'Transición de estado no permitida sobre un dictamen firmado';
+  end if;
+  if OLD.estado in ('vencido','anulado') and NEW.estado <> OLD.estado then
+    raise exception 'Un dictamen vencido o anulado no vuelve atrás';
+  end if;
+
   return NEW;
 end $$;
 
@@ -358,14 +476,35 @@ create trigger tg_dictamen_inmutable
   for each row execute function arbolado.impedir_modificacion_dictamen();
 ```
 
-Las **únicas** transiciones permitidas sobre un dictamen firmado son a `vencido` (por el job de vencimientos) y a `anulado` (por el Administrador, con motivo). Corregir un dictamen firmado no es editarlo: **es anularlo y emitir uno nuevo**, y ambos quedan en el historial. Es lo que exige RNF-06 y lo que hace defendible el documento ante una impugnación.
+> **Esto corrige un error real del diseño anterior.** El trigger como estaba escrito rechazaba **cualquier** `update` que dejara `estado = 'firmado'`, porque la condición era `NEW.estado not in ('vencido','anulado')` y `'firmado'` tampoco está en esa lista. Con ese trigger aplicado, marcar `sincronizado_origen = true` después de sincronizar con el SUA —que es el paso 5 del caso de uso de firma— habría fallado siempre. Se detectó al sumar los campos de certificación y quedó anotado como parte de la auditoría.
+
+Las **únicas** transiciones de estado permitidas sobre un dictamen firmado son a `vencido` (por el trabajo de vencimientos) y a `anulado` (por el Administrador, con motivo), y **ninguna de las dos vuelve atrás**. Corregir un dictamen firmado no es editarlo: **es anularlo y emitir uno nuevo**, y ambos quedan en el historial. Es lo que exige RNF-06 y lo que hace defendible el documento ante una impugnación.
+
+El **contenido técnico** —especie, medidas, intervenciones, observaciones, firma, hash, sello de tiempo y fecha de emisión— no admite ninguna modificación por ningún camino, ni siquiera con un error de programación del lado del servidor.
 
 ```sql
 create table arbolado.dictamen_foto (
-  id uuid primary key default gen_random_uuid(),
-  dictamen_id uuid not null references arbolado.dictamen(id),
-  ruta_storage text not null, orden smallint not null default 0,
-  tomada_en timestamptz, subida_en timestamptz not null default now()
+  id uuid primary key,                       -- generado en el DISPOSITIVO, como el dictamen
+  dictamen_id uuid not null references arbolado.dictamen(id) on delete cascade,
+  orden smallint not null default 0,
+  estado arbolado.estado_foto not null default 'esperando',
+  ruta_storage text,                         -- nulo mientras el archivo no llegó
+  bytes integer,
+  tomada_en timestamptz, subida_en timestamptz,
+  constraint ck_foto_subida check (estado <> 'subida' or ruta_storage is not null),
+  unique (dictamen_id, orden)
+);
+
+create table arbolado.reclamo_foto (           -- RF-36
+  id uuid primary key,
+  nro_reclamo_sua text not null, anio smallint not null,
+  orden smallint not null default 0,
+  estado arbolado.estado_foto not null default 'esperando',
+  ruta_storage text, bytes integer,
+  tomada_por uuid references arbolado.perfil(usuario_id),
+  tomada_en timestamptz, subida_en timestamptz,
+  constraint ck_reclamo_foto_subida check (estado <> 'subida' or ruta_storage is not null),
+  unique (nro_reclamo_sua, anio, orden)
 );
 
 create table arbolado.dictamen_borrador (
@@ -375,11 +514,37 @@ create table arbolado.dictamen_borrador (
   contenido jsonb not null,
   motivo_rechazo text not null,
   dictamen_ganador_id uuid references arbolado.dictamen(id),
-  creado_en timestamptz not null default now()
+  estado arbolado.estado_borrador not null default 'activo',
+  creado_en timestamptz not null default now(),
+  ultima_actividad timestamptz not null default now(),
+  descartado_por uuid references arbolado.perfil(usuario_id)
+);
+
+create table arbolado.certificacion_intento (
+  id bigserial primary key,
+  dictamen_id uuid not null references arbolado.dictamen(id),
+  intento_nro smallint not null,
+  certificadora text not null,
+  resultado text not null check (resultado in ('ok','error_red','rechazada')),
+  detalle text,
+  forzado_por uuid references arbolado.perfil(usuario_id),
+  ocurrido_en timestamptz not null default now()
 );
 ```
 
+### Las fotos llegan **después** del dictamen (H-01)
+
+`dictamen_foto.dictamen_id` es una clave foránea contra `dictamen`. El diseño anterior decía que las fotos suben **antes** que el dictamen "para que este no espere", y eso **rompe la FK**: la fila del dictamen no existe todavía y el primer dictamen con fotos que se sincronizara devolvería un error de integridad.
+
+Cómo funciona ahora: el cuerpo del dictamen declara `fotos_declaradas`, el servidor inserta esa cantidad de filas en `esperando` dentro de la misma transacción, y cada foto que llega completa una. `ck_foto_subida` garantiza que ninguna fila diga `subida` sin tener el archivo.
+
+Además es mejor operativamente: con una barra de señal conviene que salga primero **lo chico y lo valioso**. Un dictamen firmado al que le falta una foto es un dictamen válido con una foto pendiente; una foto sin dictamen no es nada, y encima queda como objeto huérfano en storage.
+
+**`firma_trazo` es `jsonb`, no `text` con base64** (H-05). Los vectores de `signature_pad.toData()` pesan 2 a 6 KB contra los 20 a 80 KB de un PNG codificado, se redibujan a cualquier resolución para el PDF, y **no inflan el único envío que no puede fallar**. Va embebido en la fila del dictamen y no como operación aparte, porque si viajara suelto podría existir un dictamen firmado sin firma — y la regla es *o el dictamen existe entero y firmado, o no existe*.
+
 **`dictamen_borrador` es el rescate del caso excepcional** (D-16). Si el dictamen se rechaza porque otro ingeniero ya dictaminó ese reclamo, la carga **no se pierde**: queda consultable con el motivo y con quién dictaminó primero. Veinte minutos de trabajo frente a un árbol no se descartan por una condición de carrera.
+
+**Y el sistema no los borra solo** (D-57). A los 30 días sin actividad el trabajo programado los pasa a `inactivo` y aparecen en una bandeja aparte; **`descartado` solo lo escribe una persona**. Era el único punto del diseño donde se perdía trabajo humano sin que nadie lo mirara.
 
 ---
 
@@ -409,6 +574,7 @@ create table arbolado.ruta (
   fecha_planificacion date not null,
   minutos_traslado integer not null,
   minutos_dictaminacion integer not null,
+  distancia_metros integer not null,
   eficiencia_pct numeric(5,2) not null,
   geometria text not null,
   proveedor_ruteo text not null,
@@ -428,6 +594,23 @@ create table arbolado.detalle_ruta (
   unique (ruta_id, orden_visita)
 );
 
+-- Consolidación previa a la purga (D-56). Se escribe al CERRAR la jornada.
+create table arbolado.ruta_resumen (
+  ruta_id uuid primary key references arbolado.ruta(id),
+  usuario_id uuid not null references arbolado.perfil(usuario_id),
+  fecha date not null,
+  casos_visitados smallint not null,
+  casos_no_visitados smallint not null,
+  kilometros numeric(7,2),
+  minutos_traslado integer not null,
+  minutos_dictaminacion integer not null,
+  eficiencia_pct numeric(5,2) not null,
+  directiva_aplicada uuid,
+  consolidado_en timestamptz not null default now()
+);
+
+create index ix_detalle_ruta_purga on arbolado.detalle_ruta (ruta_id);
+
 create table arbolado.perfil_distribucion (
   id serial primary key,
   nombre text not null,
@@ -436,6 +619,21 @@ create table arbolado.perfil_distribucion (
   creado_por uuid references arbolado.perfil(usuario_id)
 );
 
+```
+
+### La retención de rutas es una consolidación, no un borrado (D-56)
+
+| Dato | Dónde vive | Retención |
+| --- | --- | --- |
+| Horarios de cada parada y geometría | `detalle_ruta`, `ruta.geometria` | **90 días** |
+| Casos, kilómetros, eficiencia | `ruta_resumen` | Indefinido |
+| Qué casos entraron y bajo qué directiva | `jornada`, `ruta_resumen` | Indefinido |
+
+**El orden importa y por eso `ruta_resumen` se escribe al cerrar la jornada, no al purgar.** La eficiencia se calcula a partir de los horarios de parada: si el trabajo de purga borrara primero y consolidara después, no habría con qué consolidar. Escribirlo en el cierre además garantiza que el resumen exista aunque la purga nunca llegue a correr.
+
+**El argumento, para la defensa:** *se conserva el dato que justifica una decisión administrativa y se destruye el que solo serviría para vigilar a un empleado.* Pasados los 90 días no se pierde ni el porqué ni el rendimiento — se pierde a qué hora estuvo el ingeniero en cada esquina, que es exactamente el dato que no conviene tener guardado.
+
+```sql
 create table arbolado.directiva_jornada (
   id uuid primary key default gen_random_uuid(),
   nombre text not null,
@@ -511,15 +709,37 @@ create table arbolado.idempotencia (
   creada_en timestamptz not null default now()
 );
 
+-- La purga de los 30 días se apoya en este índice (H-11)
+create index ix_idempotencia_creada on arbolado.idempotencia (creada_en);
+
+create table arbolado.concesionaria (          -- D-54. SIN cuenta, SIN rol, SIN acceso
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null unique,
+  contacto text,
+  zona_adjudicada arbolado.distrito,
+  tipo_trabajo_adjudicado text,
+  activa boolean not null default true
+);
+
 create table arbolado.entregable_concesionaria (
   id uuid primary key default gen_random_uuid(),
+  concesionaria_id uuid not null references arbolado.concesionaria(id),
   generado_por uuid not null references arbolado.perfil(usuario_id),
   generado_en timestamptz not null default now(),
   filtros jsonb not null,
+  paquetes jsonb not null,                     -- acción, complejidad y cuántos ejemplares
   dictamenes_incluidos uuid[] not null,
-  archivo_ref text not null
+  archivo_ref text[] not null,                 -- un PDF por paquete
+  tiene_anulaciones boolean not null default false
 );
+
+create index ix_entregable_dictamenes
+  on arbolado.entregable_concesionaria using gin (dictamenes_incluidos);
 ```
+
+**`arbolado.concesionaria` no tiene usuario, ni rol, ni política de acceso.** Existe solo para poder registrar **a quién** se le informó. Es la corrección de una inconsistencia que el diseño ya tenía escrita: prometía poder contestar *qué se le informó a una contratista y cuándo* y la tabla no guardaba el destinatario.
+
+**`ix_entregable_dictamenes` es un índice GIN sobre el arreglo**, y existe por una sola consulta: al anular un dictamen hay que preguntar *"¿este salió en algún entregable?"* en tiempo constante. Si sale, se enciende `tiene_anulaciones` y el panel muestra **a qué empresa hay que notificar**. El sistema no puede des-enviar un PDF; lo que no hace es dejarlo pasar en silencio, porque del otro lado hay una autorización de extracción que ya no vale.
 
 ### `config_firma` es versionada, y eso no es un detalle
 
@@ -548,7 +768,14 @@ Cada cambio en el panel inserta una fila nueva; ninguna se actualiza. Es un regi
 | `autocompletado_categoria_activo` | `true` | D-52 |
 | `autocompletado_especie_activo` | `true` | D-52 |
 | `regla_senales_riesgo_activa` | `true` | D-21, desactivable |
-| `dias_retencion_rutas` | a definir con la repartición (C-02) | T10 |
+| `dias_retencion_detalle_ruta` | 90 | D-56 — el resumen se conserva indefinidamente |
+| `dias_borrador_inactivo` | 30 | D-57 — pasa a inactivo, **nunca se borra solo** |
+| `dias_purga_idempotencia` | 30 | H-11 |
+| `horas_discrepancia_reloj_grave` | 24 | D-67 |
+| `horas_aviso_cola_pendiente` | 48 | D-58 |
+| `max_fotos_dictamen` | 6 | RF-17 — acota el peso de la cola |
+| `kb_max_foto` | 400 | Condición de campo, no de costo |
+| `minutos_espera_recalculo_ruta` | 2 | H-12 — evita castigar al servicio de ruteo |
 
 ---
 
@@ -579,6 +806,13 @@ $$;
 | `config_firma` | — | lee | lee | **escribe** |
 | `regla_prioridad` / `regla_complejidad` | — | lee | lee | escribe |
 | `parametro` | — | lee | lee | escribe |
+| `dictamen_foto` / `reclamo_foto` | — | crea y sube las propias | idem | lee todo |
+| `dictamen_borrador` | — | los propios | los propios | lee todo |
+| `captor` | — | lee el propio | lee los del equipo | administra todos |
+| `operacion_cuarentena` | — | — | — | **exclusivo**: lee y resuelve |
+| `certificacion_intento` | — | — | lee | lee y fuerza reintento |
+| `concesionaria` / `entregable_concesionaria` | — | — | — | **exclusivo** |
+| `ruta_resumen` | lee agregados | los propios | los del equipo | lee todo |
 | `auditoria` | — | — | — | lee. **Nadie escribe directo** |
 
 Ejemplo de política, la más importante:
@@ -600,6 +834,8 @@ create policy dictamen_insert_solo_roles_de_campo on arbolado.dictamen
 
 Esa política sola dice tres cosas del negocio: **firma quien el panel habilita**, **nadie firma a nombre de otro**, y **no se dictamina lo que no está reservado a nombre propio**. Aunque alguien le pegue directo a la API con un token válido de Lector o de Administrador, la base rechaza.
 
+**Las tablas nuevas del blindaje son exclusivas del Administrador y eso es deliberado.** `operacion_cuarentena` guarda dictámenes que llegaron desde un equipo dado de baja: si un Operario pudiera liberarlos, la baja del captor dejaría de ser un control. Y `concesionaria` es exclusiva porque derivar trabajo a un tercero es un acto administrativo, no una tarea de campo.
+
 ---
 
 ## 11. Migraciones
@@ -613,12 +849,14 @@ Archivos `NNNN_descripcion.sql` en `backend/db/migraciones/`, aplicados en orden
 | `0003` | `sua_sim.reclamo` e índices |
 | `0004` | `arbolado.perfil` |
 | `0005` | `reclamo_estado`, `reclamo_geo`, reglas, historial |
-| `0006` | `reserva` y su índice único parcial |
-| `0007` | `dictamen`, fotos, borradores, trigger de inmutabilidad |
-| `0008` | Jornadas, rutas, detalle, distribuciones, directivas |
-| `0009` | Parámetros, `config_firma`, auditoría, idempotencia, entregables |
+| `0006` | **`captor`**, y recién después `reserva` con blindaje y su índice único parcial |
+| `0007` | `dictamen`, `dictamen_foto`, `reclamo_foto`, borradores, `certificacion_intento`, trigger de inmutabilidad |
+| `0008` | Jornadas, rutas, `detalle_ruta`, **`ruta_resumen`**, distribuciones, directivas |
+| `0009` | Parámetros, `config_firma`, auditoría, idempotencia, **`concesionaria`**, entregables, **`operacion_cuarentena`** |
 | `0010` | Políticas RLS de todas las tablas |
-| `0011` | Trabajos programados (T9) |
-| `0012` | Valores iniciales de parámetros y reglas |
+| `0011` | Trabajos programados (T9), incluida la purga de idempotencia |
+| `0012` | Valores iniciales de parámetros, reglas de prioridad **provisorias** (D-59) y captores de prueba |
+
+> **`captor` va antes que `reserva` en `0006`, y el orden no es cosmético**: `reserva.captor_id` es una clave foránea contra `captor`. Al revés, la migración falla. En este documento el DDL de `captor` está escrito después por claridad de lectura, no por orden de aplicación.
 
 Corregir una migración aplicada se hace con **una migración nueva**. Editar la vieja deja bases distintas según cuándo se clonó el repositorio, que es el problema que las migraciones existen para evitar.

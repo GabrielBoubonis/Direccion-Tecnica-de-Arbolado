@@ -1,11 +1,11 @@
-# T2 — Los trece puertos
+# T2 — Los catorce puertos
 
-> Diseño técnico · Última actualización: 19/08/2026 · Estado: **sin aprobar**
+> Diseño técnico · Última actualización: 21/08/2026 · Estado: **sin aprobar**
 > Responde: qué interfaz existe, qué método tiene, qué recibe, qué devuelve y qué adaptador la implementa.
 
 ---
 
-## 1. Por qué trece y no dos
+## 1. Por qué catorce y no dos
 
 El documento académico previó dos interfaces —`IReclamoProvider` e `IAuthProvider`— asumiendo que Supabase se quedaba como base propia del módulo y que solo había que reemplazar los conectores externos.
 
@@ -13,7 +13,11 @@ La premisa real es otra: **Supabase se va entero** el día hipotético de la tra
 
 Por eso **todo acceso a datos vive detrás de un puerto**. Queda registrado como desvío DV-01, y es de los que *fortalecen* el análisis: muestra que el diseño tomó en serio su propia restricción.
 
-El decimotercero, `IGeocodificador`, apareció con el relevamiento del 18/08: el SUA guarda la dirección escrita del ejemplar y **ninguna coordenada**, porque el censo de arbolado nunca se geolocalizó (B-02, DV-12). Convertir "Mendoza 3450" en un punto es trabajo del módulo, no un dato de entrada.
+**Eran doce, y el número creció dos veces por el mismo motivo.** El decimotercero, `IGeocodificador`, apareció con el relevamiento del 18/08: el SUA guarda la dirección escrita del ejemplar y **ninguna coordenada**, porque el censo de arbolado nunca se geolocalizó (B-02, DV-12). Convertir "Mendoza 3450" en un punto es trabajo del módulo, no un dato de entrada.
+
+El decimocuarto, `ICaptorRepository`, salió de la auditoría del 20/08: los dispositivos de campo los provee la repartición y hoy no existen en ningún registro (RF-35). El día de la transferencia, el inventario de equipos municipales es muy probablemente otro sistema, y el módulo no debería tener su propia lista paralela de qué celular es de quién.
+
+**Que el número crezca es el criterio funcionando, no un descuido.** Cada puerto nuevo es un acoplamiento que se detectó **antes** de escribirlo — y la prueba de que sirve es que ninguno de los dos costó más que redactar una interfaz.
 
 ## 2. Tabla de puertos
 
@@ -26,7 +30,8 @@ El decimotercero, `IGeocodificador`, apareció con el relevamiento del 18/08: el
 | `IReservaRepository` | Tomar, consultar y liberar reservas | `PostgresReservaAdapter` | idem contra base muni |
 | `IRutaRepository` | Persistir rutas, paradas y jornadas | `PostgresRutaAdapter` | idem contra base muni |
 | `IGeoRepository` | Puntos geográficos de los reclamos | `PostgresGeoAdapter` | idem contra base muni |
-| `IArchivoStorage` | Fotos de campo y trazos de firma | `SupabaseStorageAdapter` | `FileServerMuniAdapter` |
+| `IArchivoStorage` | Fotos de campo del dictamen y del reclamo | `SupabaseStorageAdapter` | `FileServerMuniAdapter` |
+| `ICaptorRepository` | Dispositivos, su estado y la cuarentena | `PostgresCaptorAdapter` | idem contra base muni |
 | `IRuteoProvider` | Matriz de tiempos, orden óptimo, geometría | `OsrmAdapter` | `GoogleRoutesAdapter` |
 | `IGeocodificador` | Dirección escrita → punto del mapa | `NominatimAdapter` | `GeocodificadorMuniAdapter` |
 | `IParametroRepository` | Parámetros de negocio y reglas configurables | `PostgresParametroAdapter` | idem contra base muni |
@@ -34,7 +39,11 @@ El decimotercero, `IGeocodificador`, apareció con el relevamiento del 18/08: el
 | `IRelojProvider` | Fecha y hora actual | `RelojSistema` | idem |
 | `ICertificadoraFirma` | Certificación oficial de la firma | **sin implementar** (placeholder) | organismo certificador |
 
-> Son catorce filas para trece puertos más el placeholder: `ICertificadoraFirma` se cuenta aparte porque **no tiene implementación y se declara así de frente**. El sistema captura la firma, la vincula al agente, le pone sello de tiempo y la vuelve inmutable, pero **no la certifica ante ningún organismo oficial**. Presentarla como firma con validez legal plena sería falso.
+> Son quince filas para catorce puertos más el placeholder: `ICertificadoraFirma` se cuenta aparte porque **no tiene implementación y se declara así de frente**. El sistema captura la firma, la vincula al agente, le pone sello de tiempo y la vuelve inmutable, pero **no la certifica ante ningún organismo oficial**. Presentarla como firma con validez legal plena sería falso.
+
+**`ICaptorRepository` es el puerto número catorce y salió de la auditoría del 20/08** (RF-35). Los dispositivos son provistos por la repartición y hoy no existen en ningún registro; el día de la transferencia es probable que el inventario de equipos municipales sea un sistema aparte, y por eso entra como puerto y no como tabla suelta — exactamente el mismo criterio que hizo que la autenticación fuera un puerto y no una tabla de usuarios.
+
+**`IArchivoStorage` ya no guarda trazos de firma.** El trazo viaja como vectores dentro del propio dictamen (H-05), así que **no hay archivo que subir, ni que pueda quedar huérfano si el envío se corta a la mitad**. El puerto se ocupa solo de fotos: las del dictamen (RF-17) y ahora también las del reclamo de campo (RF-36).
 
 ---
 

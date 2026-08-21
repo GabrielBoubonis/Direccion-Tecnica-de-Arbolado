@@ -1,6 +1,6 @@
 # T6 — Contrato de la API
 
-> Diseño técnico · Última actualización: 19/08/2026 · Estado: **sin aprobar**
+> Diseño técnico · Última actualización: 21/08/2026 · Estado: **sin aprobar**
 > Responde: cada endpoint con su petición y respuesta reales, códigos de error, idempotencia y paginación.
 
 ---
@@ -34,18 +34,20 @@ El `mensaje` va escrito para mostrarse tal cual, en castellano y sin tecnicismos
 
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
-| `POST` | `/auth/login` | Recibe `{identificador, password}`, devuelve token y perfil |
+| `POST` | `/auth/login` | Recibe `{identificador, password, captorId}`, devuelve token y perfil |
 | `POST` | `/auth/logout` | Invalida el token vigente |
+| `POST` | `/auth/renovar` | Renueva la sesión. Se llama **a la fuerza al confirmar la jornada** |
 | `GET` | `/auth/perfil` | Perfil del usuario de la sesión |
 
 ```jsonc
 // POST /api/v1/auth/login
-{ "identificador": "cbenite0", "password": "…" }
+{ "identificador": "cbenite0", "password": "…", "captorId": "captor-01" }
 
 // 200
 { "ok": true, "datos": {
   "token": "eyJ…",
-  "expiraEn": "2026-08-19T20:00:00-03:00",
+  "expiraEn": "2026-08-21T23:59:00-03:00",   // jornada + ventana de sincronización tardía
+  "sesionAnteriorCerrada": true,             // había otra sesión de este usuario (RNF-14)
   "perfil": {
     "identificador": "cbenite0", "nombreApellido": "Carla Benítez",
     "legajo": "18442", "rol": "operario",
@@ -53,6 +55,12 @@ El `mensaje` va escrito para mostrarse tal cual, en castellano y sin tecnicismos
   }
 }}
 ```
+
+**`captorId` viaja en el login y se valida antes de emitir token.** Si el dispositivo está dado de baja (RF-35), la respuesta es `CAPTOR_DE_BAJA` y no hay token. Es el control más temprano y el más barato: un equipo robado no llega ni a pedir datos.
+
+**Una sola sesión activa por usuario, la que abre manda** (RNF-14). La sesión anterior se invalida por `jti` y su siguiente llamada recibe `SESION_DESPLAZADA` — **nunca `NO_AUTENTICADO` a secas**. Son cosas distintas: una significa "alguien entró con tu usuario en otro lado" y la otra "pasó el tiempo", y mostrarlas igual taparía un problema de seguridad con un cartel de red.
+
+**`expiraEn` cubre la jornada más la ventana de sincronización tardía** (H-07). El diseño acepta un dictamen que sube a las once de la noche cuando Background Sync despierta al Service Worker **con la aplicación cerrada**, y a esa hora no hay a quién pedirle una contraseña. Por eso `POST /auth/renovar` se llama al confirmar la jornada, que es la última señal garantizada del día.
 
 **El campo se llama `identificador`, no `email`** (D-09). Es el usuario de red municipal: `gboubon0` — primera letra del nombre, hasta seis del apellido, número correlativo (B-04). El adaptador de Supabase le agrega el dominio reservado `@arbolado.test` puertas adentro.
 
@@ -135,7 +143,7 @@ Se valida **en el dispositivo antes de llamar**: número solo dígitos, año den
 | --- | --- | --- |
 | `POST` | `/jornadas/preparar` | Define la jornada, **reserva en el mismo paso**, devuelve la propuesta |
 | `PATCH` | `/jornadas/{id}` | Ajustes de la pre-confirmación |
-| `POST` | `/jornadas/{id}/confirmar` | Cierra, arma la ruta definitiva y devuelve el paquete offline |
+| `POST` | `/jornadas/{id}/confirmar` | **Blinda**, renueva la sesión, arma la ruta definitiva y devuelve el paquete offline |
 | `POST` | `/jornadas/{id}/cancelar` | Libera todas las reservas y descarta |
 
 ```jsonc
@@ -195,6 +203,35 @@ Se valida **en el dispositivo antes de llamar**: número solo dígitos, año den
 
 Cada ajuste recalcula la ruta y devuelve la propuesta actualizada. Quitar un caso **libera su reserva** y lo devuelve a la cola para otro.
 
+**El front llama a este endpoint con espera, no en cada clic** (H-12). Cada ajuste recalcula contra el servicio de ruteo, y el servidor público de OSRM tiene límite de peticiones: se recalcula cuando el ingeniero deja de tocar, con la espera de `minutos_espera_recalculo_ruta`. Para la defensa, el escenario del driver parte de una ruta ya calculada, así una demo no depende de cómo esté un servicio público un martes a la mañana.
+
+### `POST /jornadas/{id}/confirmar` hace cuatro cosas, y el orden importa
+
+```jsonc
+// 200
+{ "ok": true, "datos": {
+  "jornadaId": "…", "estado": "confirmada",
+  "blindados": [ { "nroSua": "1234", "anio": 2026 }, … ],
+  "blindajeHasta": "2026-08-21T20:00:00-03:00",
+  "captorId": "captor-01",
+  "token": "eyJ…", "expiraEn": "2026-08-21T23:59:00-03:00",   // sesión renovada
+  "paquete": { "reclamos": […], "ruta": {…}, "parametros": {…}, "catalogos": {…} }
+}}
+```
+
+| Paso | Qué | Por qué acá |
+| --- | --- | --- |
+| 1 | **Blindar** los reclamos (RF-34) | Nadie más los toca, **y ningún trabajo automático del servidor los modifica** |
+| 2 | **Renovar la sesión** | Cubre la sincronización tardía |
+| 3 | Armar la ruta definitiva | |
+| 4 | Devolver el **paquete de precarga** | Es la última señal garantizada |
+
+**El paso 1 es el que cambia el diseño.** Sin blindaje, `escalar_prioridades` corre a las tres de la mañana y le sube el color a un reclamo que el ingeniero lleva precargado desde ayer a la tarde: al volver, servidor y dispositivo discrepan sobre un dato que él **nunca pudo ver cambiar**. **El dato no se puede mover bajo los pies del que está en la calle.**
+
+`blindados` viene explícito en la respuesta y el front lo guarda: es lo que le permite mostrar en campo, sin señal, qué casos son suyos y hasta cuándo. Y es lo que vuelve **acotada y enumerada** la peor pérdida posible — si el captor no vuelve, el servidor ya sabe exactamente qué se fue con él.
+
+Del lado del cliente, antes de aceptar el paquete se pide `navigator.storage.persist()` y se verifica el espacio (T8 §3). Si no se puede garantizar, **el ingeniero sale igual pero avisado**: no se le bloquea la jornada por una condición del dispositivo, tampoco se lo deja creer que está a salvo.
+
 ---
 
 ## 5. Dictamen
@@ -223,7 +260,11 @@ Cada ajuste recalcula la ruta y devuelve la propuesta actualizada. Quitar un cas
   },
   "complejidad": "media", "urgencia": "programada",
   "observacionesTecnicas": "…",
-  "firmaTrazo": "data:image/png;base64,…"
+  "fotosDeclaradas": 3,                   // cuántas fotos vienen DESPUÉS
+  "captorId": "captor-01",
+  "firmaTrazo": [                         // vectores de signature_pad.toData(), NO un PNG
+    { "color": "#000", "puntos": [ {"x":12,"y":40,"t":0}, {"x":18,"y":37,"t":16} ] }
+  ]
 }
 
 // 201
@@ -236,9 +277,38 @@ Cada ajuste recalcula la ruta y devuelve la propuesta actualizada. Quitar un cas
   "firmante": { "nombre": "Carla Benítez", "legajo": "18442", "rol": "operario" },
   "configFirmaVersion": 3,
   "reclamoActualizadoEnOrigen": true,
+  "estadoCertificacion": "pendiente",
+  "fotosPendientes": 3,
+  "discrepanciaReloj": "ninguna",
   "epocaRecomendada": "Invierno (mayo a agosto)"
 }}
 ```
+
+### `firmaTrazo` son vectores y no una imagen (H-05)
+
+Un PNG de `signature_pad` ronda los 20 a 80 KB, y base64 le suma un tercio. Los vectores de `toData()` pesan 2 a 6 KB, se redibujan a cualquier resolución para el PDF y no pierden calidad.
+
+Es una cuestión de coherencia, no de prolijidad: las fotos se comprimen con cuidado a menos de 400 KB **porque subir menos bytes con una barra de señal es la diferencia entre que el envío entre o quede colgado**, y sería absurdo inflar con una imagen el único envío que no puede fallar.
+
+**Sigue embebido en este cuerpo y eso no se toca.** Si viajara como operación separada podría existir, aunque sea por un rato, un dictamen firmado sin firma. La regla es *o el dictamen existe entero y firmado, o no existe*.
+
+### `fotosDeclaradas` y por qué las fotos van al final (H-01)
+
+El cuerpo declara **cuántas fotos vienen**. El servidor crea esa cantidad de filas en estado `esperando` dentro de la misma transacción, y cada `POST /dictamenes/{id}/fotos` completa una. `fotosPendientes` en la respuesta dice cuántas faltan.
+
+El orden es obligatorio, no una preferencia: `dictamen_foto.dictamen_id` es una clave foránea contra `dictamen`. **Si la foto llegara primero, la FK fallaría** y el primer dictamen con fotos que se sincronizara devolvería un error de integridad. El diseño anterior decía lo contrario y estaba mal.
+
+Y conviene operativamente: con una barra de señal sale primero **lo chico y lo valioso**. Un dictamen firmado al que le falta una foto es un dictamen válido con una foto pendiente; una foto sin dictamen no es nada.
+
+### `estadoCertificacion` responde 201, no error (D-65)
+
+Si `config_firma.exigeCertificacion` está encendida y la certificadora no responde, **el dictamen queda firmado igual** con `estadoCertificacion: "pendiente"` y la respuesta es `201`.
+
+**Firmar es local y no puede fallar; certificar sale de nuestra frontera y sí.** La única consecuencia, deliberadamente acotada: ese dictamen **no puede salir en un entregable a concesionarias** hasta certificarse, porque el entregable es donde la validez se ejerce frente a un tercero. Un trabajo reintenta y el Administrador puede forzarlo.
+
+### `discrepanciaReloj` acepta pero marca (D-67)
+
+`fechaDictamen` es el reloj del celular. Si la diferencia con el reloj del servidor supera las 24 horas, viene `"grave"`: el dictamen **se acepta igual** —no se castiga a nadie por el reloj del equipo que le dieron— pero **el trabajo de vencimientos no lo procesa** hasta que el Administrador confirme o corrija la fecha.
 
 ### El `id` lo genera el dispositivo, y es la clave de todo el offline
 
@@ -259,6 +329,8 @@ Deshacer un dictamen firmado porque el SUA no respondió sería descartar trabaj
 | `RECLAMO_YA_DICTAMINADO` | 409 | Otro llegó primero. **La carga se guarda como borrador** (D-16) |
 | `INTERVENCIONES_EXCLUYENTES` | 422 | Extracción junto con poda o corte de raíces (RF-14) |
 | `CLASIFICACION_CONTRADICTORIA` | 422 | Urgente y a largo plazo a la vez (RF-15) |
+| `RECLAMO_BLINDADO` | 409 | Está en la jornada blindada de otro ingeniero (RF-34) |
+| `CAPTOR_DE_BAJA` | 403 | El dispositivo fue dado de baja. **La operación queda en cuarentena, no se pierde** |
 
 ```jsonc
 // 409 con rescate
@@ -331,8 +403,37 @@ El **Lector ve agregados, no detalle**: no accede al texto del vecino ni a la fi
 | `GET` `POST` `PATCH` | `/admin/reglas-complejidad` | Los cortes de RF-15 (D-49) | Administrador |
 | `GET` `POST` `PATCH` | `/admin/reglas-prioridad` | Matriz de priorización, incluye apagar reglas | Administrador |
 | `GET` `POST` `PATCH` | `/directivas` | Directivas de jornada (D-27) | **Jefe** y Administrador |
-| `POST` | `/admin/entregable-concesionaria` | Genera el export (D-26) | Administrador |
+| `GET` `POST` `PATCH` | `/admin/concesionarias` | Empresas destinatarias. **Sin cuenta ni acceso** (D-54) | Administrador |
+| `POST` | `/admin/entregable-concesionaria/proponer` | Arma los paquetes y **no escribe nada** | Administrador |
+| `POST` | `/admin/entregable-concesionaria` | Emite el entregable ya ajustado (RF-33) | Administrador |
+| `GET` | `/admin/entregable-concesionaria` | Historial, con los que tienen anulaciones marcados | Administrador |
+| `GET` `POST` `PATCH` | `/admin/captores` | Alta, asignación y **baja** de dispositivos (RF-35) | Administrador |
+| `GET` `POST` | `/admin/cuarentena` | Liberar o descartar lo retenido de un captor de baja (D-63) | Administrador |
+| `POST` | `/admin/jornadas/{id}/desblindar` | Libera un blindaje a mano (RF-34) | Administrador |
+| `GET` `POST` | `/admin/certificaciones-pendientes` | La cola y el forzado de reintento (D-65) | Administrador |
+| `POST` | `/admin/dictamenes/{id}/confirmar-fecha` | Confirma o corrige una fecha con reloj discrepante (D-67) | Administrador |
 | `GET` | `/admin/auditoria` | Consulta de acciones sensibles | Administrador |
+
+```jsonc
+// POST /api/v1/admin/entregable-concesionaria/proponer   → NO escribe nada
+{ "concesionariaId": "…", "zona": {"distrito": "Oeste"},
+  "periodo": { "desde": "2026-06-01", "hasta": "2026-08-20" } }
+
+// 200
+{ "ok": true, "datos": { "paquetes": [
+  { "accion": "extraccion", "complejidad": "alta", "ejemplares": 7, "dictamenes": ["…"] },
+  { "accion": "poda",       "complejidad": "baja", "ejemplares": 23, "dictamenes": ["…"] }
+], "excluidos": [
+  { "motivo": "pendiente_de_certificacion", "cantidad": 2 },
+  { "motivo": "vencido", "cantidad": 1 }
+] } }
+```
+
+**Se propone antes de emitir, y no es un detalle técnico.** `/proponer` devuelve los paquetes armados y **no escribe nada**; el Administrador saca lo que no corresponda y recién entonces llama a `POST`. Es el mismo patrón del balanceador (RF-25), de la pre-confirmación de jornada (§4) y de las sugerencias de especie y categoría (D-52): **el sistema propone, la persona ajusta, después confirma.** La repetición conviene decirla en la defensa: el sistema nunca ejecuta sobre una persona una decisión que ella no pudo mirar antes.
+
+**`excluidos` no se oculta**, por el mismo motivo que `redistribuido` en la jornada: si dos dictámenes no entraron porque están pendientes de certificar, se dice. Un entregable que sale con menos ejemplares sin explicar por qué obliga al Administrador a contarlos a mano.
+
+`POST /dictamenes/{id}/anular` devuelve, si corresponde, los entregables afectados y **a qué empresa hay que notificar**. El sistema no puede des-enviar un PDF; lo que no hace es dejarlo pasar en silencio, porque del otro lado hay una autorización de extracción que ya no vale.
 
 ```jsonc
 // PUT /api/v1/admin/adaptadores
@@ -357,6 +458,11 @@ Cambiar la configuración de firma **nunca actualiza la fila anterior**: inserta
 | Código | HTTP | Significado |
 | --- | --- | --- |
 | `NO_AUTENTICADO` | 401 | Sin token, vencido o usuario desactivado |
+| `SESION_DESPLAZADA` | 401 | Otra sesión del mismo usuario tomó el control (RNF-14). **El aviso lo dice con esas palabras** |
+| `CAPTOR_DE_BAJA` | 403 | Dispositivo dado de baja (RF-35). Lo enviado **queda en cuarentena** |
+| `RECLAMO_BLINDADO` | 409 | Está en la jornada blindada de otro (RF-34) |
+| `FECHA_SIN_CONFIRMAR` | 409 | Se quiso vencer un dictamen con reloj discrepante sin confirmar (D-67) |
+| `DICTAMEN_SIN_CERTIFICAR` | 422 | Se quiso incluir en un entregable un dictamen pendiente de certificación (D-65) |
 | `ROL_SIN_PERMISO` | 403 | El rol no puede ejecutar esta operación |
 | `ROL_NO_FIRMA` | 403 | El rol no está habilitado para firmar |
 | `RECLAMO_NO_ENCONTRADO` | 404 | El par (N° SUA, año) no existe |

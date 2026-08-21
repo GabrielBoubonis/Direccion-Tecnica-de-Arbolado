@@ -5,13 +5,17 @@
 
 Existe porque el documento se entrega y se defiende. Un desvío no documentado es una pregunta del profesor sin respuesta.
 
+> Estado al 21/08/2026: **19 desvíos**, de los cuales **16 exigen corregir el `.docx`**. Los cinco requerimientos nuevos que el documento académico no tiene son **RF-33, RF-34, RF-35, RF-36 y RNF-14**, registrados en DV-17, DV-18 y DV-19.
+
 ---
 
-## DV-01 — Los adaptadores son doce, no dos
+## DV-01 — Los adaptadores son catorce, no dos
 
 **Qué dice el documento.** Sección 1.4 y diagrama de clases: dos interfaces, `IReclamoProvider` e `IAuthProvider`. Los dictámenes y rutas se guardan en Supabase como base propia del módulo.
 
-**Qué hacemos.** Todo acceso a datos va detrás de un puerto: se suman repositorios de dictamen, ruta, reserva, perfil, parámetros y auditoría, más storage, ruteo y reloj.
+**Qué hacemos.** Todo acceso a datos va detrás de un puerto: se suman repositorios de dictamen, ruta, reserva, perfil, parámetros, auditoría y captores, más storage, ruteo, geocodificación y reloj.
+
+> Eran doce cuando se escribió este desvío. La geocodificación se sumó al confirmarse que el SUA no tiene coordenadas (DV-12) y los captores salieron de la auditoría del 20/08 (DV-18). **Que el número crezca es el desvío funcionando**: cada puerto nuevo es un acoplamiento que se detectó antes de escribirlo, no después.
 
 **Por qué.** El documento asume que Supabase se queda como base propia y que solo se reemplazan los dos conectores externos. La premisa real del proyecto es otra: Supabase se va **entero**. Con solo dos adaptadores, el día de la transferencia habría que reescribir toda la capa de persistencia, que es exactamente lo que RNF-08 dice que no debería pasar.
 
@@ -229,3 +233,61 @@ Existe porque el documento se entrega y se defiende. Un desvío no documentado e
 **Por qué importa además.** Es el último momento con señal garantizada. Concentrar ahí las correcciones que necesitan mapa y conexión —y la precarga de todo lo que va a hacer falta offline— es lo que hace que la jornada en la calle no dependa de la señal. Corregir un punto del mapa parado frente al árbol, con una barra y el sol de frente, no es un escenario realista.
 
 **¿Corregir el `.docx`?** **Sí.** Suma un paso al caso de uso de planificación de ruta (CU-06) y conviene reflejarlo en el diagrama de secuencia correspondiente.
+
+---
+
+## DV-17 — El entregable para concesionarias no tiene ningún RF que lo respalde
+
+**Qué dice el documento.** Nada. Se revisó `docs/01-documentacion-tecnica.md` completo y **la palabra "concesionaria" no aparece una sola vez** entre RF-01 y RF-32. La funcionalidad sale exclusivamente de la minuta del 12/08 —*"construir paquetes de casos similares que puedan ser derivados a empresas concesionarias, optimizando el uso de recursos técnicos y logísticos"*— y de la decisión D-26.
+
+**Qué hacemos.** Se redacta **RF-33**: el Administrador genera un entregable de trabajo para una empresa concesionaria, agrupando los dictámenes **firmados y vigentes** de una zona y un período en **paquetes por acción autorizada y complejidad**, con revisión y ajuste manual previos, y registrando cada emisión con su destinatario. Sale como **un PDF por paquete**. Aparecen la tabla `concesionaria` y el campo `concesionaria_id`.
+
+**Por qué.** El pedido del cliente está en la minuta y el diseño ya lo había tomado en D-26, pero como no se convirtió en requerimiento quedó a mitad de camino: el modelo de datos prometía poder contestar *"qué se le informó a una contratista y cuándo"* y la tabla no guardaba a quién. Un pedido relevado que no se redacta como requerimiento es un pedido que se implementa a ojo.
+
+**Qué no lleva.** Ni el texto del vecino, ni las fotos, ni el circuito interno. Es un tercero externo a la repartición: no necesita saber qué escribió un vecino sobre el árbol de su vereda para ir a podarlo.
+
+**¿Corregir el `.docx`?** **Sí.** Hay que agregar RF-33 y su caso de uso. Es funcionalidad nueva, no un ajuste de redacción.
+
+---
+
+## DV-18 — La auditoría del trabajo sin conexión produjo tres requerimientos que el documento no tiene
+
+**Qué dice el documento.** RNF-04 y RNF-05 piden que el sistema funcione sin conexión y sincronice al recuperarla. No dicen nada sobre qué protege el trabajo mientras el dispositivo está en la calle, ni sobre qué pasa si el dispositivo no vuelve.
+
+**Qué hacemos.** Tres requerimientos nuevos, salidos de auditar la jornada completa contra el diseño:
+
+- **RF-34 · Blindaje de la jornada.** Al confirmar, los reclamos quedan blindados a nombre del ingeniero y del dispositivo. Nadie más los toca **y los trabajos automáticos del servidor tampoco**. Se libera al cierre; el Administrador puede desblindar a mano.
+- **RF-35 · Administración de dispositivos.** El Administrador puede dar de baja un captor por robo, extravío o destrucción. Lo que ese captor intente sincronizar queda en cuarentena para revisión, no se descarta.
+- **RNF-14 · Sesión única y corte al apagar.** Un usuario, una sesión activa; la que abre manda. La sesión se corta al apagarse el dispositivo.
+- **RF-36 · Fotografías en el reclamo de campo.** Un reclamo dado de alta por el ingeniero puede llevar fotos, tomadas y encoladas sin conexión.
+
+**Por qué el blindaje.** Sin él, el sistema no puede distinguir un reclamo que el ingeniero no llegó a visitar de uno que dictaminó y cuyo dictamen se perdió con el dispositivo: los dos se ven idénticos, los dos vuelven a la cola, y el segundo termina dictaminándose dos veces. Con blindaje, el servidor sabe desde el minuto cero exactamente qué casos están comprometidos y con quién, y si el captor nunca vuelve la pérdida queda acotada a los casos de una jornada, que al día siguiente vuelven a circular.
+
+Hay un segundo motivo, menos evidente y igual de importante: **blindar también protege del propio servidor**. Sin blindaje, el trabajo de escalamiento puede subirle la prioridad a un reclamo de madrugada mientras el ingeniero lleva en el bolsillo una copia precargada con la prioridad vieja. El dato no se puede mover bajo los pies del que está en la calle.
+
+**Por qué la sesión se corta al apagar, sabiendo lo que cuesta.** Se planteó la alternativa —mantener la jornada abierta en el dispositivo y renovar la sesión de servidor sola, para que una batería agotada a las 14:00 sin señal no termine la jornada— y **se descartó a favor de la seguridad**. El fundamento del analista funcional: son documentos legales, el captor puede tener trabajo de otras personas adentro y puede prestarse a un uso indebido. **La consecuencia se asume y se declara**: con el captor apagado y sin señal, el ingeniero no puede seguir cargando esa tarde. Lo ya cargado no se pierde — la cola y los borradores sobreviven y se envían cuando vuelve a autenticarse.
+
+**Por qué RF-36.** `reclamo.foto_url` es un solo campo de texto que **viene del SUA** y puede venir vacío: no es nuestro. Sin una tabla propia, un reclamo abierto de oficio quedaba sin evidencia hasta que alguien lo dictaminara — y durante el protocolo de tormenta (RF-28→RF-30) es justo cuando la foto más importa: un árbol caído cortando una calle se documenta cuando se ve, no tres días después, cuando ya lo movieron.
+
+**¿Corregir el `.docx`?** **Sí.** Cuatro altas: RF-34, RF-35, RF-36 y RNF-14. Y conviene reflejar el blindaje en el diagrama de estados del reclamo.
+
+---
+
+## DV-19 — Firmar y certificar no son lo mismo, y el documento los trata como uno solo
+
+**Qué dice el documento.** RF-18 y RF-19 describen un único acto de firmar, del que dependen la inmutabilidad, el sello de tiempo y la validez del dictamen. RNF-13 menciona la certificación oficial como algo pendiente, sin definir qué pasa mientras tanto ni qué pasa si falla.
+
+**Qué hacemos.** Se separan dos cosas que estaban mezcladas bajo la misma palabra:
+
+| | Qué es | ¿Puede fallar? |
+| --- | --- | --- |
+| **Firma interna** | Hash canónico + sello de tiempo del servidor + legajo + rol + versión de `config_firma` | **No.** Es local y entra en la transacción |
+| **Certificación externa** | `ICertificadoraFirma` — hoy un placeholder, mañana un organismo | **Sí.** Es una llamada fuera de nuestra frontera |
+
+El dictamen se firma **siempre**, en el paso indivisible de RF-18. Si la certificación externa falla, queda **firmado y válido puertas adentro** con estado `pendiente_de_certificacion`, un trabajo automático reintenta con espera creciente, y el Administrador puede forzar el reintento desde el panel. La única consecuencia, deliberadamente acotada: **ese dictamen no puede salir en un entregable a concesionarias (RF-33) hasta estar certificado**.
+
+**Por qué.** El documento, tal como está escrito, no responde qué pasa si la certificación falla — y la respuesta importa, porque las dos salidas obvias son malas. Si la falla impide firmar, un problema de red le arruina la jornada a un ingeniero que ya hizo el trabajo. Si se ignora, un documento sin certificar circula frente a terceros como si tuviera validez plena. La separación mantiene el criterio que el proyecto ya aplicó dos veces —no se descarta trabajo de campo por un problema de red— sin mentir sobre el estado del documento.
+
+**Dónde se ve.** El dashboard muestra los pendientes de certificar como alerta, junto a los que vencen en ≤30 días (RF-05). **No es problema del ingeniero**: él firmó y su dictamen está cerrado; la pendencia es del sistema y se resuelve del lado de la administración.
+
+**¿Corregir el `.docx`?** **Sí.** RF-18 y RF-19 tienen que distinguir los dos actos, y RNF-13 tiene que decir qué pasa mientras la certificación no exista y qué pasa cuando falla.

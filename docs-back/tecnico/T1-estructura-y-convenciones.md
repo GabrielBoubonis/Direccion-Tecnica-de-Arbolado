@@ -44,7 +44,7 @@ Direccion-Tecnica-de-Arbolado/
 │   │   ├── core/                 ← NO importa infraestructura. Nunca.
 │   │   │   ├── dominio/          ← entidades, enums, tipos de valor
 │   │   │   ├── reglas/           ← funciones puras (T3)
-│   │   │   ├── puertos/          ← las trece interfaces (T2)
+│   │   │   ├── puertos/          ← las catorce interfaces (T2)
 │   │   │   ├── casos-uso/        ← orquestación (T4)
 │   │   │   └── errores/          ← ErrorDominio y catálogo de códigos
 │   │   ├── adapters/             ← ÚNICO lugar con nombre de proveedor

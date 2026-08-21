@@ -1,6 +1,7 @@
 # T9 — Trabajos programados y el reloj
 
-> Diseño técnico · Última actualización: 19/08/2026 · Estado: **sin aprobar**
+> Diseño técnico · Última actualización: 21/08/2026 · Estado: **sin aprobar**
+> Absorbe la auditoría del 20/08: **ningún trabajo toca un reclamo blindado**, consolidación antes de purgar, certificación diferida, purga de idempotencia y freno por reloj discrepante.
 > Responde: qué corre solo, cuándo, con qué garantías, y por qué la hora se pide por interfaz.
 
 ---
@@ -16,20 +17,42 @@ Calcular al leer también complicaría filtrar y ordenar por prioridad cuando el
 
 ---
 
-## 2. Los seis trabajos
+## 2. Los nueve trabajos
 
 Se programan con `pg_cron` en la migración `0011`. Horario de Argentina.
 
-| # | Trabajo | Cuándo | Qué hace |
-| --- | --- | --- | --- |
-| 1 | `escalar_prioridades` | 03:00 diario | Aplica `escalarPorTiempo` y escribe historial por cada salto |
-| 2 | `marcar_vencimientos` | 03:10 diario | Dictámenes a 18 meses → `vencido`, reclamo → `vencido_redictaminar` |
-| 3 | `liberar_reservas` | 20:05 diario | Libera las vencidas; los no visitados vuelven a la cola |
-| 4 | `geocodificar_pendientes` | 02:00 diario | Procesa la cola y reintenta las `fallida` |
-| 5 | `reintentar_sincronizacion` | cada 15 min | Reintenta marcar `dictaminado` en el origen |
-| 6 | `purgar_rutas` | 04:00 domingos | Borra recorridos más viejos que la retención (T10) |
+| # | Trabajo | Cuándo | Qué hace | ¿Saltea blindados? |
+| --- | --- | --- | --- | --- |
+| 1 | `escalar_prioridades` | 03:00 diario | Aplica `escalarPorTiempo` y escribe historial por cada salto | **Sí** |
+| 2 | `marcar_vencimientos` | 03:10 diario | Dictámenes a 18 meses → `vencido`, reclamo → `vencido_redictaminar` | **Sí** |
+| 3 | `liberar_reservas` | 20:05 diario | Libera las vencidas; los no visitados vuelven a la cola | — (es quien libera) |
+| 4 | `geocodificar_pendientes` | 02:00 diario | Procesa la cola y reintenta las `fallida` | **Sí** |
+| 5 | `reintentar_sincronizacion` | cada 15 min | Reintenta marcar `dictaminado` en el origen | No aplica |
+| 6 | `purgar_rutas` | 04:00 domingos | **Consolida** el resumen y recién después borra el detalle | No aplica |
+| 7 | `purgar_idempotencia` | 04:30 domingos | Borra claves de más de 30 días | No aplica |
+| 8 | `reintentar_certificacion` | cada 30 min | Reintenta la certificación externa con espera creciente | No aplica |
+| 9 | `marcar_borradores_inactivos` | 05:00 diario | A los 30 días sin actividad pasan a `inactivo`. **Nunca los borra** | No aplica |
 
 **El orden de 1 y 2 no es casual.** Primero escalan las prioridades, después se marcan los vencimientos: así un reclamo que vuelve a la cola por vencimiento entra ya con la prioridad del día, y no con una de ayer.
+
+### La columna que más importa de esa tabla (RF-34)
+
+**Los trabajos 1, 2 y 4 no tocan un reclamo blindado.** Es la mitad del valor del blindaje y no una optimización.
+
+```sql
+-- El patrón, idéntico en los tres
+where not exists (
+  select 1 from arbolado.reserva r
+   where r.nro_reclamo_sua = e.nro_reclamo_sua and r.anio = e.anio
+     and r.liberada_en is null and r.blindada
+)
+```
+
+Sin ese `not exists`, `escalar_prioridades` corre a las tres de la mañana y le sube la prioridad a un reclamo que un ingeniero lleva precargado en el bolsillo desde ayer a la tarde. Cuando vuelve y sincroniza, el servidor y el dispositivo discrepan sobre un dato que él **nunca pudo ver cambiar**, porque estaba sin señal. **El dato no se puede mover bajo los pies del que está en la calle.**
+
+Lo mismo con `geocodificar_pendientes`: mover el punto de un reclamo que alguien está yendo a visitar es peor que dejarlo mal, porque el ingeniero ya salió con el mapa viejo.
+
+`liberar_reservas` es la excepción obvia: es justamente el trabajo que **termina** el blindaje al cierre de la jornada.
 
 ---
 
@@ -68,10 +91,20 @@ Para cada reclamo sin dictaminar o vencido_redictaminar:
 
 ```
 Para cada dictamen firmado con fecha_vencimiento < hoy:
+    -- SALTEAR si discrepancia_reloj = 'grave' y fecha_confirmada_en es nula  (D-67)
+    -- SALTEAR si el reclamo está blindado                                    (RF-34)
     dictamen.estado ← 'vencido'
     reclamo_estado.estado_modulo ← 'vencido_redictaminar'
     -- el dictamen viejo NUNCA se borra: queda consultable como historial
 ```
+
+### El freno por reloj discrepante (D-67)
+
+`fecha_vencimiento` se calcula desde `fecha_dictamen`, que es **el reloj del celular**. Si al recibirlo la diferencia con el reloj del servidor superaba las 24 horas, el dictamen se aceptó igual —no se castiga al ingeniero por el reloj del equipo que le dieron— pero quedó marcado con **discrepancia grave**.
+
+**Este trabajo no lo procesa** hasta que el Administrador confirme o corrija la fecha desde el panel, y esa corrección queda auditada con la fecha vieja y la nueva.
+
+Un vencimiento legal es una fecha que alguien tiene que poder defender. Que la fije un reloj demostrablemente roto, y que después un trabajo automático la ejecute sin preguntarle a nadie, es peor que pedirle a una persona que la mire una vez. El índice parcial `ix_dictamen_reloj_grave` hace que la lista de pendientes de confirmar sea barata de consultar.
 
 Al vencer, **el reclamo vuelve a la lista de pendientes** marcado como `vencido_redictaminar`. Es lo que confirmó la repartición (A-11): *"después de 18 meses el dictamen ya no es acorde a la problemática real del árbol, por lo tanto se vuelve a dictaminar"*.
 
@@ -140,18 +173,83 @@ Un dictamen que lleva más de veinticuatro horas sin sincronizar **aparece en el
 
 ---
 
-## 8. Trabajo 6 — Purga de recorridos
+## 8. Trabajo 6 — Consolidación y purga de recorridos
 
-> Privacidad · C-02 pendiente de definir
+> Privacidad · Decisión **D-56**
 
 ```
-Borrar detalle_ruta y ruta con fecha_planificacion < hoy − dias_retencion_rutas
+Para cada ruta con fecha_planificacion < hoy − dias_retencion_detalle_ruta (90):
+    1. si no existe ruta_resumen: CONSOLIDAR
+       (casos visitados, km, minutos, eficiencia, directiva aplicada)
+    2. recién entonces borrar detalle_ruta y ruta.geometria
 -- los dictámenes NO se tocan: son documentos con validez legal
 ```
 
-Un historial de recorridos con horarios estimados es, técnicamente, **un registro de los movimientos de un trabajador**. Los dictámenes se guardan para siempre porque son documentos legales; las rutas no tienen esa necesidad, y pasado su valor estadístico son más riesgo que utilidad — sobre todo si mañana alguien las usa para evaluar el rendimiento de una persona.
+**Dejó de ser un borrado y pasó a ser una consolidación seguida de un borrado, y el orden es la decisión.** La eficiencia de la jornada se calcula a partir de los horarios de parada: borrarlos sin consolidar primero **se llevaba puesta la estadística**, que es exactamente el dato que la repartición quiere conservar.
 
-**El plazo exacto está pendiente de definir con la repartición** (C-02). Mientras tanto el trabajo existe, está programado y con la retención sin fijar: el día que se defina, es cambiar un parámetro.
+En condiciones normales `ruta_resumen` ya existe, porque se escribe al **cerrar la jornada**. El paso 1 acá es la red de seguridad para las rutas que se cerraron mal o quedaron abiertas.
+
+| Dato | Retención |
+| --- | --- |
+| Horarios de cada parada y geometría del recorrido | **90 días** |
+| Resumen: casos, kilómetros, eficiencia | Indefinido |
+| Qué casos entraron y bajo qué directiva se armó la jornada | Indefinido |
+
+Un historial de recorridos con horarios es, técnicamente, **un registro de los movimientos de un trabajador**. Los dictámenes se guardan para siempre porque son documentos legales; el rastro parada por parada no tiene esa necesidad, y pasado su valor estadístico es más riesgo que utilidad — sobre todo si mañana alguien lo usa para evaluar el rendimiento de una persona.
+
+**El argumento, para la defensa:** *se conserva el dato que justifica una decisión administrativa y se destruye el que solo serviría para vigilar a un empleado.* La justificación del ingeniero no se borra nunca; su rastro sí.
+
+---
+
+## 8 bis. Trabajo 7 — Purga de claves de idempotencia
+
+> Hallazgo **H-11**
+
+```
+Borrar arbolado.idempotencia con creada_en < ahora − 30 días
+```
+
+`idempotencia` guarda **la respuesta completa de cada operación en `jsonb`** y no tenía retención ni trabajo de purga: crecía para siempre. En un sistema donde la cola offline reintenta, esa tabla recibe una fila por cada operación que alguna vez se envió.
+
+Treinta días está **muy por encima de cualquier ventana de reintento real** —la más larga que contempla el diseño es la de un captor que estuvo una semana sin volver— y muy por debajo de lo que convertiría esta tabla en un problema de tamaño.
+
+---
+
+## 8 ter. Trabajo 8 — Reintento de certificación externa
+
+> Decisión **D-65** · Desvío DV-19
+
+```
+Para cada dictamen firmado con estado_certificacion = 'pendiente':
+    respetar la espera creciente según intentos_certificacion
+    resultado ← certificadora.certificar(hash_documento, sello_tiempo)
+    registrar SIEMPRE una fila en certificacion_intento
+    si sale bien: estado_certificacion ← 'certificado', certificado_en ← ahora
+```
+
+Es el mismo patrón del trabajo 5, y por el mismo motivo: **la certificación externa es una llamada a un sistema que no controlamos y no puede participar de la transacción de firma**.
+
+**Firmar es local y no puede fallar; certificar sí.** Si falla, el dictamen queda **firmado y válido puertas adentro** —inmutable, auditable, contando para el vencimiento— y la única consecuencia, deliberadamente acotada, es que **no puede salir en un entregable a concesionarias (RF-33) hasta estar certificado**, porque ahí es donde la validez se ejerce frente a un tercero.
+
+El Administrador puede **forzar el reintento** de uno o de todo el lote desde el panel, y ese forzado también deja fila con su nombre. Mientras haya pendientes, el dashboard lo muestra como alerta junto a los que vencen en ≤30 días (RF-05).
+
+**No es problema del ingeniero.** Él firmó y su dictamen está cerrado; la pendencia es del sistema y se resuelve del lado de la administración.
+
+---
+
+## 8 quater. Trabajo 9 — Borradores inactivos
+
+> Decisión **D-57**
+
+```
+Para cada dictamen_borrador activo con ultima_actividad < hoy − 30 días:
+    estado ← 'inactivo'
+-- NO se borra. Nunca. El descarte lo hace una persona.
+```
+
+Es el trabajo más corto del sistema y el que más se discutió. Un borrador puede tener adentro **trabajo de campo real**: existe justamente para no descartar la carga de quien dictaminó un caso que otro ya había dictaminado (D-16).
+
+Pasar a `inactivo` lo saca de la bandeja principal y lo pone en una aparte, para que el ingeniero decida si lo retoma o lo descarta. **El sistema nunca decide por él.** Era el único punto del diseño donde se perdía trabajo humano sin que nadie lo mirara.
 
 ---
 
@@ -166,6 +264,16 @@ Un historial de recorridos con horarios estimados es, técnicamente, **un regist
 | **Visibles** | El panel del Administrador muestra última corrida, duración y filas afectadas |
 
 La última es la que hace la diferencia en la práctica: **un trabajo que falla en silencio durante dos semanas es peor que no tenerlo**, porque el sistema aparenta estar priorizando y no lo está.
+
+**Una garantía más, que sale de la auditoría: ningún trabajo destruye sin haber conservado antes.** Se cumple de tres formas distintas y las tres son deliberadas:
+
+| Trabajo | Qué destruye | Qué conserva primero |
+| --- | --- | --- |
+| `purgar_rutas` | Horarios y geometría | El resumen de la jornada y la directiva aplicada |
+| `purgar_idempotencia` | Respuestas cacheadas | Nada que conservar: el dato original vive en su tabla |
+| `marcar_borradores_inactivos` | **Nada** | Es el punto: mueve, no borra |
+
+Y ninguno toca lo que un ingeniero tiene en la calle: **los tres trabajos que modifican reclamos saltean los blindados** (§2).
 
 ---
 

@@ -47,6 +47,16 @@ export async function nombreDelCaso(
 | 19 | Crear y bajar directivas de jornada | Jefe | nuevo (D-27) |
 | 20 | Generar entregable para concesionarias | Administrador | nuevo (D-26) |
 | 21 | Consultar auditoría | Administrador | nuevo |
+| 22 | Cerrar la jornada y liberar el blindaje | Operario | nuevo (RF-34) |
+| 23 | Dar de alta y de baja un captor | Administrador | nuevo (RF-35) |
+| 24 | Resolver operaciones en cuarentena | Administrador | nuevo (D-63) |
+| 25 | Desblindar una jornada a mano | Administrador | nuevo (RF-34) |
+| 26 | Forzar el reintento de certificación | Administrador | nuevo (D-65) |
+| 27 | Confirmar una fecha con reloj discrepante | Administrador | nuevo (D-67) |
+| 28 | Retomar o descartar un borrador inactivo | Operario | nuevo (D-57) |
+| 29 | Adjuntar fotos a un reclamo de campo | Operario | nuevo (RF-36) |
+
+Los ocho últimos salieron de la auditoría del 20/08. **Siete de los ocho son del Administrador o del Operario sobre su propio trabajo, y ninguno es un flujo principal**: son los caminos alternativos que faltaban — qué pasa cuando el dispositivo se pierde, cuando la certificadora no responde, cuando el reloj está mal, cuando un borrador queda abandonado. Un diseño que solo tiene flujos principales es un diseño que todavía no se auditó.
 
 ---
 
@@ -163,6 +173,8 @@ La ruta registra **bajo qué directiva se armó** (D-28). Sin ese dato, en dos m
 | 4 | Es Tipo `Reclamo` / Subtipo `Problemas con el arbolado público` | `RECLAMO_FUERA_DE_ALCANCE` |
 | 5 | No tiene dictamen vigente | `RECLAMO_YA_DICTAMINADO` |
 | 6 | Hay **reserva activa a nombre del actor** | `SIN_RESERVA_PROPIA` |
+| 6 bis | Si está blindado, **el blindaje es del actor y su captor** | `RECLAMO_BLINDADO` |
+| 6 ter | El captor que envía **no está dado de baja** | `CAPTOR_DE_BAJA` → cuarentena |
 | 7 | Coherencia de intervenciones | `INTERVENCIONES_EXCLUYENTES` |
 | 8 | Coherencia de clasificación (urgente vs largo plazo) | `CLASIFICACION_CONTRADICTORIA` |
 | 9 | Campos obligatorios del formulario físico completos | `DATOS_INVALIDOS` |
@@ -176,18 +188,34 @@ La ruta registra **bajo qué directiva se armó** (D-28). Sin ese dato, en dos m
 | 1 | Se calcula el **hash** del contenido, con serialización canónica |
 | 2 | Se registra el **sello de tiempo** del servidor, con legajo, rol y versión de `config_firma` |
 | 3 | Se fija el **vencimiento a 18 meses** desde `fecha_dictamen` |
-| 4 | El dictamen queda en **solo lectura**: no se actualiza ni se borra |
-| 5 | El reclamo pasa a **dictaminado** vía `IReclamoProvider` (RF-20) |
+| 4 | Se crean las filas de `dictamen_foto` en estado `esperando`, tantas como `fotos_declaradas` |
+| 5 | El dictamen queda en **solo lectura**: no se actualiza ni se borra |
 | 6 | Se **libera la reserva** con motivo `dictaminado` |
 | 7 | Se registra en **auditoría** |
 
-**O el dictamen existe entero y firmado, o no existe.** Los pasos 1 a 4, 6 y 7 son una sola transacción de base.
+**O el dictamen existe entero y firmado, o no existe.** Los pasos 1 a 7 son **una sola transacción de base**, y el trazo de la firma entra ahí adentro, embebido en la fila: si viajara como operación separada podría existir, aunque sea por un rato, un dictamen firmado sin firma.
 
-El paso 5 es la excepción, y hay que decirlo con todas las letras: **es una llamada a un sistema externo y no puede participar de la transacción local**. Se ejecuta después de confirmar, y si falla, el dictamen queda firmado con una marca de sincronización pendiente que un job reintenta. La alternativa —deshacer un dictamen firmado porque el SUA no respondió— sería descartar trabajo de campo válido por un problema de red.
+**El paso 4 es el que cambió.** Las fotos ya no suben antes que el dictamen: se declaran acá y llegan después (H-01). `dictamen_foto.dictamen_id` es una clave foránea contra `dictamen`, así que subirlas primero **rompía la FK** y el primer dictamen con fotos que se sincronizara devolvía un error de integridad.
+
+### Los dos pasos que quedan afuera de la transacción, y por qué
+
+| Paso posterior | Puerto | Si falla |
+| --- | --- | --- |
+| Marcar `dictaminado` en el origen (RF-20) | `IReclamoProvider` | Queda `sincronizado_origen = false`; el trabajo 5 reintenta cada 15 min |
+| **Certificar la firma ante un organismo** | `ICertificadoraFirma` | Queda `estado_certificacion = pendiente`; el trabajo 8 reintenta |
+| Subir cada foto | `IArchivoStorage` | La fila queda `esperando`; la cola del dispositivo reintenta |
+
+Los tres son **llamadas fuera de nuestra frontera y ninguno puede participar de la transacción local**. Y en los tres la respuesta es la misma: **no se deshace un dictamen firmado por un problema de red**, porque eso sería descartar trabajo de campo válido.
+
+**La certificación merece la aclaración explícita (D-65).** Firmar y certificar no son lo mismo: la firma interna es local y **no puede fallar**; la certificación es externa y sí. Un dictamen `firmado` + `pendiente` es válido puertas adentro —inmutable, auditable, cuenta para el vencimiento— y lo único que no puede hacer es **salir en un entregable a concesionarias**, porque ahí es donde la validez se ejerce frente a un tercero. **No es problema del ingeniero**: él firmó y su dictamen está cerrado; la pendencia se resuelve del lado de la administración.
 
 ### Discrepancia de relojes
 
 Si `fecha_dictamen` (dispositivo) resulta posterior a `fecha_recepcion` (servidor) o anterior a la reserva, **no se rechaza**: se registra la discrepancia en auditoría. Rechazar el trabajo de una persona porque su celular tiene la hora mal sería peor que anotarlo.
+
+**Si la diferencia supera las 24 horas, además se frena el vencimiento** (D-67). El dictamen se acepta y queda marcado con `discrepancia_reloj = 'grave'`, y **el trabajo de vencimientos no lo procesa** hasta que el Administrador confirme o corrija la fecha desde el panel, con la corrección auditada de fecha vieja a fecha nueva.
+
+El motivo es distinto del de anotar la discrepancia. Anotarla es trazabilidad; frenar el vencimiento es que **un vencimiento legal es una fecha que alguien tiene que poder defender**. Que la fije un reloj demostrablemente roto, y que después un trabajo automático la ejecute sin preguntarle a nadie, es peor que pedirle a una persona que la mire una vez.
 
 ### El choque excepcional
 

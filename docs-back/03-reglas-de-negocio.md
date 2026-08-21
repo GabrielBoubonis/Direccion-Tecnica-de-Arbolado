@@ -1,6 +1,7 @@
 # Reglas de negocio
 
-> Última actualización: 19/08/2026 · Estado: **en diseño** — la matriz de §1 necesita validación funcional
+> Última actualización: 21/08/2026 · Estado: **en diseño** — la matriz de §1 necesita validación funcional
+> Absorbe **D-54 a D-67** y los hallazgos de la auditoría del 20/08 (`09-decisiones-20260820.md`): RF-33 a RF-36 y RNF-14.
 > Incorpora las respuestas de relevamiento del 18/08 (grupos A y B de `entregables/preguntas-abiertas.html`).
 > Todas las reglas viven en el núcleo, son funciones puras y tienen escenario propio en el driver.
 
@@ -129,6 +130,31 @@ Al firmar, en un solo paso indivisible:
 
 Si cualquiera de los pasos falla, no queda nada a medias: o el dictamen existe entero y firmado, o no existe.
 
+### Firmar y certificar no son lo mismo (D-65)
+
+Bajo la palabra "firmar" estaban mezcladas dos cosas que se comportan al revés:
+
+| | Qué es | ¿Puede fallar? |
+| --- | --- | --- |
+| **Firma interna** | Hash canónico + sello de tiempo del servidor + legajo + rol + versión de `config_firma` | **No.** Es local y entra en la transacción de arriba |
+| **Certificación externa** | `ICertificadoraFirma` — hoy un placeholder, mañana un organismo | **Sí.** Es una llamada a un sistema que no controlamos |
+
+La firma interna es la que vuelve el dictamen inmutable y auditable, y ocurre **siempre**, en el paso indivisible de arriba. La certificación externa es un paso **posterior**, con reintentos, exactamente como la sincronización al SUA.
+
+**Si la certificación falla**, el dictamen queda **firmado y válido puertas adentro**, con `estado_certificacion = pendiente`. Un job reintenta con espera creciente. La consecuencia visible es una sola y está acotada: **ese dictamen no puede salir en un entregable a concesionarias (§13) hasta estar certificado**, porque el entregable es donde la validez legal se ejerce frente a un tercero.
+
+Es el mismo criterio que el proyecto ya aplicó dos veces —no se descarta trabajo de campo por un problema de red— sin dejar circular como plenamente válido, frente a una empresa privada, un documento que todavía no lo es.
+
+### Certificación diferida: cómo se certifica lo que no se pudo certificar en campo
+
+1. Todo dictamen firmado sin certificar entra en una **cola de certificación pendiente**, visible en el panel del Administrador junto a las sincronizaciones pendientes al SUA.
+2. Un job la procesa con espera creciente.
+3. El Administrador puede **forzar el reintento** de uno o de todo el lote.
+4. Cada intento queda en auditoría: cuándo, con qué certificadora y con qué resultado.
+5. Mientras haya dictámenes pendientes de certificar, el dashboard lo muestra como alerta, junto a los que vencen en ≤30 días (RF-05).
+
+**No es problema del ingeniero.** Él firmó y su dictamen está cerrado; la pendencia es del sistema y se resuelve del lado de la administración. Que un ingeniero tenga que preocuparse por el estado de una llamada de red sería trasladarle un problema que no es suyo.
+
 **Corregir un dictamen firmado no es editarlo**: es anularlo y emitir uno nuevo. Ambos quedan en el historial. Es lo que exige RNF-06 y lo que hace defendible el documento ante una impugnación.
 
 ---
@@ -145,6 +171,17 @@ Fundamento forestal: en 18 meses el ejemplar creció, se pudo secar o alguien pu
 
 > Ningún RF del documento dice qué pasa al vencer — solo cómo calcularlo y cómo avisar. Está registrado como requerimiento faltante en `99-desvios.md` (DV-05).
 
+### Cuando el reloj del dispositivo está mal (D-67)
+
+El vencimiento cuenta desde `fecha_dictamen`, que es el reloj del celular. Si la diferencia con el reloj del servidor supera las **24 horas**:
+
+1. El dictamen **se acepta igual**. No se castiga al ingeniero por el reloj del equipo que le dieron.
+2. Queda marcado con **discrepancia grave**.
+3. El **job de vencimientos no lo procesa** hasta que el Administrador confirme o corrija la fecha.
+4. La corrección queda **auditada**: quién, cuándo, de qué fecha a qué fecha.
+
+Un vencimiento legal es una fecha que alguien tiene que poder defender. Que la fije un reloj demostrablemente roto, y que después un job la ejecute sin preguntarle a nadie, es peor que pedirle a una persona que la mire una vez.
+
 ---
 
 ## 6. Reserva de trabajo
@@ -159,6 +196,46 @@ Fundamento forestal: en 18 meses el ejemplar creció, se pudo secar o alguien pu
 | Al vencer, vuelve a la cola | Lo que no se visitó queda libre para quien esté más cerca mañana |
 
 Excepción: el ingeniero puede dar de alta y dictaminar un reclamo **de oficio** sin conexión, porque un reclamo nuevo no puede estar tomado por nadie.
+
+### 6 bis. El blindaje de la jornada (RF-34)
+
+Tomar un caso lo **reserva**. Confirmar la jornada lo **blinda**. Mientras dura el blindaje:
+
+| Regla | Detalle |
+| --- | --- |
+| Nadie más lo toca | Ni toma, ni dictamina, ni modifica — lo de siempre en una reserva |
+| **Ningún job automático lo toca** | Ni el escalamiento de prioridad, ni el vencimiento, ni la re-geocodificación |
+| Sigue visible para el equipo | Con quién lo tiene, desde cuándo y con qué dispositivo |
+| Se libera al cierre de la jornada | Lo no dictaminado vuelve a la cola |
+| El Administrador puede desblindar a mano | Queda en auditoría |
+
+**La segunda fila es la que no estaba y la que más importa.** Sin blindaje, el job de escalamiento le sube la prioridad a un reclamo a las dos de la mañana mientras el ingeniero lleva en el bolsillo una copia precargada con la prioridad vieja. Cuando vuelve y sincroniza, el servidor y el dispositivo discrepan sobre un dato que el ingeniero nunca pudo ver cambiar. **El dato no se puede mover bajo los pies del que está en la calle.**
+
+Esto reemplaza la idea de un "manifiesto de cierre" que se había evaluado. El manifiesto resolvía el síntoma —que un dictamen perdido fuera indistinguible de un caso no visitado—; **el blindaje resuelve la causa**: si nadie puede tocar esos reclamos mientras el captor los tiene, el dispositivo no necesita declarar nada, porque el servidor ya sabe exactamente qué está comprometido y con quién.
+
+### 6 ter. Una sola sesión, y se corta al apagar (RNF-14)
+
+| Regla | Detalle |
+| --- | --- |
+| Una sola sesión activa por usuario | **La que abre manda**: al iniciar sesión, cualquier otra se cierra |
+| La sesión se corta al apagarse el dispositivo | Para continuar hay que autenticarse de nuevo, y eso exige conexión |
+| Un captor dado de baja no autentica ni sincroniza | RF-35 |
+
+**Consecuencia asumida, decidida por el analista funcional el 20/08.** Si al captor se le agota la batería a las 14:00 en la calle y sin señal, el ingeniero **no puede seguir trabajando esa tarde**. Se planteó la alternativa —mantener la jornada abierta en el dispositivo y renovar la sesión de servidor sola— y se descartó a favor de la seguridad:
+
+> Son documentos legales, no se puede jugar. Sin mencionar que el captor puede tener trabajo de otras personas adentro, o darse un uso erróneo, como prestárselo a otra persona. La seguridad vale.
+
+**El trabajo ya cargado no se pierde**: la cola y los borradores sobreviven en el dispositivo y se envían cuando el ingeniero vuelve a autenticarse. Lo que se pierde es la posibilidad de seguir **cargando** sin señal después de un apagado.
+
+Mitigación **operativa, no técnica**: el captor sale de la sede cargado y conviene que la repartición prevea batería externa. Es una condición de entorno y como tal se declara, no se disimula con una excepción en el código.
+
+### 6 quater. Baja de captor (RF-35)
+
+El Administrador puede dar de baja un captor por **robo, extravío o destrucción**. A partir de ahí no autentica ni sincroniza.
+
+**Lo que ese captor tenga adentro no se descarta.** Si intenta sincronizar, sus operaciones quedan **en cuarentena** del lado del servidor y el Administrador decide si se liberan.
+
+Un equipo robado no debe poder escribir dictámenes; un equipo olvidado y recuperado puede traer trabajo de campo perfectamente válido. Descartar sin mirar violaría el principio que el proyecto sostiene en todos lados: **no se tira trabajo de campo**. La cuarentena separa la decisión de seguridad, que es inmediata y automática, de la decisión sobre el contenido, que la toma una persona mirando.
 
 ---
 
@@ -252,7 +329,7 @@ Entre pedir trabajo y salir a la calle hay un momento, y es el único con señal
 | 1. El ingeniero define la jornada | Cuántas horas o cuántos casos, en qué zona, con qué modo de traslado |
 | 2. **El sistema reserva** | Los reclamos quedan tomados a su nombre **antes** de que empiece a configurar |
 | 3. Pantalla de pre-confirmación | Ve los casos ya reservados y puede ajustar sin apuro |
-| 4. Confirma | Se arma la ruta definitiva y se precarga todo para trabajar sin señal |
+| 4. Confirma | Se **blinda** la jornada (§6 bis), se arma la ruta definitiva y se precarga todo para trabajar sin señal |
 
 **La reserva ocurre en el paso 2, no en el 4.** Es el punto entero: el ingeniero puede tomarse el tiempo que necesite para revisar la jornada sabiendo que nadie le va a sacar un caso mientras decide. Si la reserva esperara a la confirmación, cada minuto que se toma para revisar sería un minuto de riesgo de perder el trabajo, y el diseño lo empujaría a apurarse justo donde conviene que mire con calma.
 
@@ -268,6 +345,21 @@ Entre pedir trabajo y salir a la calle hay un momento, y es el único con señal
 Los reclamos con geocodificación `fallida` o `solo_calle` aparecen **destacados** en esta pantalla: son los que más se benefician de un minuto de atención antes de salir, y los que más tiempo hacen perder si se descubren recién en la calle.
 
 Una vez confirmada la jornada, el mapa **no se reinicia**: es el pedido explícito de la minuta, y solo se limpia con el botón de restablecer.
+
+### Qué pasa exactamente al confirmar
+
+Es el último momento con señal garantizada, así que todo lo que necesita red se hace acá y en este orden:
+
+1. Se **blinda** cada reclamo de la jornada a nombre del ingeniero y del captor (§6 bis).
+2. Se **renueva a la fuerza la sesión de servidor**, para que la ventana de sincronización tardía —un dictamen que sube a las once de la noche— no se choque con un token vencido.
+3. Se pide **almacenamiento persistente** al navegador y se verifica que haya espacio antes de precargar.
+4. Se **precarga** todo lo que se va a necesitar: reclamos, puntos, geometría de la ruta, tablas de parámetros y reglas.
+
+Si el paso 3 no se puede garantizar, el ingeniero **sale igual**, pero avisado: se le dice con todas las letras que el navegador puede descartar lo que cargue. No se le bloquea la jornada por una condición del dispositivo, pero tampoco se lo deja creer que está a salvo.
+
+### Ajustar no puede castigar al servicio de ruteo
+
+Cada ajuste en esta pantalla recalcula la ruta, y el servidor público de OSRM tiene límite de peticiones (H-12). El recálculo va con **espera** entre pedidos: se recalcula cuando el ingeniero deja de tocar, no en cada clic. Para la defensa, el escenario del driver trae la ruta ya calculada de antemano, así una demo no depende de un servicio público un martes a la mañana.
 
 ---
 
@@ -334,6 +426,11 @@ La complejidad no es criterio libre: en la repartición se decide **por el diám
 | **Configurar la firma digital** | — | — | — | **Sí** |
 | Configurar parámetros y adaptadores | — | — | — | Sí |
 | **Generar el entregable para concesionarias** | — | — | — | **Sí** |
+| Dar de alta y de baja captores | — | — | — | Sí |
+| Resolver operaciones en cuarentena | — | — | — | Sí |
+| Desblindar una jornada a mano | — | — | — | Sí |
+| Forzar reintento de certificación | — | — | — | Sí |
+| Confirmar una fecha con discrepancia de reloj | — | — | — | Sí |
 
 > Antes había una columna más: el **Operario con matrícula**, que dejó de existir como categoría (D-50). La distinción que el documento hacía dentro del Operario se disolvió, y la que quedó en pie es otra: **quién va a la calle y quién administra el sistema**.
 
@@ -349,8 +446,36 @@ La complejidad no es criterio libre: en la repartición se decide **por el diám
 
 ---
 
-## 12. Pendiente de validación funcional
+## 12. Entregable para empresas concesionarias (RF-33)
 
-1. **Las señales de riesgo de §1** son una propuesta redactada desde el relevamiento. Siguen sin contrastarse con reclamos reales (A-12), y ahora pesan el doble: con el motivo en texto libre confirmado (B-03), de esas mismas señales sale también la categoría que fija el ritmo de escalamiento. Por eso la regla es desactivable y la categoría, corregible.
-2. **Los cortes de diámetro y altura** que determinan la complejidad (§10 bis). Los carga el Administrador cuando la repartición los defina; el sistema ya está listo para recibirlos.
-3. **Qué campos lleva el entregable para concesionarias** y en qué formato (C-01).
+Las concesionarias **no son usuarias**: no tienen cuenta, ni rol, ni acceso. Reciben un entregable que **solo el Administrador genera**.
+
+| Regla | Detalle |
+| --- | --- |
+| Qué entra | Solo dictámenes **firmados, vigentes y certificados**. Nunca borradores, vencidos, anulados ni pendientes de certificar |
+| Cómo se agrupa | Por **acción autorizada y complejidad**: extracción compleja por un lado, poda simple por otro. Cada grupo es un paquete |
+| Filtros | Zona, período y empresa destinataria |
+| Antes de emitir | El Administrador ve la propuesta —cuántos paquetes, cuántos ejemplares— y **saca los que no correspondan** |
+| Qué sale | Un **PDF por paquete**: quién autoriza, qué empresa, fecha, tipo de trabajo, y un ítem por ejemplar con dirección, punto, acción autorizada, complejidad y vigencia |
+| Qué **no** sale | El texto del vecino, las fotos y el circuito interno |
+| Queda registrado | Quién emitió, cuándo, a qué empresa y con qué dictámenes |
+
+**Por qué no lleva los datos del vecino.** Derivar trabajo a un tercero es un acto administrativo, y un acto administrativo es un documento, no una planilla. Una empresa privada no necesita saber qué escribió un vecino sobre el árbol de su vereda para ir a podarlo.
+
+**El sistema propone, la persona ajusta, después confirma.** Es el mismo patrón del balanceador (RF-25), de la pre-confirmación de jornada (§8 bis) y de las sugerencias de especie y categoría (D-52). La repetición no es casualidad y conviene decirlo en la defensa: **el sistema nunca ejecuta sobre una persona una decisión que ella no pudo mirar antes.**
+
+### Si se anula un dictamen que ya salió
+
+El sistema verifica si ese dictamen salió en un entregable emitido. Si salió, marca el entregable **con anulaciones** y le muestra al Administrador a qué empresa hay que notificar.
+
+No puede des-enviar un PDF. Lo que no puede hacer es dejarlo pasar en silencio: del otro lado hay una autorización de extracción que ya no vale y una cuadrilla que puede estar por ejecutarla.
+
+---
+
+## 13. Pendiente de validación funcional
+
+Todo lo demás se cerró el 20/08. Lo que queda **depende de terceros**, no del equipo:
+
+1. **Las señales de riesgo de §1** son una propuesta redactada desde el relevamiento. Siguen sin contrastarse con reclamos reales (A-12), y pesan el doble: con el motivo en texto libre confirmado (B-03), de esas mismas señales sale también la categoría que fija el ritmo de escalamiento. Por eso la regla es desactivable, la categoría corregible, y **cada fila de la tabla arranca marcada como provisoria** (D-59) — el panel avisa arriba que no fueron acordadas con la repartición.
+2. **Los cortes de diámetro y altura** que determinan la complejidad (§10 bis). Los carga el Administrador cuando la repartición los defina; el sistema ya está listo para recibirlos y, mientras tanto, no sugiere nada.
+3. **Si el rol Jefe se confirma** como se diseñó acá (A-09).

@@ -83,11 +83,13 @@ Detalle en [`docs-back/01-arquitectura.md`](docs-back/01-arquitectura.md).
 │   ├── 06-offline-y-sincronizacion.md  Trabajo de campo sin señal
 │   ├── 07-seguridad-y-privacidad.md  Datos personales, integridad y secretos
 │   ├── 08-datos-semilla-y-driver.md  Seed reproducible y escenarios de verificación
+│   ├── 09-decisiones-20260820.md     Auditoría del trabajo sin conexión: D-54 a D-67
+│   ├── 10-auditoria-previa-al-desarrollo.md  Los 8 ejes de la auditoría que habilita codear
 │   ├── 99-desvios.md                 Qué hacemos distinto del .docx y por qué
 │   └── tecnico/                      EL CÓMO: diseño técnico completo
 │       ├── T0-indice.md                  Mapa de la carpeta y cómo leerla
 │       ├── T1-estructura-y-convenciones.md  Carpetas, nombres, errores, config, tiempos
-│       ├── T2-puertos.md                 Las 13 interfaces con su firma exacta
+│       ├── T2-puertos.md                 Las 14 interfaces con su firma exacta
 │       ├── T3-nucleo-dominio.md          Entidades y funciones puras del negocio
 │       ├── T4-casos-de-uso.md            Cada operación paso a paso
 │       ├── T5-esquema-sql.md             DDL completo, índices, triggers y RLS

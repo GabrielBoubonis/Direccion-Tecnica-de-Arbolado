@@ -1,6 +1,6 @@
 # Datos semilla y driver de verificación
 
-> Última actualización: 18/08/2026 · Estado: **en diseño, sin aprobar**
+> Última actualización: 21/08/2026 · Estado: **en diseño, sin aprobar**
 
 ---
 
@@ -14,7 +14,7 @@ Nunca un export del SUA, ni siquiera anonimizado: una dirección exacta identifi
 
 ## A2. Usuarios de prueba
 
-Cinco, uno por situación real, con contraseña conocida y documentada fuera del repositorio. Usan el **formato real** de usuario de red municipal —primera letra del nombre, hasta seis del apellido, número correlativo (B-04)— con **personas inventadas**:
+Cinco, uno por situación real. **Las contraseñas no van al repositorio** (D-60): el repositorio lista quién es cada uno y para qué sirve, el seed las toma de una variable de entorno que no se versiona, y el README dice dónde pedirlas — el canal del equipo. Si algo se filtra, no hay nada que rotar. Usan el **formato real** de usuario de red municipal —primera letra del nombre, hasta seis del apellido, número correlativo (B-04)— con **personas inventadas**:
 
 | Usuario | Nombre ficticio | Rol | Firma | Para probar qué |
 | --- | --- | --- | --- | --- |
@@ -27,6 +27,16 @@ Cinco, uno por situación real, con contraseña conocida y documentada fuera del
 Hacen falta **dos operarios**, no uno: el escenario del choque —dos personas pidiendo el mismo reclamo a la vez— no se puede montar con un solo usuario, y es el que demuestra que la reserva es exclusiva de verdad. El Administrador cubre el límite de la firma, y es el escenario más interesante de los dos: desde que firmar es atributo del rol (D-50), hay que demostrar que **quien configura la firma digital no puede usarla** aunque le pegue directo a la API. Es personal del CIL, no un ingeniero agrónomo. El Jefe demuestra el límite contrario: dirigir el trabajo no da acceso a la administración.
 
 Además hay un **par de coincidencia** preparado —dos apellidos que colisionan en el mismo usuario base— para mostrar de dónde sale el número correlativo del formato municipal.
+
+### Captores de prueba
+
+| Captor | Estado | Para probar qué |
+| --- | --- | --- |
+| `captor-01` | Activo, asignado a `jgutier0` | La jornada normal completa |
+| `captor-02` | Activo, sin asignar | Que un captor rota entre agentes |
+| `captor-03` | **De baja por robo** | Que no autentica, y que lo que intente sincronizar **cae en cuarentena en vez de perderse** |
+
+`captor-03` es el que hace falta y el que no existiría si nadie lo pusiera a propósito: sin un dispositivo dado de baja en el seed, RF-35 y la cuarentena de D-63 no se pueden demostrar en vivo.
 
 ## A3. Reclamos
 
@@ -41,8 +51,16 @@ Alrededor de doscientos, repartidos para que cada situación tenga casos:
 | Tormenta | Un puñado dentro de la ventana de 3 días, y otros fuera |
 | Calidad del dato | **Algunos sin foto y con descripción mínima**, como dice el relevamiento |
 | Insistencia | Varios grupos de 2 y 3 reclamos sobre el mismo ejemplar |
+| **Blindados** | Un puñado tomado por otra jornada en curso, para que se vea el rechazo `RECLAMO_BLINDADO` |
+| **Certificación pendiente** | Algún dictamen firmado sin certificar, para la cola del Administrador y para que **no salga** en el entregable |
+| **Discrepancia de reloj** | Un dictamen con más de 24 h de diferencia, frenado para el job de vencimientos |
+| **Entregable ya emitido** | Con un dictamen que después se anula, para ver el aviso de a qué empresa notificar |
 
 Las últimas dos filas importan más de lo que parece. Un seed donde todos los reclamos están completos y son distintos entre sí produce una demo que funciona y un sistema que se rompe con datos reales. **Los casos incómodos tienen que estar en el seed desde el principio.**
+
+## A3 bis. Concesionarias
+
+Dos empresas ficticias, con zona adjudicada distinta. **Sin cuenta, sin rol y sin acceso**: existen solo como destinatarias de un entregable. Alcanza con dos para demostrar que el registro contesta *qué se le informó a quién*, que con una sola no se distingue.
 
 ## A4. Direcciones y coordenadas
 
@@ -51,6 +69,8 @@ El seed guarda **direcciones escritas, no coordenadas** — igual que el SUA rea
 Las direcciones son de calles reales de Rosario, con altura coherente con el distrito que les toca, para que las rutas den distancias plausibles y el porcentaje de eficiencia signifique algo.
 
 **Punto de partida y regreso de todas las rutas: Moreno 2350, sede de Parques y Paseos** (RF-22, A-02). Se geocodifica una sola vez y el punto queda fijo en la tabla de parámetros; se verifica a ojo contra el mapa antes de darlo por bueno, porque de ese punto cuelga el cálculo de toda ruta.
+
+**El escenario de la defensa trae la ruta ya calculada.** El servidor público de OSRM tiene límite de peticiones y la pre-confirmación recalcula en cada ajuste (H-12). Una demo frente al profesor no puede depender de cómo esté un servicio público un martes a la mañana: el escenario de demostración parte de una geometría ya guardada, y el recálculo en vivo se muestra **una vez**, deliberadamente, no como efecto colateral de cada clic.
 
 ### Los casos malos de geocodificación van en el seed
 
@@ -110,6 +130,27 @@ Los fáciles se escriben solos. Estos son los que le dan valor real al driver:
 
 El último no toca la base: recorre los archivos. Es lo que evita que la regla de oro de la arquitectura se erosione sola en dos semanas.
 
+### Los escenarios que salieron de la auditoría del 20/08
+
+| Escenario | Qué demuestra | Hallazgo |
+| --- | --- | --- |
+| **Dictamen con 3 fotos, enviado entero** | Que el dictamen entra primero y las fotos completan filas `esperando`. Antes esto **fallaba por la clave foránea** | H-01 |
+| **Adelantar el reloj con una jornada blindada** | Que el job de escalamiento **no toca** un reclamo que está en la calle | RF-34 |
+| **Cerrar la jornada sin haber visitado todo** | Que el blindaje se libera y lo no dictaminado vuelve a la cola | D-24 |
+| **Cola con una foto que da timeout y diez dictámenes detrás** | Que los dictámenes entran igual: el orden es por dependencia, no FIFO | H-06 |
+| **Sincronizar con el token vencido** | Que la cola **espera** y no descarta, y que el aviso dice "volver a iniciar sesión", no "sin señal" | H-07 |
+| **Segundo login del mismo usuario** | Que la primera sesión se cierra y recibe `SESION_DESPLAZADA` | RNF-14 |
+| **Sincronizar desde `captor-03`** | Que se rechaza y **queda en cuarentena**, no se pierde | RF-35, D-63 |
+| **Certificadora que falla** | Que el dictamen queda firmado y válido, en `pendiente`, y **no sale en el entregable** | D-65 |
+| **Dictamen con reloj adelantado 3 días** | Que se acepta, se marca, y el job de vencimientos **lo saltea** | D-67 |
+| **Anular un dictamen ya entregado** | Que el entregable queda marcado y dice a qué empresa notificar | H-09 |
+| **Proponer y después emitir el entregable** | Que `/proponer` **no escribe nada** y que el Administrador puede sacar paquetes antes de emitir | RF-33 |
+| **Purgar rutas de más de 90 días** | Que el resumen sobrevive y el detalle parada por parada se va | D-56 |
+| **Borrador con 31 días sin actividad** | Que pasa a la bandeja de inactivos y **el sistema no lo borra** | D-57 |
+| **Medir el tamaño del envío de un dictamen firmado** | Que el trazo vectorial lo mantiene en kilobytes, no en decenas | H-05 |
+
+El anteúltimo es el más incómodo de escribir y el más importante de tener: **es la única forma de verificar que el sistema no destruye trabajo humano**, que es una propiedad que ningún test de funcionalidad detecta si falta.
+
 ## B4. Los tres modos
 
 | Modo | Para qué |
@@ -126,7 +167,17 @@ Los datos del seed no se tocan: son el escenario, no el resultado.
 
 ---
 
-## C. Qué falta definir
+## C. Cómo y cuándo se corre
 
-- Si el driver se ejecuta automáticamente ante cada cambio, o solo a mano antes de commitear.
-- Dónde se documentan las contraseñas de los usuarios de prueba, ya que no van al repositorio.
+Las dos preguntas que estaban acá se cerraron el 20/08.
+
+**El driver se corre a mano, antes de commitear** (D-61). No automáticamente ante cada cambio: correrlo en cada guardado contra el proyecto Supabase real lo volvería lento y ruidoso, y la definición de terminado exige **pegar la salida en el commit**, que es un acto deliberado y no un automatismo. Un driver que corre solo termina siendo un driver que nadie mira.
+
+**Las contraseñas se piden por el canal del equipo** (D-60). El repositorio dice quién es cada usuario y para qué sirve; el seed las lee de una variable de entorno.
+
+### Lo que queda por definir, y depende de terceros
+
+- Los **textos reales de reclamos** que permitan contrastar las señales de riesgo del seed contra la realidad (A-12). Mientras tanto las señales están cargadas y **marcadas como provisorias** (D-59): el panel avisa que no fueron acordadas con la repartición.
+- Los **cortes de diámetro y altura** de la complejidad (A-10). La tabla arranca vacía y el sistema no sugiere nada — es la decisión D-49 y no bloquea nada.
+
+**Por qué las señales de riesgo sí arrancan cargadas y los cortes de complejidad no.** Si los cortes arrancan vacíos el sistema simplemente no sugiere, y no pasa nada. Si las señales de riesgo arrancan vacías, **ningún reclamo sube de verde por texto** y una de las tres funcionalidades centrales del trabajo queda muda en la demo. La marca de provisorio evita el problema que D-49 quería evitar —que un supuesto del equipo se confunda con un criterio del área— sin apagar la funcionalidad.

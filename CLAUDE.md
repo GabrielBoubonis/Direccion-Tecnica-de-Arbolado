@@ -21,7 +21,7 @@ El sistema ataca tres cuellos de botella: despapelización del dictamen, prioriz
 
 **El equipo no tiene permisos sobre el SUA ni sobre la autenticación institucional, y la conexión real no se va a realizar nunca.** Supabase (base, auth, storage) es andamio: **se va entero** el día hipotético de la transferencia.
 
-Por eso **todo acceso a datos vive detrás de un puerto**, no solo los dos que menciona el documento académico. Son trece: reclamos, auth, dictámenes, rutas, reservas, perfiles, storage, ruteo, geocodificación, parámetros, auditoría, reloj y certificación de firma. El detalle está en `docs-back/01-arquitectura.md`.
+Por eso **todo acceso a datos vive detrás de un puerto**, no solo los dos que menciona el documento académico. Son catorce: reclamos, auth, dictámenes, rutas, reservas, perfiles, storage, ruteo, geocodificación, parámetros, auditoría, reloj, captores y certificación de firma. El detalle está en `docs-back/01-arquitectura.md`.
 
 Pasar a producción debe ser **cambiar la implementación concreta del adaptador, sin tocar el núcleo** (RNF-08, RF-32). Toda lógica de negocio queda de este lado de la interfaz, nunca acoplada al proveedor.
 

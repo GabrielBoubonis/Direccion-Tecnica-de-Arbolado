@@ -1,6 +1,7 @@
 # T8 — Offline y sincronización
 
-> Diseño técnico · Última actualización: 19/08/2026 · Estado: **sin aprobar**
+> Diseño técnico · Última actualización: 21/08/2026 · Estado: **sin aprobar**
+> Reescrito tras la auditoría del 20/08 (H-01, H-05, H-06, H-07, H-08): fotos al final, orden por dependencias, almacenamiento persistente, renovación de sesión y blindaje.
 > Responde: cómo funciona la app sin señal — Service Worker, cola durable, precarga, reintentos y reconciliación.
 
 ---
@@ -79,9 +80,25 @@ Cuatro segundos es deliberado: por debajo se descartan respuestas que iban a lle
 
 **`borradores` existe por la batería.** Un formulario de dictamen tiene decenas de campos y se completa parado frente a un árbol. Si el celular se apaga a mitad de carga y el formulario vive solo en memoria, se pierden veinte minutos de trabajo. Se guarda en cada cambio, con retardo de un segundo.
 
+### IndexedDB es descartable, y eso hay que pedirle al navegador que no lo sea (H-08)
+
+**Bajo presión de almacenamiento, Android puede vaciar IndexedDB sin avisar y sin preguntar.** Ahí adentro viven dictámenes firmados con validez legal. La única defensa que ofrece la plataforma es pedir almacenamiento persistente:
+
+```ts
+// Al confirmar la jornada, antes de precargar
+const persistido = await navigator.storage.persist();      // true = el navegador no la descarta
+const { quota, usage } = await navigator.storage.estimate();
+```
+
+Si `persist()` devuelve `false` o el espacio libre no alcanza para el paquete de la jornada, **el ingeniero sale igual, pero avisado con todas las letras**: se le dice que el navegador puede descartar lo que cargue. No se le bloquea la jornada por una condición del dispositivo; tampoco se lo deja creer que está a salvo.
+
+> **Requisito de despliegue para el CIL: el captor tiene que tener la aplicación instalada como PWA, no abierta en una pestaña.** Chrome en Android concede almacenamiento persistente a las aplicaciones instaladas y se lo niega a las pestañas. Es una condición de instalación, no una recomendación.
+
+Esto no es lo mismo que "storage lleno", que el diseño ya contemplaba: *lleno* es no poder escribir, y esto es que **borren lo ya escrito**. Son dos fallas distintas y solo una de las dos se resuelve avisando.
+
 ### Capa 3 — Sincronizador
 
-Vacía la cola en **orden estricto de encolado**. El orden importa: si el alta de un reclamo de oficio se envía después de su dictamen, el servidor rechaza el dictamen por reclamo inexistente.
+Vacía la cola **por dependencia declarada, no por orden de llegada** (H-06).
 
 ---
 
@@ -92,13 +109,27 @@ type OperacionEncolada = {
   id: string;                 // uuid generado en el dispositivo = Idempotency-Key
   tipo: 'dictamen' | 'alta_reclamo' | 'foto' | 'visita' | 'correccion_punto';
   cuerpo: unknown;
+  dependeDe: string[];        // ids de operaciones que TIENEN que confirmarse antes
   creadaEn: string;           // reloj del dispositivo
   intentos: number;
   proximoIntento: string;
-  estado: 'pendiente' | 'enviando' | 'confirmada' | 'rechazada';
+  estado: 'pendiente' | 'bloqueada' | 'enviando' | 'confirmada' | 'rechazada';
   errorUltimo?: { codigo: string; mensaje: string };
 };
+
+// Orden de despacho: se elige la de mayor prioridad cuyas dependencias ya estén confirmadas
+const PRIORIDAD = { dictamen: 0, alta_reclamo: 1, visita: 2, correccion_punto: 3, foto: 4 };
 ```
+
+### El orden es por dependencia, no FIFO (H-06)
+
+El diseño anterior exigía **orden estricto de encolado**. La justificación era correcta pero acotada: un alta de oficio tiene que entrar antes que el dictamen de ese mismo reclamo, y un dictamen antes que sus fotos. **Eso es una dependencia, no un orden global.**
+
+Con FIFO estricto, **una foto de 400 KB que da timeout bloquea los diez dictámenes que están detrás** — exactamente al revés de lo que conviene con señal mala, donde lo liviano y valioso tiene que salir primero.
+
+`dependeDe` se llena al encolar, no se infiere después: el dictamen de un reclamo de oficio depende del id del alta, y cada foto depende del id de su dictamen. Una operación con dependencias sin confirmar queda `bloqueada` y **no consume intentos ni batería**.
+
+**Las fotos siempre últimas.** Es la prioridad más baja y no hay excepción.
 
 ### Idempotencia, que es lo que hace segura la cola
 
@@ -128,15 +159,40 @@ Con Background Sync, el navegador despierta al Service Worker cuando vuelve la c
 | 409 `RECLAMO_YA_DICTAMINADO` | **Marca rechazada, guarda el borrador** y avisa (D-16) |
 | 409 `SIN_RESERVA_PROPIA` | Marca rechazada y avisa: la reserva venció |
 | 422 validación | Marca rechazada y **abre el formulario con lo cargado** para corregir |
-| 401 | Pide reautenticar y **conserva la cola intacta** |
+| 401 `NO_AUTENTICADO` | Pide reautenticar y **conserva la cola intacta** |
+| 401 `SESION_DESPLAZADA` | Igual, pero el mensaje dice **"alguien inició sesión con tu usuario"**, no "sin señal" |
+| 403 `CAPTOR_DE_BAJA` | La operación **no se pierde**: el servidor la guarda en cuarentena. El indicador lo dice |
 
 **Nunca se descarta una operación en silencio.** Toda operación rechazada queda visible en una bandeja con el motivo en castellano y la carga intacta. Veinte minutos de trabajo frente a un árbol no se pierden porque el servidor dijo que no.
+
+### La ventana de sincronización tardía (H-07)
+
+Un dictamen cargado a las 16:00 sin señal puede llegar al servidor a las 23:00, cuando el dispositivo pasa por una zona con cobertura y **Background Sync despierta al Service Worker con la aplicación cerrada**.
+
+A esa hora, un token emitido a la mañana ya venció. La respuesta razonable sería "pedir reautenticar", **pero no hay a quién pedírselo**: no hay nadie mirando la pantalla, y el diseño no puede resolver a las once de la noche un problema que tenía que haber previsto a las ocho de la mañana.
+
+Por eso la sesión de servidor **se renueva a la fuerza al confirmar la jornada** (§5), corriendo la ventana lo suficiente como para cubrir la sincronización tardía. Si aun así hace falta reautenticar, la cola **espera**: no reintenta en bucle, no descarta nada, y el indicador dice *"hay que volver a iniciar sesión"* con esas palabras.
+
+**Esto convivía mal con la decisión de T10** de que el vencimiento del token siguiera la jornada. La contradicción era real y está resuelta acá: el token sigue la jornada **más la ventana de sincronización**, y esa ventana existe porque el propio diseño acepta dictámenes que llegan después del cierre.
 
 ---
 
 ## 5. Precarga de la jornada
 
-Al **confirmar** la jornada —el último momento con señal garantizada (D-53)— se descarga todo lo necesario para trabajar sin conexión:
+Al **confirmar** la jornada —el último momento con señal garantizada (D-53)— pasan cuatro cosas, en este orden:
+
+| Paso | Qué | Por qué acá |
+| --- | --- | --- |
+| 1 | **Blindar** los reclamos (RF-34) | Nadie más los toca, **y ningún trabajo automático del servidor los modifica** |
+| 2 | **Renovar la sesión** de servidor | Cubre la sincronización tardía (§4) |
+| 3 | Pedir `storage.persist()` y verificar espacio | Sin esto el navegador puede borrar la cola |
+| 4 | **Precargar** el paquete completo | Es la última señal garantizada |
+
+**El paso 1 es el que cambia el diseño.** Sin blindaje, el trabajo nocturno de escalamiento le sube la prioridad a un reclamo a las dos de la mañana mientras el ingeniero lleva en el bolsillo una copia precargada con la prioridad vieja. Al volver, el servidor y el dispositivo discrepan sobre un dato que él nunca pudo ver cambiar. **El dato no se puede mover bajo los pies del que está en la calle.**
+
+Y el blindaje es además lo que vuelve **acotada y conocida** la peor pérdida posible: si el captor no vuelve nunca, el servidor ya sabe exactamente qué reclamos se fueron con él y con quién, y al día siguiente vuelven a circular.
+
+Lo que se descarga:
 
 | Qué | Por qué |
 | --- | --- |
@@ -158,6 +214,29 @@ Las **fotos sí se comprimen** antes de subir, y no por costo: subir menos bytes
 | Peso objetivo | Menos de 400 KB por foto |
 
 A 1600 píxeles se distingue perfectamente una rama quebrada o una vereda levantada, que es para lo que sirve la foto de un dictamen.
+
+### Las fotos van después del dictamen, no antes (H-01)
+
+El diseño decía que las fotos suben **primero**, "para que el dictamen no espere". Estaba mal por dos motivos.
+
+**Rompía la integridad.** `dictamen_foto.dictamen_id` es una clave foránea contra `dictamen`. Si la foto llega primero, la fila del dictamen todavía no existe y la FK falla: **el primer dictamen con fotos que se sincronizara devolvía un error de integridad.**
+
+**Y era peor operativamente.** Con una barra de señal conviene que salga primero lo chico y lo valioso. Un dictamen firmado al que le falta una foto es un dictamen válido con una foto pendiente; una foto sin dictamen no es nada, y encima queda como objeto huérfano en storage.
+
+**Cómo funciona ahora:** el cuerpo del dictamen declara `fotosDeclaradas`, el servidor crea esa cantidad de filas en estado `esperando`, y cada `POST /dictamenes/{id}/fotos` completa una. El objetivo original —que el dictamen no espere a las fotos— se cumple igual.
+
+**Un reclamo dado de alta en la calle también puede llevar fotos** (RF-36), por el mismo camino y con la misma dependencia.
+
+### El trazo de la firma va como vectores (H-05)
+
+```ts
+const trazo = firmaPad.toData();   // 2–6 KB de vectores
+// NO: firmaPad.toDataURL()        // 20–80 KB de PNG, +33 % por base64
+```
+
+Sería incoherente comprimir las fotos con cuidado a menos de 400 KB porque con una barra de señal cada byte decide si el envío entra, y después inflar con un PNG **el único envío que no puede fallar**.
+
+**Sigue embebido en el cuerpo del dictamen y eso no se toca.** Si viajara como operación separada podría existir, aunque sea por un rato, un dictamen firmado sin firma. La regla es *o el dictamen existe entero y firmado, o no existe*. Los vectores se redibujan a cualquier resolución para el PDF, así que no se pierde nada por el camino.
 
 ---
 
@@ -181,13 +260,25 @@ Lo que sí puede hacer es **abrir la bandeja de pendientes** y ver qué falta en
 
 | Momento | Qué pasa |
 | --- | --- |
-| El ingeniero cierra la jornada | Se intenta vaciar la cola, se avisa si queda algo |
+| El ingeniero cierra la jornada | Se intenta vaciar la cola. **Si queda algo, aviso destacado**: cuántos son y que están solo en el dispositivo (D-58) |
+| Al cerrar | Se **libera el blindaje** y se consolida el resumen de la jornada (D-56) |
 | Al vencer las reservas (20:00, configurable) | Los reclamos **no visitados vuelven a la cola** (D-24) |
 | Un dictamen llega después del vencimiento | **Se acepta igual**, y se registra la discrepancia |
+| Pasadas 48 h con cola pendiente | Aviso al abrir la aplicación, que hay que confirmar para seguir (D-58) |
 
 El último punto es importante: si la reserva venció a las ocho de la noche y el dictamen se emitió a las seis pero recién sube a las once, **el trabajo es válido**. La `fecha_dictamen` es la que manda. Rechazarlo sería castigar al ingeniero por la calidad de la señal.
 
 Los reclamos no visitados vuelven a la cola para que **quien esté más cerca mañana** los pueda tomar. Una reserva que no vence sería una forma silenciosa de sacar casos de circulación.
+
+**El aviso de cola pendiente es escalonado y nunca bloquea el trabajo** (D-58). Pero deja de ser algo que se pueda no ver: son dictámenes firmados, con validez legal, que existen en un solo lugar y ese lugar es un celular.
+
+### Si el captor se apaga en la calle (D-64)
+
+Un usuario tiene **una sola sesión activa** y la sesión **se corta al apagarse el dispositivo** (RNF-14). Con la batería agotada a las 14:00 y sin señal, el ingeniero **no puede seguir cargando esa tarde**: reautenticar exige conexión.
+
+Se evaluó lo contrario —mantener la jornada abierta en el dispositivo y renovar la sesión sola— y se descartó a favor de la seguridad: son documentos legales, el captor puede tener trabajo de otras personas adentro y puede prestarse a un uso indebido.
+
+**Lo ya cargado no se pierde**: la cola y los borradores viven en IndexedDB y se envían cuando el ingeniero vuelve a autenticarse. Lo que se pierde es la posibilidad de seguir cargando. La mitigación es **operativa**: el captor sale de la sede cargado y conviene prever batería externa.
 
 ---
 
@@ -212,6 +303,9 @@ Las escrituras van primero por una razón simple: si el celular se queda sin bat
 | Dos dictámenes offline del mismo reclamo por distintos ingenieros | La reserva previa lo vuelve excepcional; si pasa, se rescata como borrador (D-16) |
 | Reloj del dispositivo mal configurado | Se registra la discrepancia en auditoría, no se rechaza el trabajo |
 | Storage del navegador lleno | Se avisa al confirmar la jornada, antes de salir |
+| **El navegador descarta IndexedDB** | Se mitiga con `storage.persist()` y con la app instalada como PWA. **Si el navegador igual la descarta, se pierde** |
 | Desinstalar la app con cola pendiente | **Se pierde**. No hay forma de evitarlo desde el navegador |
+| **El captor no vuelve nunca** | Se pierde el trabajo de esa jornada. El blindaje deja la pérdida **acotada y enumerada**, y los reclamos vuelven a circular al día siguiente |
+| **Apagado del captor sin señal** | No se puede seguir cargando esa tarde. Decisión de seguridad asumida (D-64), mitigación operativa |
 
 Declarar las limitaciones es parte del diseño. Un documento que promete que todo funciona siempre no se puede defender.

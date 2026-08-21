@@ -53,7 +53,8 @@ La dependencia apunta **siempre hacia adentro**. El núcleo no sabe que existe P
 | `IRutaRepository` | Persistir rutas y su detalle | `PostgresRutaAdapter` | idem contra base muni |
 | `IReservaRepository` | Tomar, consultar y liberar reservas de trabajo | `PostgresReservaAdapter` | idem contra base muni |
 | `IPerfilRepository` | Roles, legajos y habilitación para firmar | `PostgresPerfilAdapter` | `DirectorioInstitucionalAdapter` |
-| `IArchivoStorage` | Fotos de campo y firmas | `SupabaseStorageAdapter` | `FileServerMuniAdapter` |
+| `IArchivoStorage` | Fotos de campo del dictamen y del reclamo | `SupabaseStorageAdapter` | `FileServerMuniAdapter` |
+| `ICaptorRepository` | Dispositivos provistos, su estado y la cuarentena | `PostgresCaptorAdapter` | `InventarioMuniAdapter` |
 | `IRuteoProvider` | Matriz de tiempos, orden óptimo y geometría | `OsrmAdapter` (activo) | `GoogleRoutesAdapter` (escrito, sin conectar) |
 | `IParametroRepository` | Parámetros de negocio configurables | `PostgresParametroAdapter` | idem contra base muni |
 | `IAuditoriaRepository` | Registro de acciones sensibles | `PostgresAuditoriaAdapter` | idem contra base muni |
@@ -61,10 +62,11 @@ La dependencia apunta **siempre hacia adentro**. El núcleo no sabe que existe P
 | `ICertificadoraFirma` | Certificación oficial de la firma | **sin implementar (placeholder)** | organismo certificador, **elegido desde `config_firma`** |
 | `IGeocodificador` | Convertir una dirección escrita en un punto del mapa | `NominatimAdapter` | `GeocodificadorMuniAdapter` |
 
-Tres detalles deliberados:
+Cuatro detalles deliberados:
 
 - **`IRuteoProvider` con dos implementaciones reales.** `GoogleRoutesAdapter` queda escrito y seleccionable por configuración, pero sin credenciales: es lo que la muni contrataría. `OsrmAdapter` queda activo para demostrar el funcionamiento. Cambiar de uno a otro es un parámetro, no un deploy. Esto **es** RF-32, demostrable en vivo.
 - **`IRelojProvider`.** Parece exagerado, pero sin él no se pueden testear el escalamiento cada 2 meses ni el vencimiento a 18 meses: el driver necesita poder decir "hacé de cuenta que pasaron 14 meses". Sin esto, RF-11 y RF-19 no son verificables.
+- **`ICaptorRepository`, que salió de la auditoría del 20/08.** Los dispositivos de campo los provee la repartición y hoy no existen en ningún registro (RF-35). Van detrás de un puerto por el mismo motivo que la autenticación: el día de la transferencia, el inventario de equipos municipales es muy probablemente otro sistema, y el módulo no debería tener su propia lista paralela de qué celular es de quién.
 - **`IGeocodificador`, que no estaba previsto.** El SUA guarda la dirección escrita del ejemplar y ninguna coordenada, porque el censo de arbolado nunca se geolocalizó (B-02). Convertir "Mendoza 3450" en un punto es entonces trabajo del módulo, no un dato de entrada. Va detrás de un puerto por la misma razón que todo lo demás: en la demo resuelve un proveedor abierto, y el día de la transferencia la Municipalidad tiene su propio geocodificador, que conoce la nomenclatura catastral de Rosario mucho mejor. El detalle de cómo se guarda y se corrige el punto está en `02-modelo-de-datos.md` §4.
 
 ### La regla que se verifica sola

@@ -15,12 +15,12 @@ La separación es deliberada. El **qué** lo define el analista funcional y se d
 
 ## Cómo leerlo
 
-Cada documento se puede leer solo. Eso implica que se repiten definiciones entre documentos, y es a propósito: quien va a implementar el módulo de rutas no debería tener que leer los trece archivos para entender qué recibe y qué devuelve.
+Cada documento se puede leer solo. Eso implica que se repiten definiciones entre documentos, y es a propósito: quien va a implementar el módulo de rutas no debería tener que leer los catorce archivos para entender qué recibe y qué devuelve.
 
 | # | Documento | Qué contesta |
 | --- | --- | --- |
 | **T1** | [Estructura y convenciones](T1-estructura-y-convenciones.md) | Dónde vive cada archivo, cómo se nombra, cómo se manejan errores, configuración y tiempos |
-| **T2** | [Puertos](T2-puertos.md) | Las trece interfaces, con la firma exacta de cada método y qué adaptador la implementa |
+| **T2** | [Puertos](T2-puertos.md) | Las catorce interfaces, con la firma exacta de cada método y qué adaptador la implementa |
 | **T3** | [Núcleo de dominio](T3-nucleo-dominio.md) | Entidades, tipos y **las funciones puras**: prioridad, escalamiento, exclusiones, complejidad, época, balanceador |
 | **T4** | [Casos de uso](T4-casos-de-uso.md) | Cada operación paso a paso: precondiciones, orden de validación, errores, transaccionalidad |
 | **T5** | [Esquema SQL](T5-esquema-sql.md) | DDL completo: tipos, tablas, restricciones, índices, triggers y políticas RLS |
@@ -28,7 +28,7 @@ Cada documento se puede leer solo. Eso implica que se repiten definiciones entre
 | **T7** | [Ruteo y geocodificación](T7-ruteo-y-geocodificacion.md) | Cómo se arma una ruta, cómo se balancea la jornada, cómo se convierte una dirección en un punto |
 | **T8** | [Offline y sincronización](T8-offline.md) | Service Worker, cola durable, precarga de jornada, reintentos y reconciliación |
 | **T9** | [Trabajos programados y reloj](T9-jobs-y-reloj.md) | Escalamiento diario, vencimientos, liberación de reservas, retención, y por qué el reloj se inyecta |
-| **T10** | [Seguridad técnica](T10-seguridad-tecnica.md) | Autenticación, claims del token, RLS, storage privado, límite de intentos, auditoría |
+| **T10** | [Seguridad técnica](T10-seguridad-tecnica.md) | Autenticación, sesión única, baja de captor, claims del token, RLS, storage privado, auditoría |
 | **T11** | [Driver de escenarios](T11-driver-de-escenarios.md) | El programa que demuestra en vivo que el sistema hace lo que la documentación dice |
 | **T12** | [Integración del front](T12-integracion-del-front.md) | Cómo el prototipo estático pasa de datos simulados a la API sin cambiar lo que se ve |
 | **T13** | [Plan de implementación](T13-plan-de-implementacion.md) | Orden de construcción, dependencias entre módulos y qué entra en cada corte semanal |

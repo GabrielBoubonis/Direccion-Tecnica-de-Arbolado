@@ -1,7 +1,7 @@
 # Protocolo de trabajo — Backend Arbolado
 
 > Documento vivo. Se actualiza cada vez que cambia una regla, en el mismo commit que el cambio.
-> Última actualización: 19/08/2026 · Rama: `VillegaBackBranch`
+> Última actualización: 20/08/2026 · Rama: `VillegaBackBranch`
 
 ## 0. Reparto de roles
 
@@ -161,6 +161,20 @@ Consecuencia práctica: el runtime (Deno / Edge Functions) también es reemplaza
 | D-51 | **Apartado único de firma digital** (`config_firma`, versionado): roles habilitados, certificadora, algoritmo del hash, leyenda del pie y datos sellados. El día que la firma tenga que certificarse de verdad se toca un solo lugar | 19/08 |
 | D-52 | **Los autocompletados nunca son obligatorios.** Especie y categoría se sugieren, se pueden corregir, y tienen toggle en configuración. Una sugerencia que no se puede rechazar no es una sugerencia | 19/08 |
 | D-53 | **Pre-confirmación de la jornada**: se define horas o casos, **el sistema reserva ahí mismo**, y recién después el ingeniero ajusta sin apuro (puntos del mapa, casos, categoría, orden) antes de confirmar. Reservar primero es lo que vuelve gratis la revisión → DV-16 | 19/08 |
+| D-54 | **Entregable a concesionarias = paquetes por tipo de trabajo** (acción autorizada + complejidad), propuestos por el sistema, ajustados por el Administrador y emitidos como **un PDF por paquete**. Cierra C-01 → **RF-33**, DV-17 | 20/08 |
+| D-55 | **Alta de concesionarias en el panel** del Administrador. No les da cuenta ni rol: existe para poder registrar el destinatario de cada entregable, que el diseño prometía y la tabla no guardaba | 20/08 |
+| D-56 | **Rutas: 90 días el detalle.** La purga **consolida antes de borrar** (casos, km, eficiencia sobreviven). Qué casos entraron y bajo qué directiva, indefinido. Cierra C-02 | 20/08 |
+| D-57 | **Los borradores no se descartan solos.** A los 30 días sin actividad se marcan inactivos y van a una bandeja aparte. Pueden tener trabajo de campo real adentro (D-16) | 20/08 |
+| D-58 | **Aviso de sincronización escalonado**: nada mientras la cola se vacía sola, aviso destacado al cerrar la jornada, aviso a confirmar a las 48 horas. Nunca bloquea | 20/08 |
+| D-59 | **Señales de riesgo semilla, marcadas como provisorias** en el panel. Se aparta de D-49 a propósito: con la tabla vacía ningún reclamo sube de verde y la priorización no prioriza. Resuelve A-12 en diseño | 20/08 |
+| D-60 | **Contraseñas de prueba fuera del repo.** El seed las toma de variable de entorno; el repo lista usuarios y roles; se piden por el canal del equipo. Cierra C-03 | 20/08 |
+| D-61 | **El driver se corre a mano antes de commitear**, no ante cada cambio. Pegar la salida en el commit es un acto deliberado | 20/08 |
+| D-62 | **Blindaje de la jornada** (**RF-34**): al confirmar, los reclamos quedan blindados y **ni los jobs del servidor los tocan** — el dato no se mueve bajo los pies del que está en la calle. Se libera al cierre; el Administrador puede desblindar | 20/08 |
+| D-63 | **Baja de captor desde administración** (**RF-35**) por robo, extravío o destrucción. Lo que ese captor traiga queda **en cuarentena**, no se descarta: no se tira trabajo de campo | 20/08 |
+| D-64 | **Sesión única por usuario y corte al apagar** (**RNF-14**). La que abre manda. Consecuencia asumida: batería agotada sin señal termina la jornada. Decidido a favor de la seguridad — son documentos legales y el captor puede tener trabajo de terceros | 20/08 |
+| D-65 | **Firma interna siempre, certificación externa aparte.** Si la certificación falla, el dictamen es válido puertas adentro pero **no puede salir en un entregable a concesionarias** hasta certificarse. Con cola de certificación diferida y reintento forzable | 20/08 |
+| D-66 | **`reclamo_foto`** (**RF-36**): un reclamo dado de alta en la calle puede llevar fotos, encoladas sin conexión. Sin esto el protocolo de tormenta no tiene evidencia del momento | 20/08 |
+| D-67 | **Discrepancia de reloj > 24 h**: el dictamen se acepta y se marca, pero el **job de vencimientos no lo procesa** hasta que el Administrador confirme o corrija la fecha, con auditoría | 20/08 |
 
 ## 9. Preguntas abiertas
 
@@ -185,15 +199,27 @@ Dos respuestas obligaron a rediseñar, no solo a confirmar: **A-07** (se cae la 
 
 ### Lo que sigue abierto
 
-| # | Qué falta | Por qué importa |
+| # | Qué falta | Quién puede contestarla |
 | --- | --- | --- |
-| A-12 | Diez o quince descripciones reales de reclamos | Ahora pesa el doble: de esas señales sale la prioridad **y** la categoría (B-03) |
-| C-01 | Qué lleva el entregable para concesionarias y en qué formato | Es funcionalidad nueva, hay que redactarla como requerimiento |
-| C-02 | Cuánto se guarda el historial de recorridos | Es un registro de movimientos de un trabajador |
-| C-03 | Dónde se guardan las contraseñas de los usuarios de prueba | Al repositorio no van |
-| D-01 · D-02 | Cómo presentar los desvíos y qué espera el docente en cada corte | Forma de la entrega |
+| A-12 | Diez o quince descripciones reales de reclamos | Dirección Técnica · **el diseño ya no depende de esto** (D-59) |
+| A-10 bis | Los cortes de diámetro y altura | Dirección Técnica · mecanismo ya resuelto (D-49) |
+| A-09 | Si el rol Jefe se confirma como se diseñó | Dirección Técnica |
+| — | Si la repartición tiene política propia de datos personales | Dirección Técnica · los plazos son parámetros |
+| D-01 · D-02 | Cómo presentar los desvíos y qué espera el docente en cada corte | Docente |
+
+**Ninguna es del equipo y ninguna bloquea.** Las tres que sí eran del equipo —C-01, C-02, C-03— se cerraron el 20/08. Lo único que queda del lado nuestro y no depende de nadie es **meter los cinco requerimientos nuevos en el `.docx`**: RF-33, RF-34, RF-35, RF-36 y RNF-14.
 
 C-04 quedó resuelta de hecho: la app Expo ya se eliminó de la rama (D-33).
+
+**Tercera vuelta del 20/08.** Se cerraron **las tres preguntas del equipo**: C-01 (D-54, D-55 → RF-33, DV-17), C-02 (D-56) y C-03 (D-60). A-12 dejó de bloquear el diseño (D-59): la tabla de señales arranca cargada y marcada como provisoria.
+
+Además se auditó el diseño del trabajo sin conexión de punta a punta y aparecieron **doce hallazgos**, tres graves. De ahí salieron el **blindaje de la jornada** (D-62), la **baja de captor** (D-63), la **sesión única con corte al apagar** (D-64), la separación entre **firma interna y certificación externa** (D-65), las **fotos en el reclamo** (D-66) y el **freno al vencimiento con reloj discrepante** (D-67).
+
+**El razonamiento completo está en `docs-back/09-decisiones-20260820.md`.** Al **21/08 las decisiones ya fueron absorbidas** por los dieciséis documentos temáticos (§9 de ese archivo), así que **manda el documento temático**; el `09` se conserva por lo que no está en ningún otro lado — las alternativas que se descartaron y con qué fundamento, que es lo que hace falta en una defensa oral.
+
+La auditoría produjo **cuatro requerimientos funcionales que el `.docx` no tiene** —RF-33, RF-34, RF-35, RF-36— más **RNF-14**, registrados como DV-17, DV-18 y DV-19.
+
+**Cuarta vuelta del 21/08.** Al aplicar las decisiones aparecieron cuatro problemas que leer no había encontrado, el más serio un **trigger de inmutabilidad que rechazaba el propio paso de sincronización con el SUA**. Están listados en `09` §9. Y quedó preparada la **segunda auditoría, esta vez sobre todo el sistema**: `docs-back/10-auditoria-previa-al-desarrollo.md`, ocho ejes, que se corre después del feedback del docente y **es lo que habilita empezar a codear**.
 
 **Segunda vuelta del 19/08.** Se cerraron A-04 (el captor es Android) y A-10 (los cortes los carga el Administrador, D-49), y se tomaron cuatro decisiones más: la firma pasa a ser atributo del rol con un apartado único de configuración (D-50, D-51), los autocompletados nunca son obligatorios (D-52) y la jornada se pre-confirma con la reserva ya hecha (D-53).
 

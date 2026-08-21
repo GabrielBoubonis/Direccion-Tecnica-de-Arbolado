@@ -1,6 +1,7 @@
 # Trabajo sin conexión y sincronización
 
-> Última actualización: 18/08/2026 · Estado: **en diseño, sin aprobar**
+> Última actualización: 21/08/2026 · Estado: **en diseño, sin aprobar**
+> Reescrito tras la auditoría del 20/08 (`09-decisiones-20260820.md` §6): fotos al final, orden por dependencias, almacenamiento persistente, blindaje y corte de sesión.
 
 ---
 
@@ -47,10 +48,22 @@ Cuando el ingeniero confirma y firma, la operación **no se envía**: se escribe
 | Sobrevive al cierre del navegador | Almacenamiento durable, no memoria |
 | Sobrevive a quedarse sin batería | Se escribe antes de confirmar al usuario |
 | No duplica al reintentar | Cada operación lleva su clave de idempotencia |
-| Respeta el orden | Se envían en el orden en que se cargaron |
-| No se atasca | Una operación que falla por regla de negocio sale de la cola; no bloquea a las que siguen |
+| Respeta las dependencias | Cada operación declara **de qué depende**; no hay orden global |
+| No se atasca | Ni por una regla de negocio, ni por una operación pesada |
 
 Distinción clave: **un error de red se reintenta; un error de negocio no.** Si el servidor responde "este reclamo ya fue dictaminado", reintentar mil veces no va a cambiar la respuesta. Esa operación se mueve a la bandeja de conflictos y la cola sigue.
+
+### El orden es por dependencia, no por llegada
+
+El diseño anterior pedía **orden estricto de encolado**. La justificación era correcta pero acotada: un alta de oficio tiene que entrar antes que el dictamen de ese mismo reclamo. **Eso es una dependencia, no un orden global.**
+
+Con un FIFO estricto, una foto de 400 KB que da timeout **bloquea los diez dictámenes que están detrás** — exactamente al revés de lo que conviene con señal mala, donde lo valioso y liviano tiene que salir primero.
+
+Prioridad de envío:
+
+`dictamen` → `alta_reclamo` → `visita` → `correccion_punto` → `foto`
+
+Las fotos **siempre últimas**. Cada operación lleva anotado de qué depende, y solo eso la retiene: un dictamen espera al alta de su reclamo, una foto espera a su dictamen, y nadie espera a nada más.
 
 ### Capa 3 — Envío en segundo plano
 
@@ -92,6 +105,29 @@ Con eso puede trabajar la jornada entera sin conectarse una sola vez. **Es el pr
 
 El mapa descargado **no se recalcula durante la jornada**, cumpliendo el pedido de la minuta.
 
+### Confirmar la jornada hace cuatro cosas, no una
+
+Es el último momento con señal garantizada. Todo lo que necesita red se hace acá:
+
+| Paso | Por qué acá |
+| --- | --- |
+| 1. **Blindar** los reclamos (RF-34) | Nadie más los toca, y **ningún job del servidor los modifica** mientras el ingeniero los tiene encima |
+| 2. **Renovar la sesión** de servidor | La cola puede tener que enviar a las once de la noche, y a esa hora el token de la mañana ya venció |
+| 3. Pedir **almacenamiento persistente** | Sin esto, el navegador puede borrar la cola |
+| 4. **Precargar** todo | Reclamos, puntos, geometría, parámetros, catálogos |
+
+**El paso 1 es el que cambia el diseño.** Sin blindaje, el job nocturno de escalamiento puede subirle la prioridad a un reclamo a las dos de la mañana mientras el ingeniero lleva en el bolsillo una copia con la prioridad vieja, y al volver el servidor y el dispositivo discrepan sobre un dato que él nunca pudo ver cambiar. **El dato no se puede mover bajo los pies del que está en la calle**, porque en la calle no hay forma de enterarse.
+
+### El almacenamiento tiene que ser persistente, y eso condiciona el despliegue
+
+**IndexedDB es descartable por defecto.** Bajo presión de almacenamiento, Android puede vaciarla sin avisar y sin preguntar. Ahí adentro viven dictámenes firmados con validez legal.
+
+La única defensa es pedir `navigator.storage.persist()`, y se pide al confirmar la jornada. Antes de precargar se verifica el espacio disponible con `navigator.storage.estimate()`.
+
+> **Requisito de despliegue para el CIL: el captor tiene que tener la aplicación instalada como PWA, no abierta en una pestaña.** Chrome en Android le concede almacenamiento persistente a las aplicaciones instaladas y se lo niega a las pestañas. Es una condición de instalación, no una recomendación.
+
+Si la persistencia no se puede garantizar, el ingeniero **sale igual**, pero avisado con todas las letras. No se le bloquea la jornada por una condición del dispositivo; tampoco se lo deja creer que está a salvo.
+
 ---
 
 ## 6. Qué se puede hacer sin conexión
@@ -105,10 +141,23 @@ El mapa descargado **no se recalcula durante la jornada**, cumpliendo el pedido 
 | Marcar una parada como visitada | Sí |
 | Dar de alta un reclamo de oficio | Sí |
 | **Tomar trabajo nuevo** | **No** — requiere conexión por diseño (D-14) |
+| **Seguir cargando después de que se apagó el equipo** | **No** — hay que reautenticar, y eso exige conexión (RNF-14) |
 | Ver el dashboard | No, muestra los últimos datos conocidos |
 | Consultar un reclamo fuera de la ruta | No |
 
-La única restricción real es tomar trabajo nuevo, y es deliberada: es lo que garantiza que nadie duplique el trabajo de otro.
+La primera restricción es lo que garantiza que nadie duplique el trabajo de otro. **La segunda es una decisión de seguridad tomada a conciencia el 20/08**, sabiendo lo que cuesta.
+
+### Si se apaga el captor en la calle (D-64)
+
+Un usuario tiene **una sola sesión activa**, y la sesión **se corta al apagarse el dispositivo**. Si al captor se le agota la batería a las 14:00 sin señal, el ingeniero **no puede seguir cargando esa tarde**.
+
+Se planteó la alternativa —mantener la jornada abierta en el dispositivo y renovar la sesión de servidor sola— y se descartó:
+
+> Son documentos legales, no se puede jugar. Sin mencionar que el captor puede tener trabajo de otras personas adentro, o darse un uso erróneo, como prestárselo a otra persona. La seguridad vale.
+
+**Lo ya cargado no se pierde.** La cola y los borradores sobreviven en el dispositivo y se envían cuando el ingeniero vuelve a autenticarse. Lo que se pierde es la posibilidad de seguir cargando.
+
+La mitigación es **operativa, no técnica**: el captor sale de la sede cargado y conviene que la repartición prevea batería externa. Es una condición de entorno y se declara como tal.
 
 ---
 
@@ -128,24 +177,64 @@ Desde ahí puede consultar lo que había cargado, copiarlo a otro reclamo si el 
 
 Pesan mucho más que todo lo demás, así que van por un camino aparte:
 
-- Se comprimen en el dispositivo antes de encolarse. Una foto de doce megapíxeles no aporta nada respecto de una redimensionada.
-- Se suben **antes** que el dictamen que las referencia, para que este no espere.
+- Se comprimen en el dispositivo antes de encolarse, a menos de 400 KB. Una foto de doce megapíxeles no aporta nada respecto de una redimensionada, y con una barra de señal cada byte decide si el envío entra o queda colgado.
+- Se suben **después** del dictamen que las referencia, nunca antes.
 - Se reintentan por separado: si falla la foto 3 de 5, no se reenvían las otras cuatro.
 - Un dictamen se puede enviar con sus fotos todavía en camino; se vinculan cuando llegan.
+- Un **reclamo dado de alta en la calle también puede llevar fotos** (RF-36), por el mismo camino.
+
+### Por qué las fotos van últimas y no primeras (H-01)
+
+Este documento decía antes que las fotos suben **primero**, "para que el dictamen no espere". Estaba mal, y de dos maneras.
+
+**Rompía la integridad.** `dictamen_foto.dictamen_id` es una clave foránea contra `dictamen`. Si la foto llega primero, la fila del dictamen no existe todavía y **la FK falla**: el primer dictamen con fotos que se sincronizara habría devuelto un error de integridad.
+
+**Y era peor operativamente.** Con señal mala conviene que salga primero lo chico y valioso. Un dictamen firmado al que le falta una foto es un dictamen válido con una foto pendiente; una foto sin dictamen no es nada, y encima queda como objeto huérfano en storage.
+
+**Cómo funciona ahora.** El cuerpo del dictamen **declara cuántas fotos vienen**. El servidor crea esa cantidad de filas en estado `esperando`, y cada foto que llega completa una. No se pierde nada de lo que este párrafo quería: el dictamen sigue sin esperar a las fotos, que era el objetivo.
 
 ---
 
 ## 9. Límites honestos
 
-**Sin señal, el reloj es el del celular.** Si está mal configurado, la fecha del dictamen sale mal. Se detecta comparando contra el reloj del servidor al sincronizar y **se registra la discrepancia** en vez de aceptarla en silencio (ver `02-modelo-de-datos.md` §7).
+**Sin señal, el reloj es el del celular.** Si está mal configurado, la fecha del dictamen sale mal. Se detecta comparando contra el reloj del servidor al sincronizar y **se registra la discrepancia** en vez de aceptarla en silencio. Si supera las **24 horas**, el dictamen se acepta igual pero **el job de vencimientos no lo procesa** hasta que el Administrador confirme o corrija la fecha (D-67): un vencimiento legal es una fecha que alguien tiene que poder defender.
 
 **La cola tiene un límite razonable.** Si un ingeniero acumulara cien dictámenes sin sincronizar nunca, el sistema avisa que hay demasiado sin enviar. Es una situación que no debería darse, pero avisar es mejor que llenar el almacenamiento del dispositivo.
 
 **Si el usuario limpia los datos del navegador, la cola se pierde.** No hay forma de evitarlo desde una aplicación web. Se mitiga avisando de forma visible cuando hay trabajo sin enviar, para que nadie limpie el navegador con cinco dictámenes adentro.
 
+**Si el captor no vuelve nunca —robo, destrucción, olvido— el trabajo de esa jornada se pierde.** Se dice sin vueltas. Lo que el diseño garantiza es que la pérdida esté **acotada y sea conocida**: el blindaje enumeró exactamente qué reclamos estaban en juego y con quién, al día siguiente vuelven a circulación, y el Administrador puede dar de baja el equipo para que no pueda escribir nada más (RF-35).
+
+**Si el captor aparece después de la baja**, lo que traiga adentro **no se descarta**: queda en cuarentena y una persona decide. Un equipo robado no debe escribir dictámenes; uno olvidado en un cajón y recuperado a la semana puede traer trabajo de campo perfectamente válido.
+
 ---
 
-## 10. Qué falta definir
+## 10. Borradores y aviso de sincronización
 
-- Cuánto tiempo se conserva un borrador sin actividad antes de descartarlo.
-- Si conviene avisar activamente al ingeniero cuando lleva mucho tiempo sin sincronizar, y a partir de cuánto.
+Las dos preguntas que estaban abiertas acá se cerraron el 20/08.
+
+### El sistema no descarta borradores solo (D-57)
+
+A los **30 días sin actividad** un borrador pasa a **inactivo** y aparece en una bandeja aparte, para que el ingeniero decida si lo retoma o lo descarta. **Nunca se elimina por su cuenta.**
+
+Un borrador puede tener adentro trabajo de campo real —para eso existe, ver §7— y era el único punto del diseño donde se perdía trabajo humano sin que nadie lo mirara.
+
+### El aviso de sincronización es escalonado (D-58)
+
+| Momento | Qué pasa |
+| --- | --- |
+| Hay señal y la cola se vacía sola | Nada, solo el indicador |
+| Se **cierra la jornada** con cola pendiente | Aviso destacado: cuántos son y que están **solo en el dispositivo** |
+| Pasadas **48 horas** con cola pendiente | Aviso al abrir la aplicación, que hay que confirmar para seguir |
+
+**Nunca bloquea el trabajo.** Pero deja de ser algo que se pueda no ver: son dictámenes firmados, con validez legal, que existen en un solo lugar y ese lugar es un celular.
+
+---
+
+## 11. La ventana de sincronización tardía
+
+Un dictamen cargado a las 16:00 sin señal puede llegar al servidor a las 23:00, cuando el dispositivo pasa por una zona con cobertura y el trabajador en segundo plano despierta **con la aplicación cerrada**.
+
+A esa hora el token de la mañana ya venció. Si el servidor respondiera `401`, la respuesta razonable sería "pedir reautenticar", **pero no hay a quién pedírselo**: no hay nadie mirando la pantalla.
+
+Por eso la sesión de servidor **se renueva a la fuerza al confirmar la jornada** (§5), corriendo la ventana hasta cubrir la sincronización tardía. Y si aun así hace falta reautenticar, el indicador lo dice **con esas palabras** —"hay que volver a iniciar sesión"— y no como "sin señal". La cola espera; no descarta nada.

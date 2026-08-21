@@ -1,7 +1,8 @@
 # Modelo de datos
 
-> Última actualización: 19/08/2026 (segunda vuelta) · Estado: **en diseño, sin aprobar**
-> Incorpora las respuestas de relevamiento del 18/08 (grupos A y B de `entregables/preguntas-abiertas.html`).
+> Última actualización: 21/08/2026 (tercera vuelta) · Estado: **en diseño, sin aprobar**
+> Incorpora las respuestas de relevamiento del 18/08 (grupos A y B de `entregables/preguntas-abiertas.html`)
+> y **absorbe D-54 a D-67 y los hallazgos H-01 a H-12** de la auditoría del 20/08 (`09-decisiones-20260820.md`).
 > Especificación, no implementación. Las migraciones se escriben en Fase 2.
 
 ## 1. Dos esquemas, una frontera visible
@@ -163,8 +164,11 @@ La matriz de priorización, en tabla y no en código: es la mejora central que p
 | `resultado` | Color al que salta, o días de escalamiento |
 | `activa` | **Las reglas por texto se pueden apagar sin tocar código** |
 | `orden` | Cuál se evalúa primero |
+| `provisoria` | La cargó el equipo, **no la acordó la repartición**. El panel lo muestra arriba (D-59) |
 
 Que la regla de señales de riesgo sea desactivable es una decisión deliberada: el relevamiento dice que la calidad del dato de entrada es muy despareja, y una regla que interpreta texto libre se puede equivocar. Si el área concluye que genera más ruido que valor, se apaga y el sistema sigue funcionando con las demás reglas.
+
+**La tabla arranca cargada, y cargada de provisorio (D-59).** Se aparta a propósito de lo que hace `regla_complejidad`, que arranca vacía. Si las señales de riesgo arrancan vacías **ningún reclamo sube de verde por texto**, y una de las tres funcionalidades centrales del trabajo queda muda en la demo. La bandera `provisoria` es lo que evita el problema que D-49 quería evitar —que un supuesto del equipo se confunda con un criterio del área— sin apagar la funcionalidad: el panel del Administrador muestra arriba que esas señales esperan la validación de la repartición (A-12), y al validarlas se baja la bandera.
 
 ### `arbolado.regla_complejidad`
 
@@ -223,11 +227,57 @@ Materializa el principio "se toma con señal, se ejecuta sin señal" (ver `01-ar
 | `tomada_en` | Cuándo |
 | `vence_en` | Por defecto al cierre de la jornada. Configurable (RNF-09) |
 | `liberada_en` | Nulo mientras está activa |
-| `motivo_liberacion` | `dictaminado`, `vencida`, `manual`, `liberada_por_admin` |
+| `motivo_liberacion` | `dictaminado`, `vencida`, `manual`, `liberada_por_admin`, `cierre_jornada` |
+| `blindada` | Verdadero desde que se confirma la jornada. Ver abajo (RF-34) |
+| `captor_id` | Qué dispositivo se llevó el caso. Nulo si se tomó suelto desde el escritorio |
+| `blindada_en` | Cuándo se confirmó la jornada que la blindó |
 
 **Garantía dura:** un índice único parcial permite **una sola reserva activa por reclamo**. No depende de que el código se acuerde de chequear: lo impone la base. Dos pedidos simultáneos, uno gana y el otro recibe un rechazo limpio.
 
 Mientras está reservado, el resto del equipo lo ve en el listado marcado con quién lo tiene y desde cuándo — no desaparece. Así el jefe ve el reparto del día y nadie reclama dos veces el mismo caso.
+
+### El blindaje de la jornada (RF-34)
+
+**Reservar y blindar no son dos tablas: son dos momentos de la misma fila.** Tomar un caso lo reserva; confirmar la jornada lo blinda. Se resolvió así, y no con una tabla aparte, porque la reserva ya es el candado exclusivo del reclamo y duplicarlo abriría la puerta a que los dos candados se contradigan.
+
+Mientras `blindada` está en verdadero:
+
+- Ningún otro usuario puede tomar, dictaminar ni modificar ese reclamo — lo de siempre en una reserva.
+- **Ningún trabajo automático del servidor lo toca**: ni el escalamiento de prioridad, ni el vencimiento, ni la re-geocodificación. Todo job filtra por `NOT EXISTS (reserva activa y blindada)`.
+- Sigue **visible** para el resto del equipo, con quién lo tiene, desde cuándo y con qué dispositivo (D-15).
+
+El segundo punto es el que importa y el que no estaba. Sin blindaje, el job de escalamiento le sube la prioridad a un reclamo a las dos de la mañana mientras el ingeniero lleva en el bolsillo una copia precargada con la prioridad vieja. **El dato no se puede mover bajo los pies del que está en la calle**, porque en la calle no hay forma de enterarse de que se movió.
+
+Al cierre de la jornada el blindaje se libera con `motivo_liberacion = cierre_jornada` y los reclamos no dictaminados vuelven a la cola (D-24). El Administrador puede desblindar a mano en cualquier momento, y esa acción va a auditoría.
+
+**Qué pasa si el captor nunca vuelve.** El trabajo de esa jornada se pierde, y se dice sin vueltas. Pero la pérdida está **acotada a los reclamos de una jornada**, que son exactamente los que el blindaje enumeró, y al día siguiente vuelven a estar en circulación. El sistema no tiene que adivinar qué pasó: ya sabía qué había en juego y con quién.
+
+### `arbolado.captor` (RF-35)
+
+Los dispositivos son **provistos por la repartición**, no personales. Que existan como fila es lo que permite blindar a nombre de un equipo y darlo de baja si desaparece.
+
+| Campo | Notas |
+| --- | --- |
+| `id` | uuid, generado en el alta y guardado en el dispositivo |
+| `etiqueta` | Cómo lo llama la repartición: `captor-03` |
+| `asignado_a` | uuid de perfil, nulo. Puede rotar entre agentes |
+| `estado` | `activo`, `de_baja` |
+| `motivo_baja` | `robo`, `extravio`, `destruccion`, `reasignacion` |
+| `dado_de_baja_por`, `dado_de_baja_en` | Va a auditoría |
+
+**Un captor de baja no puede autenticarse ni sincronizar.** Lo que ya tenga adentro no se descarta: si intenta sincronizar, sus operaciones caen en cuarentena y el Administrador decide (D-63).
+
+### `arbolado.operacion_cuarentena`
+
+| Campo | Notas |
+| --- | --- |
+| `id`, `captor_id`, `recibida_en` | |
+| `tipo_operacion` | `dictamen`, `alta_reclamo`, `visita`, `correccion_punto`, `foto` |
+| `carga` | El cuerpo original, tal como llegó, en `jsonb` |
+| `estado` | `en_cuarentena`, `liberada`, `descartada` |
+| `resuelta_por`, `resuelta_en`, `motivo` | |
+
+**Por qué no se descarta y ya.** Un equipo robado no debe poder escribir dictámenes; un equipo olvidado en un cajón y recuperado a la semana puede traer trabajo de campo perfectamente válido. Tirarlo sin mirar violaría el principio que el proyecto sostiene en todos lados: **no se descarta trabajo de campo**. La cuarentena separa la decisión de seguridad —bloquear el equipo, que es inmediata— de la decisión sobre el contenido, que la toma una persona.
 
 ---
 
@@ -245,7 +295,9 @@ Mientras está reservado, el resto del equipo lo ve en el listado marcado con qu
 | Intervención | `categoria_intervencion`, `extraccion[]`, `trabajos_aereos[]`, `trabajos_subterraneos[]`, `sin_trabajo[]`, `plantar[]` |
 | Clasificación | `dano_vereda`, `complejidad`, `complejidad_sugerida`, `urgencia`, `epoca_recomendada` |
 | Banderas | `urgente`, `frente_garage`, `media_tension`, `de_oficio` |
-| Cierre | `observaciones_tecnicas`, `firma_ref`, `firma_hash`, `hash_documento`, `sello_tiempo`, `estado` |
+| Cierre | `observaciones_tecnicas`, `firma_trazo`, `firma_hash`, `hash_documento`, `sello_tiempo`, `estado` |
+| Certificación | `estado_certificacion`, `certificadora`, `certificado_en`, `intentos_certificacion` |
+| Control | `discrepancia_reloj`, `fecha_confirmada_por`, `fecha_confirmada_en`, `fotos_declaradas` |
 
 Cuatro decisiones que vale la pena justificar:
 
@@ -253,6 +305,17 @@ Cuatro decisiones que vale la pena justificar:
 - **`fecha_dictamen` y `fecha_recepcion` separadas.** El dictamen se emitió frente al árbol el martes a las 10:30, aunque haya llegado al servidor el miércoles. La fecha legal es la primera; la segunda es trazabilidad. El vencimiento a 18 meses cuenta desde la emisión.
 - **Dos fechas y dos relojes implican confiar en el reloj del celular.** Se acota: si `fecha_dictamen` es posterior a `fecha_recepcion` o anterior a la reserva, se registra la discrepancia en auditoría en vez de aceptarla en silencio.
 - **`hash_documento`.** Huella del contenido al momento de firmar. Cualquier modificación posterior se detecta comparando. Es lo que sostiene la inmutabilidad de RNF-06 más allá de la promesa.
+- **`firma_trazo` guarda vectores, no un PNG (H-05).** `signature_pad.toData()` devuelve los trazos como listas de puntos: 2 a 6 KB, contra los 20 a 80 KB de un PNG en base64. Se redibuja a cualquier resolución para el PDF sin perder calidad, y sobre todo **no infla el único envío que no puede fallar**. Sería incoherente comprimir con cuidado las fotos a menos de 400 KB porque con una barra de señal cada byte cuenta, y después meterle un PNG al cuerpo del dictamen.
+- **El trazo viaja embebido en el dictamen y eso no se toca.** Si fuera una operación separada podría existir, aunque sea por un rato, un dictamen firmado sin firma. La regla es *o el dictamen existe entero y firmado, o no existe*.
+- **`fotos_declaradas`.** El cuerpo del dictamen declara **cuántas fotos vienen**. Es lo que permite que el servidor sepa que faltan fotos en camino sin depender de que el dispositivo vuelva a hablar. Ver `dictamen_foto`.
+
+**Estados del dictamen.** `estado` recorre `borrador` → `firmado` → `anulado`. La certificación **es un eje aparte** y por eso es una columna aparte: `estado_certificacion` toma `no_requerida`, `pendiente`, `certificado` o `fallida`.
+
+Separarlos es la decisión D-65 hecha esquema. **Firmar y certificar no son lo mismo**: la firma interna —hash canónico, sello de tiempo del servidor, legajo, rol, versión de `config_firma`— es local, entra en la misma transacción y **no puede fallar**. La certificación externa es una llamada a un organismo, y todo lo que sale de nuestra frontera puede fallar. Si se mezclaran en un solo campo, un timeout de red dejaría un dictamen legalmente ambiguo.
+
+Un dictamen `firmado` + `pendiente` **es válido puertas adentro**: es inmutable, auditable y cuenta para el vencimiento. Lo único que no puede hacer es **salir en un entregable a concesionarias** (§13), porque ahí es donde la validez se ejerce frente a un tercero.
+
+**`discrepancia_reloj` (D-67).** Toma `ninguna`, `leve` o `grave`. Es `grave` cuando la diferencia entre `fecha_dictamen` y `fecha_recepcion` supera las 24 horas. Un dictamen con discrepancia grave **se acepta igual** —no se castiga a nadie por el reloj del equipo que le dieron— pero **el job de vencimientos no lo procesa** hasta que el Administrador confirme o corrija la fecha, y esa corrección queda auditada con la fecha vieja y la nueva. Un vencimiento legal es una fecha que alguien tiene que poder defender; que la fije un reloj demostrablemente roto y que después un job la ejecute sin preguntarle a nadie es peor que pedirle a una persona que la mire.
 
 **Inmutabilidad (RF-19).** Un dictamen firmado no se actualiza ni se borra: lo impide una regla en la base, no una convención del código. Corregir implica anular y emitir uno nuevo, y ambos quedan en el historial.
 
@@ -262,9 +325,47 @@ Cuatro decisiones que vale la pena justificar:
 
 Las fotos van aparte: son varias por dictamen (RF-17), pesan, y se guardan en storage con referencia acá.
 
+| Campo | Notas |
+| --- | --- |
+| `id`, `dictamen_id` | FK contra `dictamen` |
+| `orden` | En qué orden las sacó el ingeniero |
+| `storage_ref` | Ruta en el bucket privado. Nulo mientras la foto no llegó |
+| `estado` | `esperando`, `subida`, `fallida` |
+| `bytes`, `subida_en` | |
+
+**La foto se crea en `esperando` y el archivo llega después (H-01).** Al recibir el dictamen, el servidor crea tantas filas `esperando` como diga `fotos_declaradas`. Cada foto que sube después completa una.
+
+Esto corrige una contradicción que el diseño tenía escrita: `06-offline-y-sincronizacion.md` decía que las fotos suben **antes** que el dictamen, pero `dictamen_foto.dictamen_id` es una FK contra `dictamen`. Si la foto sube primero, **la FK falla** y el primer dictamen con fotos que se sincronice devuelve un error de integridad.
+
+**Las fotos van últimas, no primeras**, y es mejor en todos los ejes: lo chico y lo valioso —el dictamen— sale primero cuando la señal es mala, la FK se satisface siempre, no quedan objetos huérfanos en storage, y no se pierde nada de lo que se buscaba, porque el diseño ya aceptaba que *un dictamen se puede enviar con sus fotos todavía en camino*. Un dictamen firmado al que le falta una foto es un dictamen válido con una foto pendiente; una foto sin dictamen no es nada.
+
 ### `arbolado.dictamen_borrador`
 
 El rescate del caso excepcional. Si el dictamen se rechaza porque el reclamo ya fue dictaminado por otro, la carga **no se pierde**: queda como borrador consultable, con el motivo del rechazo. Veinte minutos de trabajo frente a un árbol no se descartan por una condición de carrera.
+
+Suma `estado` (`activo`, `inactivo`, `descartado`), `ultima_actividad` y `descartado_por`.
+
+**El sistema no borra borradores solo (D-57).** A los **30 días sin actividad** un borrador pasa a `inactivo` y aparece en una bandeja aparte, para que el ingeniero decida si lo retoma o lo descarta. Nunca se elimina por su cuenta. Un borrador puede tener adentro trabajo de campo real —de hecho es justamente para eso que existe— y era el único punto del diseño donde se perdía trabajo humano sin que nadie lo mirara.
+
+### `arbolado.certificacion_intento`
+
+Una fila por intento de certificación externa (D-65). `dictamen_id`, `intento_nro`, `certificadora`, `resultado` (`ok`, `error_red`, `rechazada`), `detalle`, `fecha`, `forzado_por`.
+
+Existe para que la pregunta *"por qué este dictamen sigue sin certificar"* tenga respuesta con nombre, fecha y motivo, en vez de un contador. El Administrador puede forzar el reintento de uno o de todo el lote, y ese forzado también queda como fila.
+
+### `arbolado.reclamo_foto` (RF-36)
+
+Un reclamo dado de alta por el ingeniero en la calle (§5) **puede llevar fotos**, tomadas y encoladas sin conexión. Misma forma que `dictamen_foto`, pero colgada del par **(N° SUA, año)** en vez de un dictamen.
+
+| Campo | Notas |
+| --- | --- |
+| `id`, `nro_reclamo_sua`, `anio` | A qué reclamo |
+| `orden`, `storage_ref`, `estado`, `bytes` | Igual que `dictamen_foto` |
+| `tomada_por`, `tomada_en` | |
+
+**Por qué hacía falta una tabla y no alcanzaba con lo que había.** `sua_sim.reclamo.foto_url` es un solo campo de texto que **viene del SUA**, puede venir vacío y no es nuestro para escribir. Sin `reclamo_foto`, un reclamo de oficio quedaba sin evidencia hasta que alguien lo dictaminara — y durante el **protocolo de tormenta** (RF-28→RF-30) es justo cuando la foto más importa: un árbol caído cortando una calle se documenta cuando se lo ve, no tres días después, cuando ya lo movieron.
+
+Bucket privado y URL firmada de vencimiento corto, como todo lo demás. **No salen en el entregable a concesionarias**, igual que las de dictamen.
 
 ---
 
@@ -299,6 +400,22 @@ El mismo job diario que escala prioridades marca los vencimientos y devuelve los
 ### `arbolado.detalle_ruta`
 
 Una fila por parada: `orden_visita`, `hora_estimada_llegada`, `visitado`, `visitado_en`. Existe porque un reclamo puede caer en rutas de días distintos si no se llegó a visitar.
+
+### `arbolado.ruta_resumen`
+
+Una fila por jornada cerrada, escrita **antes** de purgar el detalle (D-56): `ruta_id`, `usuario_id`, `fecha`, `casos_visitados`, `casos_no_visitados`, `kilometros`, `minutos_traslado`, `minutos_dictaminacion`, `eficiencia_pct`, `directiva_aplicada`.
+
+**Se conserva el dato que justifica una decisión administrativa y se destruye el que solo serviría para vigilar a un empleado.**
+
+| Dato | Retención |
+| --- | --- |
+| Horarios de cada parada y geometría del recorrido | **90 días** |
+| Resumen de la jornada: casos, kilómetros, eficiencia | Indefinido |
+| Qué casos entraron y bajo qué directiva se armó la jornada (D-28) | Indefinido |
+
+Pasados los 90 días no se pierde ni el porqué ni el rendimiento: se pierde a qué hora estuvo el ingeniero en cada esquina, que es exactamente el dato que no conviene tener guardado. La justificación de por qué se dictaminaron esos casos no se borra nunca; su rastro sí.
+
+**Por qué la consolidación va antes y no después.** La eficiencia se calcula a partir de los horarios de parada. Borrarlos sin consolidar primero se llevaba puesta la estadística — el trabajo `purgar_rutas` deja de ser un borrado y pasa a ser una consolidación seguida de un borrado.
 
 ### `arbolado.perfil_distribucion`
 
@@ -351,18 +468,27 @@ Clave, valor, descripción, quién y cuándo lo cambió. Es RNF-09 y RF-32 hecho
 | `autocompletado_categoria_activo` | encendido | D-52 — toggle, nunca obligatorio |
 | `autocompletado_especie_activo` | encendido | D-52 |
 | `dias_aviso_vencimiento` | 30 | RF-05 |
+| `dias_retencion_detalle_ruta` | 90 | D-56 |
+| `dias_borrador_inactivo` | 30 | D-57 |
+| `dias_purga_idempotencia` | 30 | H-11 |
+| `horas_discrepancia_reloj_grave` | 24 | D-67 |
+| `horas_aviso_cola_pendiente` | 48 | D-58 |
+| `max_fotos_dictamen` | 6 | RF-17 · acota el peso de la cola |
+| `kb_max_foto` | 400 | Condición de campo |
 
 > El front usa hoy 7 minutos por dictamen, contra los 10 de RF-21. Se corrige al valor del documento y se anota el desvío.
 
 ### `arbolado.auditoria`
 
-Registra las acciones sensibles: firma de dictamen, cambio de rol o de habilitación para firmar, cambio de parámetro, reserva y liberación, alta de reclamo, corrección del punto en el mapa, corrección de categoría, anulación. Guarda quién, cuándo, qué cambió y desde dónde.
+Registra las acciones sensibles: firma de dictamen, cambio de rol o de habilitación para firmar, cambio de parámetro, reserva y liberación, alta de reclamo, corrección del punto en el mapa, corrección de categoría, anulación, **desblindaje manual, alta y baja de captor, liberación o descarte de operaciones en cuarentena, corrección de fecha por discrepancia de reloj, intento y forzado de certificación, y emisión de entregable a concesionaria**. Guarda quién, cuándo, qué cambió y desde dónde.
 
 No es burocracia: es un sistema que emite documentos con validez legal. Si alguien pregunta quién autorizó extraer un árbol de treinta años, tiene que haber respuesta.
 
 ### `arbolado.idempotencia`
 
-Clave de la operación, usuario, endpoint y respuesta original. Si la cola offline reenvía algo ya procesado, se devuelve la respuesta original en lugar de ejecutar dos veces.
+Clave de la operación, usuario, endpoint, `creado_en` y respuesta original. Si la cola offline reenvía algo ya procesado, se devuelve la respuesta original en lugar de ejecutar dos veces.
+
+**Se purga a los 30 días (H-11).** Guarda la respuesta completa en `jsonb` y no tenía ni retención ni job: crecía para siempre. Treinta días está muy por encima de cualquier ventana de reintento real —la más larga que contempla el diseño es la de un captor que estuvo una semana sin volver— y por debajo de lo que haría de esta tabla un problema de tamaño. Es el trabajo 7 de `T9-jobs-y-reloj.md`.
 
 ---
 
@@ -371,7 +497,10 @@ Clave de la operación, usuario, endpoint y respuesta original. Si la cola offli
 | Bucket | Contenido | Acceso |
 | --- | --- | --- |
 | `fotos-dictamen` | Fotos de campo (RF-17) | Privado, por URL firmada de corta duración |
-| `firmas` | Trazo de la firma (RF-18) | Privado, nunca expuesto al front |
+| `fotos-reclamo` | Fotos de un alta en la calle (RF-36) | Privado, idem |
+| `entregables` | PDF por paquete de concesionaria (RF-33) | Privado, solo Administrador |
+
+El **trazo de la firma ya no ocupa un bucket**: viaja como vectores dentro del propio dictamen (`firma_trazo`), así que no hay un archivo que perder ni un objeto que quede huérfano si el envío se corta a la mitad.
 
 Ningún bucket público. Una foto puede mostrar el frente de la casa de un vecino: es dato personal y no se sirve por URL adivinable.
 
@@ -395,6 +524,13 @@ Ninguna tabla sin política. Resumen:
 | `directiva_jornada` | — | lee la que le aplica | **escribe** | escribe |
 | `parametro` | — | lee | lee | escribe |
 | `regla_prioridad` | — | lee | lee | escribe |
+| `dictamen_foto` / `reclamo_foto` | — | crea y sube las propias | idem | lee todo |
+| `dictamen_borrador` | — | los propios | los propios | lee todo |
+| `captor` | — | lee el propio | lee los del equipo | administra todos |
+| `operacion_cuarentena` | — | — | — | lee y resuelve |
+| `certificacion_intento` | — | — | lee | lee y fuerza reintento |
+| `concesionaria` / `entregable_concesionaria` | — | — | — | **exclusivo** |
+| `ruta_resumen` | lee agregados | los propios | los del equipo | lee todo |
 | `auditoria` | — | — | — | lee. **Nadie escribe directo** |
 
 El rol se valida en la Edge Function **y** en la base. Es redundante a propósito: si un token se filtra o alguien expone la base, RLS sigue conteniendo.
@@ -405,16 +541,43 @@ El rol se valida en la Edge Function **y** en la base. Es redundante a propósit
 
 Las concesionarias **no son usuarias del sistema**: no tienen cuenta, ni rol, ni acceso. Reciben un export que **solo el Administrador genera**, con los dictámenes firmados y vigentes que les toca ejecutar.
 
+### `arbolado.concesionaria`
+
+| Campo | Notas |
+| --- | --- |
+| `id`, `nombre`, `contacto` | |
+| `zona_adjudicada`, `tipo_trabajo_adjudicado` | Opcionales, para precargar los filtros |
+| `activa` | |
+
+**Sin cuenta, sin rol, sin acceso.** La fila existe únicamente para poder registrar el destinatario de un entregable. Es la corrección de una inconsistencia que el diseño ya tenía escrita: §13 prometía poder contestar *qué se le informó a una contratista y cuándo*, y la tabla no guardaba a quién.
+
 ### `arbolado.entregable_concesionaria`
 
 | Campo | Notas |
 | --- | --- |
 | `id`, `generado_por`, `generado_en` | Quién lo emitió y cuándo |
+| `concesionaria_id` | **A quién se le informó** |
 | `filtros` | Zona, período y estado usados para armarlo |
+| `paquetes` | El detalle: acción autorizada, complejidad, cuántos ejemplares en cada paquete |
 | `dictamenes_incluidos` | Qué dictámenes salieron en ese entregable |
-| `archivo_ref` | El documento generado, en storage privado |
+| `archivo_ref` | El o los PDF generados, en storage privado |
+| `tiene_anulaciones` | Se enciende si después se anuló alguno de los dictámenes incluidos |
 
 Se guarda el registro de cada generación, no solo el archivo: si mañana hay una discusión sobre qué se le informó a una contratista y cuándo, hay respuesta.
+
+**Solo entran dictámenes firmados, vigentes y certificados.** Nunca borradores, vencidos, anulados ni pendientes de certificación (D-65): el entregable es el punto donde la validez legal se ejerce frente a un tercero.
+
+### Anular un dictamen que ya salió en un entregable
+
+Al anular, el sistema verifica si ese dictamen salió en algún entregable emitido. Si salió, enciende `tiene_anulaciones` y le muestra al Administrador **a qué empresa hay que notificar**.
+
+El sistema no puede des-enviar un PDF. Lo que no puede hacer es dejarlo pasar en silencio, porque del otro lado hay una autorización de extracción que ya no vale y una cuadrilla que puede estar por ejecutarla.
+
+### El armado: el sistema propone, la persona ajusta, después emite
+
+El Administrador elige **zona, período y empresa**; el sistema arma los paquetes agrupando por **acción autorizada y complejidad** —extracción compleja por un lado, poda simple por otro— y le muestra la propuesta antes de emitir nada: cuántos paquetes, cuántos ejemplares en cada uno. Recién ahí saca los que no correspondan y emite.
+
+Es el mismo patrón que el balanceador (RF-25), la pre-confirmación de jornada (D-53) y las sugerencias de especie y categoría (D-52). **La repetición no es casualidad y conviene decirlo en la defensa**: el sistema nunca ejecuta sobre una persona una decisión que ella no pudo mirar antes.
 
 **Fundamento de privacidad.** Es un tercero externo a la repartición. El entregable lleva lo necesario para ejecutar la intervención —ubicación del ejemplar, acción autorizada, complejidad, vigencia del dictamen— y **no** el circuito interno ni los datos del vecino que hizo el reclamo. Que las concesionarias sean lectoras del sistema completo sería exponer datos de vecinos a una empresa privada sin ninguna necesidad operativa.
 
@@ -422,7 +585,13 @@ Se guarda el registro de cada generación, no solo el archivo: si mañana hay un
 
 ## 14. Pendiente de decidir
 
-- Qué exponen exactamente los endpoints → `04-contrato-api.md`
-- Retención del registro de auditoría, de las fotos y de las rutas → `07-seguridad-y-privacidad.md`
-- Qué campos exactos lleva el entregable para concesionarias y en qué formato (C-01)
-- Si el rol `jefe` se confirma como se diseñó acá (A-09)
+Lo que estaba acá se cerró el 20/08 y quedó absorbido arriba: el entregable a concesionarias (C-01 → §13), la retención de rutas, fotos y auditoría (§9 y `07-seguridad-y-privacidad.md`), y las tablas nuevas del blindaje.
+
+Queda abierto y **depende de terceros**:
+
+- Si el rol `jefe` se confirma como se diseñó acá (**A-09**, la repartición).
+- Los cortes de diámetro y altura de `regla_complejidad` (**A-10**, Dirección Técnica). El mecanismo ya está resuelto por D-49: la tabla arranca vacía y la sugerencia no aparece.
+- Los textos reales de reclamos que validen las señales de riesgo provisorias (**A-12**).
+- La política de datos personales propia de la repartición, que define la retención de fotos.
+
+Qué expone exactamente cada endpoint sigue viviendo en `04-contrato-api.md`; no es una pregunta abierta, es una separación de documentos.
