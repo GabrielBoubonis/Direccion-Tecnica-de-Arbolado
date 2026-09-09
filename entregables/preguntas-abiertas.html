@@ -1,0 +1,995 @@
+<title>Preguntas por Resolver</title>
+<style>
+  :root {
+    --ground:      #F3F6F4;
+    --surface:     #FFFFFF;
+    --surface-2:   #EDF2EF;
+    --ink:         #0E1C18;
+    --ink-2:       #55655F;
+    --ink-3:       #7C8C86;
+    --rule:        #D6E0DB;
+    --rule-strong: #B4C4BD;
+    --accent:      #0F6E56;
+    --accent-soft: #E4F0EB;
+    --critico:     #C62F2F;
+    --critico-soft:#FBECEC;
+    --releva:      #DC6A16;
+    --tecnica:     #5B5BD6;
+    --equipo:      #0F6E56;
+    --docente:     #8A6A1F;
+
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --pad: clamp(1.1rem, 4vw, 2.5rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0C1512;
+      --surface:     #121D19;
+      --surface-2:   #17241F;
+      --ink:         #E4EDE8;
+      --ink-2:       #9AAAA3;
+      --ink-3:       #74847D;
+      --rule:        #24322C;
+      --rule-strong: #35463F;
+      --accent:      #4EBF9B;
+      --accent-soft: #14312A;
+      --critico:     #E4574F;
+      --critico-soft:#2A1615;
+      --releva:      #EC8038;
+      --tecnica:     #8B8BEA;
+      --equipo:      #4EBF9B;
+      --docente:     #D4AE52;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0C1512;
+    --surface:     #121D19;
+    --surface-2:   #17241F;
+    --ink:         #E4EDE8;
+    --ink-2:       #9AAAA3;
+    --ink-3:       #74847D;
+    --rule:        #24322C;
+    --rule-strong: #35463F;
+    --accent:      #4EBF9B;
+    --accent-soft: #14312A;
+    --critico:     #E4574F;
+    --critico-soft:#2A1615;
+    --releva:      #EC8038;
+    --tecnica:     #8B8BEA;
+    --equipo:      #4EBF9B;
+    --docente:     #D4AE52;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 var(--pad) 6rem; }
+
+  header.top {
+    border-bottom: 2px solid var(--ink);
+    padding: 3.5rem 0 1.6rem;
+    margin-bottom: 2rem;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 5.5vw, 3.1rem);
+    line-height: 1.08;
+    letter-spacing: -.018em;
+    text-wrap: balance;
+    margin: 0 0 1rem;
+  }
+  .lede { max-width: var(--measure); color: var(--ink-2); font-size: 1.05rem; margin: 0 0 1.4rem; }
+
+  .comollenar {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.2rem;
+    max-width: var(--measure);
+  }
+  .comollenar p { margin: 0; font-size: .93rem; }
+  .comollenar p + p { margin-top: .55rem; }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(1.4rem, 3.2vw, 1.85rem);
+    line-height: 1.18;
+    text-wrap: balance;
+    margin: 3.4rem 0 .5rem;
+    padding-bottom: .6rem;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  h2 .quien {
+    display: block;
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    margin-bottom: .45rem;
+  }
+  .g-releva  .quien { color: var(--releva); }
+  .g-tecnica .quien { color: var(--tecnica); }
+  .g-equipo  .quien { color: var(--equipo); }
+  .g-docente .quien { color: var(--docente); }
+
+  .grupo-intro { max-width: var(--measure); color: var(--ink-2); font-size: .95rem; margin: .9rem 0 1.8rem; }
+
+  .q {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--rule-strong);
+    margin-bottom: 1.1rem;
+  }
+  .g-releva  .q { border-left-color: var(--releva); }
+  .g-tecnica .q { border-left-color: var(--tecnica); }
+  .g-equipo  .q { border-left-color: var(--equipo); }
+  .g-docente .q { border-left-color: var(--docente); }
+  .q.critica { border-left-color: var(--critico); border-color: var(--critico); }
+
+  .q-head { padding: 1rem 1.2rem .2rem; }
+  .q-id {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .1em;
+    color: var(--ink-3);
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+    margin-bottom: .4rem;
+  }
+  .flag {
+    font-family: var(--mono);
+    font-size: .63rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: .14em .45em;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    color: var(--critico);
+    background: var(--critico-soft);
+  }
+  .q-head h3 {
+    font-family: var(--sans);
+    font-size: 1.06rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -.008em;
+    margin: 0 0 .9rem;
+    max-width: var(--measure);
+  }
+
+  .campos { border-top: 1px solid var(--rule); }
+  .campo {
+    display: grid;
+    grid-template-columns: 1fr;
+    border-bottom: 1px solid var(--rule);
+  }
+  .campo:last-child { border-bottom: none; }
+  @media (min-width: 640px) { .campo { grid-template-columns: 150px 1fr; } }
+
+  .campo dt {
+    font-family: var(--mono);
+    font-size: .64rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: .75rem 1.2rem .1rem;
+  }
+  @media (min-width: 640px) {
+    .campo dt { padding: .75rem .6rem .75rem 1.2rem; border-right: 1px solid var(--rule); }
+  }
+  .campo dd { margin: 0; padding: .1rem 1.2rem .75rem; font-size: .91rem; }
+  @media (min-width: 640px) { .campo dd { padding: .75rem 1.2rem; } }
+  .campo dd p { margin: 0 0 .5rem; max-width: none; }
+  .campo dd p:last-child { margin-bottom: 0; }
+  .campo dd ul { margin: 0; padding-left: 1.1rem; }
+  .campo dd li { margin-bottom: .3rem; }
+  .campo dd li:last-child { margin-bottom: 0; }
+
+  dl { margin: 0; }
+
+  code, .ref {
+    font-family: var(--mono);
+    font-size: .85em;
+    background: var(--surface-2);
+    padding: .08em .38em;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .ref { color: var(--accent); font-weight: 600; }
+
+  .resp {
+    background: var(--surface-2);
+    border-top: 1px dashed var(--rule-strong);
+    padding: .7rem 1.2rem;
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .resp.dada {
+    background: var(--accent-soft);
+    border-top: 1px solid var(--accent);
+    font-family: var(--sans);
+    font-size: .92rem;
+    line-height: 1.55;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink);
+    padding: .9rem 1.2rem 1rem;
+  }
+  .resp.dada .dijeron { display: block; margin-bottom: .55rem; }
+  .resp.dada .hicimos {
+    display: block;
+    margin-top: .6rem;
+    padding-top: .6rem;
+    border-top: 1px dashed var(--rule-strong);
+  }
+  .resp.dada .et {
+    font-family: var(--mono);
+    font-size: .64rem;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: .25rem;
+  }
+  .flag.ok { color: var(--accent); background: var(--accent-soft); }
+  .aviso {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: 1.1rem 1.3rem;
+    margin: 1.6rem 0 0;
+    max-width: var(--measure);
+  }
+  .aviso p { margin: 0 0 .6rem; font-size: .95rem; }
+  .aviso p:last-child { margin-bottom: 0; }
+  footer.fin {
+    margin-top: 4rem;
+    padding-top: 1.4rem;
+    border-top: 2px solid var(--ink);
+    font-size: .86rem;
+    color: var(--ink-2);
+  }
+  footer.fin p { max-width: var(--measure); }
+
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">Backend · Rama VillegaBackBranch · 18 agosto 2026</p>
+    <h1>Veintidós preguntas que necesitamos resolver</h1>
+    <p class="lede">
+      El diseño del backend está cerrado, pero apoyado en supuestos que alguien tiene que confirmar. Cada pregunta
+      dice de dónde salió, qué cambia según la respuesta y qué habría que corregir del documento técnico.
+    </p>
+    <div class="aviso">
+      <p><strong>Actualizado el 19 de agosto.</strong> La Dirección Técnica contestó los grupos A y B: <strong>quedan 6 de 22</strong>,
+      y todas las que faltan dependen del equipo o del docente. Cada ficha respondida muestra abajo qué contestaron y qué cambió en el diseño.</p>
+      <p>Las tres críticas salieron a favor del planteo: <strong>el SUA acepta que un sistema externo le escriba</strong> (B-01),
+      la sede es <strong>Moreno 2350</strong> (A-02) y la etiqueta de tormenta <strong>todavía no existe</strong> —la tiene que
+      agregar el CIL—, así que el módulo se diseña para funcionar sin ella (A-03).</p>
+      <p>Dos respuestas obligaron a rediseñar: se cae la matrícula profesional y entra una habilitación registrada (A-07),
+      y el SUA no tiene coordenadas, así que geocodificar pasa a ser trabajo del módulo (B-02). Una tercera suma un rol
+      que el documento no tenía y sus propias historias de usuario ya usaban (A-09).</p>
+    </div>
+
+    <div class="comollenar">
+      <p><strong>Cómo usar esto.</strong> Las preguntas están agrupadas por quién puede responderlas, no por tema.
+      Si sos el destinatario de un grupo, con ese grupo alcanza.</p>
+      <p>Las marcadas como <span class="flag">Crítica</span> condicionan el planteo del trabajo, no un detalle.
+      Vale la pena resolverlas primero.</p>
+      <p>Ninguna bloquea que sigamos construyendo: para todas hay un supuesto tomado, indicado en cada ficha. Lo que
+      cambia es cuánto habría que rehacer si el supuesto está mal.</p>
+    </div>
+  </header>
+
+  <!-- ══════════ RELEVAMIENTO ══════════ -->
+  <div class="g-releva">
+    <h2><span class="quien">Grupo A · Relevamiento puro — Dirección Técnica de Arbolado</span>Preguntar en la repartición</h2>
+    <p class="grupo-intro">
+      Doce preguntas que no se pueden deducir de ningún documento: hay que preguntarle a la gente que hace el
+      trabajo. Son las mismas entrevistas y observación de campo que hicimos en Práctica Profesionalizante I.
+    </p>
+
+    <article class="q critica">
+      <div class="q-head">
+        <p class="q-id"><span>A-01</span><span class="flag">Crítica</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Cuántos ingenieros agrónomos dictaminan en campo hoy, y salen todos los días?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Cuántas personas van a estar usando la aplicación al mismo tiempo, un martes cualquiera a las nueve de la mañana.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          La minuta propone reorganizar el equipo en "tres ingenieros para barridos y dos para urgentes", pero
+          eso es una <em>propuesta</em>. El documento nunca dice cuántos hay realmente. Sección 2.4.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          <ul>
+            <li><strong>Si son dos o tres:</strong> casi nunca compiten por el mismo reclamo y la reserva de trabajo es una precaución barata.</li>
+            <li><strong>Si son seis u ocho:</strong> la reserva pasa a ser el mecanismo central del sistema, y hay que pensar qué pasa cuando alguien se queda sin casos disponibles en su zona.</li>
+          </ul>
+          También dimensiona cuántos reclamos de prueba tiene que tener la demo para ser creíble.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Sección <span class="ref">2.4</span>, agregar la dotación real. Y revisar si <span class="ref">HU-12</span> y <span class="ref">HU-13</span> tienen sentido con esa cantidad de gente.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span>Dictaminan en campo <strong>4 ingenieros</strong>, con la intención de escalar a <strong>uno por distrito</strong> — seis.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>La reserva de trabajo se sostiene: con cuatro personas sobre la misma cola, el choque es infrecuente pero no imposible, y con seis pasa a ser esperable. El seed se dimensiona para ese equipo y el driver prueba el choque con dos usuarios reales. <span class="ref">D-35</span></span></p>
+    </article>
+
+    <article class="q critica">
+      <div class="q-head">
+        <p class="q-id"><span>A-02</span><span class="flag">Crítica</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Dónde queda exactamente la sede de la que salen y a la que vuelven los ingenieros?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          La dirección del edificio donde el ingeniero arranca la jornada y al que vuelve al terminar.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RF-22</span> dice que toda ruta parte de Parques y Paseos y regresa a Parques y Paseos, pero el documento nunca da la dirección.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Es el punto de inicio y fin de <em>todos</em> los cálculos de ruta. Sin la dirección real, el orden de
+          visitas y el porcentaje de eficiencia son números inventados, y el mapa que se proyecte en la defensa
+          va a arrancar en un punto arbitrario de la ciudad.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Ninguno. Es un dato que falta y no se puede suponer.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Agregar la dirección a <span class="ref">RF-22</span> como dato del requerimiento.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span><strong>Moreno 2350.</strong></span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Es el origen y el regreso de toda ruta (<span class="ref">RF-22</span>). Se geocodifica una sola vez, se verifica a ojo contra el mapa —de ese punto cuelga el cálculo de todas las rutas— y queda fijo en la tabla de parámetros. <span class="ref">D-36</span></span></p>
+    </article>
+
+    <article class="q critica">
+      <div class="q-head">
+        <p class="q-id"><span>A-03</span><span class="flag">Crítica</span><span class="flag ok">Respondida</span></p>
+        <h3>El "Protocolo de tormenta", ¿existe hoy en el SUA como una marca en el reclamo, o es una idea nuestra?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Después de un temporal entran cien reclamos de golpe. ¿Alguien los marca de alguna forma en el sistema
+          actual, o simplemente entran mezclados con el resto?
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RF-28</span> dice que se listan los reclamos "derivados con la etiqueta especial de tormenta". El documento da por
+          hecho que esa etiqueta existe, pero no lo confirma en ninguna parte.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          <ul>
+            <li><strong>Si existe:</strong> el sistema la lee y listo. Es una integración.</li>
+            <li><strong>Si no existe:</strong> es una mejora propuesta más, y hay que definir quién marca los casos y cuándo. Cambia el alcance: pasa de "leemos una etiqueta" a "proponemos un procedimiento nuevo".</li>
+          </ul>
+          Afecta a los tres requerimientos del módulo de tormenta y a un caso de uso completo.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Que existe y viene en el reclamo derivado.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          <span class="ref">RF-28</span>, aclarar el origen de la etiqueta. Si no existe, sumar un requerimiento nuevo sobre quién la asigna.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span><strong>No existe.</strong> Es un agregado que tiene que hacer el CIL en el SUA, y lo dan por sencillo.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Pasa de integración a mejora propuesta con dependencia externa. El adaptador la lee igual, para que el día que el CIL la implemente el circuito cierre solo; mientras tanto la marca el <strong>Administrador</strong> sobre reclamos existentes, o el ingeniero al dar de alta un caso en campo durante el temporal. Si dependiera solo del CIL, el módulo quedaría inutilizable justo el peor día del año. <span class="ref">D-37</span> · <span class="ref">DV-09</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>A-04</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Qué dispositivo usan en la calle: uno provisto por la Municipalidad o el celular propio?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          El ingeniero saca un aparato del bolsillo para cargar el dictamen. ¿Es suyo o se lo dio la repartición?
+          Y si es provisto, ¿es Android?
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RNF-01</span> exige que funcione en celular y tablet, y el diagrama de despliegue habla de "dispositivos móviles
+          corporativos asignados al personal de campo" (sección 2.5), pero nadie lo confirmó.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Diseñamos la sincronización en segundo plano asumiendo que no hay iPhone, porque en iPhone esa función
+          no existe y el envío automático con la aplicación cerrada no funciona.
+          <ul>
+            <li><strong>Si son equipos provistos con Android:</strong> el supuesto es real y se documenta como condición.</li>
+            <li><strong>Si usan el propio:</strong> alguno va a tener iPhone, y hay que decir en el documento que en ese caso el envío ocurre al abrir la aplicación, no solo.</li>
+          </ul>
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Equipos Android provistos por la repartición.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          <span class="ref">RNF-01</span> y <span class="ref">RNF-03</span>, agregando la condición de dispositivo.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span>Un equipo provisto por la Municipalidad, al que le dicen <strong>captor</strong>.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>El parque de dispositivos es conocido y homogéneo: no hay que diseñar para "cualquier celular que traiga cada uno". Confirmado que <strong>es Android</strong>, así que la sincronización en segundo plano funciona como está diseñada y <strong>iOS queda fuera del alcance por una condición real de la repartición</strong>, no por un supuesto de conveniencia nuestro. Para la defensa la diferencia importa: una limitación heredada del entorno se justifica sola; una elegida por el equipo hay que defenderla. <span class="ref">D-38</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>A-05</span><span class="flag ok">Respondida</span></p>
+        <h3>Los datos móviles que usan en la calle, ¿los paga la repartición o el ingeniero?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Si el ingeniero sube diez fotos por jornada de su propio plan de datos, le importa. Si lo paga la
+          repartición, no.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RNF-03</span> dice que el sistema debe operar con datos móviles sin depender del proxy municipal, pero no aclara
+          de quién es el plan.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Cuánto comprimimos las fotos antes de subirlas y cuánto material descargamos por adelantado al planificar
+          la jornada. Si el consumo importa, se prioriza ahorrar datos aunque las fotos pierdan algo de calidad.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Que el consumo importa: comprimimos las fotos igual.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Nada, salvo que convenga dejarlo dicho en <span class="ref">RNF-03</span>.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span>Los paga la Municipalidad: <strong>vienen con el captor</strong>.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Las fotos se comprimen igual, pero por otro motivo: subir menos bytes con una barra de señal es la diferencia entre que el envío entre o quede colgado. El cuello de botella es la señal, no la factura. Y como el plan lo paga la repartición, se aprovecha para lo contrario: al planificar con conexión se <strong>precarga la jornada entera</strong> en vez de racionar la descarga. <span class="ref">D-38</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>A-06</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Hay una lista oficial de especies del arbolado de Rosario, o el ingeniero escribe la especie a mano?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          En el formulario de papel, el campo "especie", ¿se completa eligiendo de una lista o escribiendo?
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RF-13</span> pide cargar la especie del ejemplar. <span class="ref">RF-16</span> va más lejos: pide sugerir la época de intervención
+          "en función de la estación del año y la especie".
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          <ul>
+            <li><strong>Con lista oficial:</strong> es un desplegable, el dato queda estandarizado y la sugerencia de época se puede calcular de verdad.</li>
+            <li><strong>Con texto libre:</strong> cada ingeniero escribe distinto ("tipa", "Tipuana", "tipa blanca") y <span class="ref">RF-16</span> no se puede implementar en serio.</li>
+          </ul>
+          Es la diferencia entre que <span class="ref">RF-16</span> funcione o sea decorativo.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Lista acotada de las especies más frecuentes, con opción de escribir "otra".
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          <span class="ref">RF-13</span>, precisar si es lista o texto. Y revisar la viabilidad de <span class="ref">RF-16</span> según la respuesta.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span><strong>La escribe a mano</strong>, porque el ingeniero agrónomo se conoce hasta el nombre científico.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>El campo queda como texto libre —así está hoy en el prototipo— con autocompletado sobre un catálogo interno de especies frecuentes, incluidas sinonimias ("tipa", "tipa blanca", <em>Tipuana tipu</em>). Si lo escrito coincide, se guarda la especie normalizada y <strong>con eso</strong> se calcula la época. Si no coincide, el dictamen se guarda igual y el sistema <strong>no sugiere época</strong> en lugar de inventar una. <span class="ref">D-39</span> · <span class="ref">DV-14</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>A-07</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Qué forma tiene la matrícula profesional de un ingeniero agrónomo?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Un ejemplo real de matrícula, aunque sea inventado con el formato correcto. Cuántos dígitos, si lleva
+          letras, si lleva prefijo del colegio profesional.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RF-18</span> exige matrícula registrada para poder firmar, y <span class="ref">CU-08</span> lista "matrícula con formato inválido" como
+          una excepción del caso de uso. Para validar un formato hay que conocerlo.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Si el sistema puede validar el formato, un error de tipeo del administrador se detecta al cargarlo, no
+          el día que el ingeniero intenta firmar en la calle.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Texto libre no vacío. Sin validación de formato.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          <span class="ref">RF-18</span> y la excepción de <span class="ref">CU-08</span>.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span>Que no tienen idea de qué forma tiene, y que <strong>se podría reemplazar por el título presentado en RRHH</strong>.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Se cae la matrícula, y con ella también la habilitación individual: <strong>firmar pasa a ser atributo del rol</strong>. Firman <strong>Operario y Jefe</strong>, los dos que van a la calle. El Lector no firma porque no opera, y el <strong>Administrador tampoco</strong>: la sección 3 del documento lo define como personal del CIL, y un dictamen técnico no lo firma alguien de sistemas. Lo que se configura en un solo lugar es <em>cómo</em> firma el sistema —roles habilitados, certificadora, algoritmo del hash, leyenda legal del pie— para que el día que haya que certificar de verdad se toque un apartado y salga andando.
+        <br><br><strong>Es el desvío más fuerte del proyecto</strong>: contradice <span class="ref">RF-02</span>, <span class="ref">RF-18</span> y <span class="ref">RF-19</span> como están escritos. Está documentado con lo que se pierde y cómo se mitiga, porque en una defensa oral conviene ser el primero en decirlo. <span class="ref">D-50</span> · <span class="ref">D-51</span> · <span class="ref">DV-10</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>A-08</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Qué forma tiene el número de reclamo del SUA?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          El ingeniero tipea ese número parado frente al árbol. Un ejemplo real ayuda: cuántos dígitos, si tiene
+          guiones, si el año va aparte o pegado.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RF-12</span> hace del par número y año el primer paso obligatorio del dictamen. Es lo primero que toca el
+          usuario en el momento más incómodo: de pie, en la calle, con sol.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Con un formato conocido se valida en el celular antes de consultar al servidor. Sin señal, eso significa
+          que el ingeniero se entera al instante de que se equivocó tipeando, en vez de esperar a tener conexión
+          para descubrirlo.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Número libre más año de cuatro dígitos, sin validación de forma.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          <span class="ref">RF-12</span>, agregando el formato.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span>Son <strong>dos campos separados</strong>: número y año. Se elige el año y se busca el número dentro de ese año — <code>1234</code> · <code>2026</code>.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Confirma la clave <span class="ref">(N° SUA, año)</span> del diseño. El año es un selector con el año en curso y los diez anteriores, configurable; el número admite solo dígitos. Con eso el error de tipeo se detecta <strong>en el celular y sin señal</strong>, en vez de descubrirse al recuperar conexión. <span class="ref">D-41</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>A-09</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Existe hoy una jefatura en la Dirección Técnica, o el "Ingeniero en Jefe" es una propuesta nuestra?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Cuando hay que decidir que esta semana se atienden primero los casos de una zona, ¿quién lo decide y
+          cómo se lo comunica al resto?
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          La minuta propone crear un Ingeniero en Jefe y un Subjefe. Pero <span class="ref">HU-12</span> y <span class="ref">HU-13</span> ya le dan al "jefe" el
+          balanceador y los perfiles de distribución, mientras que el modelo de roles de la sección 3 solo tiene
+          Lector, Operario y Administrador. <strong>El jefe aparece en las historias de usuario pero no existe como rol.</strong>
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          <ul>
+            <li><strong>Si hay jefatura real:</strong> probablemente haga falta un cuarto rol, con permiso para bajar directivas sin ser administrador del sistema.</li>
+            <li><strong>Si es solo propuesta:</strong> las directivas las carga el Administrador a pedido del jefe, que es como lo diseñamos.</li>
+          </ul>
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          No hay rol de jefe: el Administrador carga las directivas.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Sección <span class="ref">3</span> (modelo de roles) y las historias <span class="ref">HU-12</span> y <span class="ref">HU-13</span>, que hoy le hablan a un rol inexistente.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span><strong>Existe.</strong> Suele quedarse atendiendo al público más difícil, pero la idea es que también dictamine en la calle.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Se agrega el rol <strong>Jefe</strong>: operario completo —dictamina y firma si está habilitado— más ver el trabajo de todo el equipo y <strong>bajar las directivas de jornada</strong>. No hereda usuarios, parámetros, adaptadores ni el entregable para concesionarias: dirigir el trabajo no es administrar el sistema. Resuelve además una incoherencia del documento, donde <span class="ref">HU-12</span> y <span class="ref">HU-13</span> le hablan a un rol que la sección 3 no tenía. <span class="ref">D-42</span> · <span class="ref">DV-11</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>A-10</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Con qué criterio se decide hoy si una intervención es de complejidad baja, media, alta o máxima?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          El ingeniero marca esa casilla en el papel. ¿Lo decide por experiencia, o hay una regla del tipo "más de
+          tal altura es alta"?
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RF-15</span> pide clasificar por complejidad con esos cuatro valores, "en línea con la escala real utilizada en
+          el formulario físico". Pero no dice qué determina cada nivel.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Si hay una regla, el sistema puede sugerir la complejidad a partir de los datos del ejemplar y ahorrar
+          una decisión. Si es criterio profesional, se deja como está y no inventamos una automatización que los
+          ingenieros no pidieron.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Criterio libre del ingeniero, sin sugerencia automática.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          <span class="ref">RF-15</span>, aclarando si hay criterio objetivo.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span>Por el <strong>diámetro del tronco y la altura</strong> del ejemplar.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Hay criterio objetivo, así que <span class="ref">RF-15</span> deja de ser una casilla a ojo: el sistema <strong>sugiere</strong> la complejidad con dos datos que el dictamen ya carga, y el ingeniero confirma o cambia. Los cortes van en tabla, no en código. Como en la calle se mide el <strong>perímetro</strong> con cinta y la regla habla de <strong>diámetro</strong>, el sistema convierte y muestra los dos. Los cortes <strong>los carga el Administrador desde el panel</strong>: la tabla arranca vacía y la sugerencia aparece recién cuando hay números cargados. No vienen fijos de fábrica y no los inventa el equipo de desarrollo — un umbral puesto por nosotros se vería exactamente igual que uno acordado con la repartición, y el ingeniero no tendría cómo distinguirlos. <span class="ref">D-43</span> · <span class="ref">D-49</span> · <span class="ref">DV-15</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>A-11</span><span class="flag ok">Respondida</span></p>
+        <h3>Hoy, cuando pasan dieciocho meses y la cuadrilla nunca ejecutó la intervención, ¿qué se hace?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          El dictamen venció y el árbol sigue ahí. ¿Alguien lo revisa? ¿Se vuelve a inspeccionar? ¿Se ejecuta igual?
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RF-19</span> calcula el vencimiento a dieciocho meses y <span class="ref">RF-05</span> avisa los que están por vencer, pero
+          <strong>ningún requerimiento dice qué pasa cuando efectivamente vence</strong>. Lo detectamos diseñando.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Decidimos que el reclamo vuelve a la cola de pendientes marcado para re-dictaminar, porque en dieciocho
+          meses el ejemplar cambió y la evaluación anterior ya no autoriza nada. Pero conviene confirmar qué hace
+          hoy la repartición antes de fijarlo.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Vuelve a la cola para re-dictaminar, con el dictamen viejo consultable.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Es un <strong>requerimiento faltante</strong>, no un desvío. Hay que agregarlo como <span class="ref">RF</span> nuevo.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span>Que a los 18 meses el dictamen <strong>ya no es acorde a la problemática real del árbol</strong>, así que se vuelve a dictaminar.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Es exactamente lo que el diseño había deducido, y ahora deja de ser deducción nuestra. El reclamo vuelve a la cola marcado para re-dictaminar y el dictamen viejo queda consultable. Sigue siendo un <strong>requerimiento faltante</strong> del documento, no un desvío. <span class="ref">D-44</span> · <span class="ref">DV-05</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>A-12</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Cómo escriben realmente los vecinos los reclamos de arbolado?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Diez o quince descripciones reales, tal como quedan cargadas en el SUA. Sin nombres ni direcciones: solo
+          el texto del motivo.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          Diseñamos una regla que sube la prioridad cuando la descripción contiene señales de riesgo: "rama
+          colgando", "toca los cables", "está inclinado". Las redactamos nosotros desde el relevamiento, sin ver
+          reclamos reales.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Si los vecinos escriben parecido a lo que supusimos, la regla sirve. Si escriben distinto, la regla no
+          detecta nada y estaríamos mostrando una automatización que en la realidad no se dispara nunca.
+          <p>Por eso la regla es <strong>desactivable</strong>: si genera más ruido que valor, se apaga y el sistema
+          sigue funcionando con las otras dos señales.</p>
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Las frases que redactamos, con la regla activada.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Nada del documento. Se ajusta la tabla de señales, que vive en la base de datos y se cambia sin tocar código.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span>Los vecinos ingresan por <strong>munibot</strong>, <strong>presencialmente</strong> o por los <strong>distritos municipales</strong>.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Quedan confirmados los canales de ingreso, que se guardan en el reclamo. <strong>Sigue faltando lo principal</strong>: diez o quince descripciones reales, tal como quedan cargadas. Y ahora pesan el doble, porque con el motivo en texto libre confirmado (B-03) de esas mismas señales sale también la <strong>categoría</strong> que fija el ritmo de escalamiento. Por eso la regla es desactivable y la categoría, corregible.</span></p>
+    </article>
+  </div>
+
+  <!-- ══════════ TÉCNICA ══════════ -->
+  <div class="g-tecnica">
+    <h2><span class="quien">Grupo B · Verificación técnica — Centro de Informática Local</span>Confirmar sobre el SUA</h2>
+    <p class="grupo-intro">
+      Cuatro preguntas sobre qué puede y qué no puede hacer el SUA. Son las que definen si el planteo de
+      integración del trabajo es realista o hay que matizarlo en el documento.
+    </p>
+
+    <article class="q critica">
+      <div class="q-head">
+        <p class="q-id"><span>B-01</span><span class="flag">Crítica</span><span class="flag ok">Respondida</span></p>
+        <h3>¿El SUA permitiría que un sistema externo cambie el estado de un reclamo?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          El ingeniero firma el dictamen y el reclamo tiene que pasar de "sin dictaminar" a "dictaminado" en el
+          SUA. Eso es <em>escribir</em> en el sistema municipal, no solo leerlo.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RF-20</span> y el diagrama de secuencia 8.1-B lo dan por hecho. La sección 1.4 dice que el sistema
+          "interactuará de manera directa con la base centralizada del SUA".
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          <p><strong>Es probablemente la pregunta más importante de todas.</strong> Todo el argumento del trabajo es
+          que elimina la transcripción manual del papel al SUA. Si el SUA solo permite lectura, esa transcripción
+          sigue existiendo y el beneficio principal se reduce.</p>
+          <ul>
+            <li><strong>Si permite escribir:</strong> el circuito se cierra solo y el planteo se sostiene entero.</li>
+            <li><strong>Si es solo lectura:</strong> hay que decirlo con todas las letras y replantear el beneficio: el sistema seguiría eliminando el papel y estandarizando el dictamen, pero alguien tendría que volcar el resultado al SUA.</li>
+          </ul>
+          Preferimos saberlo ahora que descubrirlo en la defensa.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Que permite escribir el cambio de estado.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Sección <span class="ref">1.4</span> y <span class="ref">RF-20</span>. Si es solo lectura, además hay que revisar la justificación de la sección 1.3.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span><strong>Sí</strong>, cuando los administradores del SUA ceden los permisos.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Es la respuesta que sostiene el argumento central del trabajo: al firmar, el reclamo pasa a <em>dictaminado</em> en el SUA y <strong>la transcripción manual del papel desaparece</strong>. El circuito cierra solo. Queda una condición para decir en la defensa: el beneficio depende de una cesión de permisos que la repartición tiene que gestionar, no de una capacidad técnica que falte. <span class="ref">D-45</span></span></p>
+    </article>
+
+    <article class="q critica">
+      <div class="q-head">
+        <p class="q-id"><span>B-02</span><span class="flag">Crítica</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Los reclamos del SUA tienen coordenadas, o solo la dirección escrita?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Para poner un reclamo en el mapa hace falta un punto. Si el SUA guarda solo "Mendoza 3450", alguien
+          tiene que convertir eso en un punto, y esa conversión a veces falla o cae media cuadra corrida.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          El modelo entidad-relación tiene <code>direccion_exacta</code> y <code>distrito</code>, pero
+          <strong>ningún campo de coordenadas</strong>. Aun así <span class="ref">RF-22</span> y <span class="ref">RF-26</span> piden calcular rutas y dibujar un mapa.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          <ul>
+            <li><strong>Si vienen coordenadas:</strong> el mapa y la ruta son exactos.</li>
+            <li><strong>Si viene solo la dirección:</strong> hay que geocodificar, con errores ocasionales, y conviene que el ingeniero pueda corregir el punto en el mapa.</li>
+          </ul>
+          También afecta la insistencia del vecino: agrupar reclamos del mismo árbol es mucho más confiable con coordenadas que comparando textos de direcciones.
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Solo dirección: geocodificamos y guardamos el punto obtenido.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Modelo entidad-relación (sección <span class="ref">7.1</span>): la entidad Reclamo necesita coordenadas. Y aclararlo en <span class="ref">RF-26</span>.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span><strong>Solo dirección escrita</strong>, y es la dirección exacta del ejemplar. No hay coordenadas: los árboles no se geolocalizaron en el censo.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Geocodificar pasa a ser trabajo del módulo. Se agrega el puerto <code>IGeocodificador</code> —el decimotercero— y la tabla <code>reclamo_geo</code>, del lado del módulo y no del SUA simulado, por la misma razón que la prioridad: simular una capacidad que el sistema real no tiene es mentir en el punto donde después se rompe. Cada punto declara su <strong>precisión</strong> y el ingeniero <strong>puede corregirlo en el mapa</strong>, en la pantalla de pre-confirmación de la jornada: es el último momento con señal y con el mapa a la vista. Un reclamo sin punto entra igual al listado y queda afuera solo de la ruta. <span class="ref">D-46</span> · <span class="ref">DV-12</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>B-03</span><span class="flag ok">Respondida</span></p>
+        <h3>¿El reclamo trae un motivo elegido de una lista, o solo el texto que escribió quien lo tomó?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Cuando alguien carga un reclamo de arbolado en el SUA, ¿elige de un desplegable el tipo de problema
+          (poda, extracción, raíces, cables), o simplemente escribe lo que le contó el vecino?
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          Diseñamos que la prioridad escale a distinto ritmo según la categoría del reclamo: treinta días para
+          casos de cableado, noventa para poda estética. Eso necesita saber la categoría.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          <ul>
+            <li><strong>Si viene categorizado:</strong> el sistema lee la categoría y el escalamiento diferenciado es sólido. Necesitaríamos la lista de motivos disponibles.</li>
+            <li><strong>Si es texto libre:</strong> hay que deducir la categoría leyendo el texto, con la misma imprecisión de la pregunta A-12.</li>
+          </ul>
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          El peor caso: solo texto libre. Si aparece la categoría, el diseño sirve igual y mejora.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Sección <span class="ref">1.4</span> y <span class="ref">RF-11</span>. Si hay lista de motivos, conviene incluirla como anexo.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span><strong>Solo texto escrito.</strong></span><span class="hicimos"><span class="et">Qué cambió en el diseño</span>Se confirma el peor caso, que era el que ya habíamos asumido: el diseño no cambia. La categoría se <strong>infiere</strong> del texto, queda marcada como inferida y <strong>el ingeniero puede corregirla</strong>; corregida, el escalamiento pasa a usar el ritmo de la categoría buena. Cada corrección es además evidencia de qué señal falló, que es lo que hace falta para afinar la tabla. <span class="ref">D-47</span></span></p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>B-04</span><span class="flag ok">Respondida</span></p>
+        <h3>¿Con qué se identifica un agente municipal al entrar a los sistemas internos?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Cuando un empleado entra al SUA, ¿qué escribe en el campo de usuario? ¿Un nombre de red tipo
+          <code>gboubonis</code>, un correo institucional, un número de legajo?
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          <span class="ref">RF-01</span> habla de "credenciales institucionales" y <span class="ref">RF-31</span> de "vincular una cuenta institucional existente",
+          pero nunca dice qué es esa cuenta. El modelo entidad-relación usa <code>usuario_agente</code> como clave
+          primaria, lo que sugiere un usuario de red.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Define qué dice la etiqueta del campo en la pantalla de acceso y qué tipea el ingeniero.
+          <p>El diseño ya lo previó: la interfaz de autenticación recibe un identificador genérico, sin asumir si es
+          un correo o un usuario de red. Así que la respuesta no obliga a rehacer nada, solo a ajustar la etiqueta
+          y el ejemplo.</p>
+        </dd></div>
+        <div class="campo"><dt>Supuesto actual</dt><dd>
+          Correo institucional. Los usuarios de prueba usan un dominio ficticio para que ninguna prueba pueda
+          mandarle un correo a una casilla real de la Municipalidad.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          <span class="ref">RF-01</span> y <span class="ref">RF-31</span>, precisando qué es la credencial institucional.
+        </dd></div>
+      </dl>
+      <p class="resp dada"><span class="dijeron"><span class="et">Contestaron</span>Usuario y contraseña. El usuario es la primera letra del nombre, seis del apellido y un número correlativo por coincidencias: <code>gboubon0</code>.</span><span class="hicimos"><span class="et">Qué cambió en el diseño</span><strong>No hubo que rehacer nada.</strong> El puerto de autenticación ya recibía un <code>identificador</code> opaco justamente para no depender de esta respuesta: el supuesto era "correo institucional" y salió "usuario de red". Cambian la etiqueta y el ejemplo de la pantalla de acceso, que hoy dice "Correo Institucional / Legajo". El adaptador de Supabase, que internamente necesita un correo, le agrega el dominio reservado <code>@arbolado.test</code> puertas adentro. Los usuarios de prueba pasan al formato real con <strong>personas inventadas</strong>. <span class="ref">D-48</span> · <span class="ref">DV-13</span></span></p>
+    </article>
+  </div>
+
+  <!-- ══════════ EQUIPO ══════════ -->
+  <div class="g-equipo">
+    <h2><span class="quien">Grupo C · Decisiones del equipo</span>Resolver entre nosotros</h2>
+    <p class="grupo-intro">
+      Cuatro decisiones que no dependen de nadie externo. Solo hay que ponerse de acuerdo.
+    </p>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>C-01</span></p>
+        <h3>¿Qué información lleva el entregable que se le pasa a las empresas concesionarias?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          La contratista tiene que ir a podar veinte árboles. ¿Qué necesita saber de cada uno para hacerlo, y qué
+          es información interna que no le corresponde?
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          Se planteó que las concesionarias vean el sistema. Lo diseñamos distinto: <strong>no son usuarias</strong>, no
+          tienen cuenta ni acceso. Reciben un archivo que genera el administrador.
+          <p>El motivo es de privacidad: son una empresa privada externa, y darles acceso al sistema completo
+          significaría exponerles los datos de vecinos que no necesitan.</p>
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Nuestra propuesta incluye ubicación del ejemplar, acción autorizada, complejidad y vigencia del dictamen.
+          Deja afuera la descripción del vecino y las fotos del reclamo.
+          <p>Hay que confirmar que con eso alcanza para trabajar, y definir el formato del archivo.</p>
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Es funcionalidad nueva: hay que agregarla como requerimiento y sumarla al caso de uso del Administrador.
+        </dd></div>
+      </dl>
+      <p class="resp">Respuesta:</p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>C-02</span></p>
+        <h3>¿Cuánto tiempo guardamos el historial de recorridos de cada ingeniero?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          El sistema guarda por dónde anduvo cada ingeniero, en qué orden y a qué hora estimada llegó a cada
+          lugar. Eso es, técnicamente, un registro de los movimientos de un trabajador.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          No sale del documento: lo detectamos al inventariar qué datos personales toca el sistema. El documento
+          trata las rutas como un dato operativo y no como información sobre una persona.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Los dictámenes se guardan para siempre porque son documentos con validez legal. Las rutas no tienen esa
+          necesidad: pasado su valor estadístico, un historial de recorridos con horarios es más riesgo que
+          utilidad, sobre todo si mañana alguien lo usa para evaluar el rendimiento de una persona.
+          <p>Proponemos conservarlas un plazo acotado y después borrarlas. Falta fijar el plazo.</p>
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Conviene sumar un requerimiento no funcional de privacidad y retención, que hoy no existe.
+        </dd></div>
+      </dl>
+      <p class="resp">Respuesta:</p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>C-03</span></p>
+        <h3>¿Dónde guardamos las contraseñas de los usuarios de prueba?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Hay cuatro usuarios para probar el sistema a mano: uno de solo lectura, un operario sin matrícula, un
+          ingeniero con matrícula y un administrador. Los cuatro tienen contraseña y los cuatro las necesitamos
+          todos.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          Regla del proyecto: ninguna credencial va al repositorio. Pero el equipo necesita acceder.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Opciones: un documento compartido del grupo, un gestor de contraseñas, o pasarlas por mensaje cuando
+          alguien las necesite. Cualquiera sirve mientras no terminen en GitHub.
+        </dd></div>
+        <div class="campo"><dt>Qué corregir</dt><dd>
+          Nada del documento técnico.
+        </dd></div>
+      </dl>
+      <p class="resp">Respuesta:</p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>C-04</span></p>
+        <h3>La aplicación en React Native con Firebase: ¿alguien la iba a seguir?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          En el repositorio había dos aplicaciones distintas: el prototipo web que se le mostró al profesor, y una
+          aplicación móvil con Firebase.
+        </dd></div>
+        <div class="campo"><dt>De dónde sale</dt><dd>
+          La documentación técnica define una aplicación web responsive con base en la nube tipo Supabase. La
+          aplicación móvil usaba otra tecnología y otra base, y contradecía el documento.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          <strong>Ya la eliminamos de la rama del backend</strong>, para que el repositorio sea coherente con lo que se
+          entrega. El historial la conserva y se puede recuperar en cualquier momento.
+          <p>Si alguien la estaba trabajando, hay que hablarlo antes de que ese cambio llegue a la rama principal.</p>
+        </dd></div>
+        <div class="campo"><dt>Además</dt><dd>
+          Ese código tenía credenciales de Firebase guardadas en el repositorio. El archivo ya no está, pero
+          <strong>siguen en el historial</strong>: conviene desactivar ese proyecto de Firebase o restringirlo, ya que no
+          se va a usar.
+        </dd></div>
+      </dl>
+      <p class="resp">Respuesta:</p>
+    </article>
+  </div>
+
+  <!-- ══════════ DOCENTE ══════════ -->
+  <div class="g-docente">
+    <h2><span class="quien">Grupo D · Consulta al docente</span>Preguntar a Pedernera</h2>
+    <p class="grupo-intro">
+      Dos preguntas sobre la forma de la entrega, no sobre el sistema.
+    </p>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>D-01</span></p>
+        <h3>Los ocho desvíos respecto del documento entregado, ¿los incorporamos al documento o los presentamos aparte?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Al diseñar el backend encontramos ocho puntos donde el documento entregado el año pasado quedó corto o
+          desactualizado. Están todos registrados con su justificación.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          <ul>
+            <li><strong>Incorporarlos al documento:</strong> queda un documento coherente, pero se pierde la evidencia de que el diseño hizo evolucionar el análisis.</li>
+            <li><strong>Presentarlos como anexo:</strong> se ve el recorrido y por qué cada decisión cambió, que es material fuerte para una defensa oral.</li>
+          </ul>
+          Cinco de los ocho <em>fortalecen</em> el análisis en vez de debilitarlo. Uno es directamente un requerimiento
+          que faltaba y nadie había notado.
+        </dd></div>
+      </dl>
+      <p class="resp">Respuesta:</p>
+    </article>
+
+    <article class="q">
+      <div class="q-head">
+        <p class="q-id"><span>D-02</span></p>
+        <h3>En los cortes semanales, ¿espera el documento actualizado o alcanza con mostrar el avance?</h3>
+      </div>
+      <dl class="campos">
+        <div class="campo"><dt>En la práctica</dt><dd>
+          Cada viernes hay un corte. Preparamos una página web que muestra el estado del trabajo y crece en cada
+          hito.
+        </dd></div>
+        <div class="campo"><dt>Qué cambia</dt><dd>
+          Si además espera el documento en Word actualizado semana a semana, hay que reservar tiempo para eso y no
+          solo para construir.
+        </dd></div>
+      </dl>
+      <p class="resp">Respuesta:</p>
+    </article>
+  </div>
+
+  <footer class="fin">
+    <p>
+      <strong>Sistema de Dictaminado y Rutas Eficientes</strong> — Dirección Técnica de Arbolado, Municipalidad de
+      Rosario. Práctica Profesionalizante II, Terciario Urquiza.
+    </p>
+    <p>
+      Preguntas surgidas del diseño del backend, rama <code>VillegaBackBranch</code>. El detalle técnico de cada
+      decisión está en <code>docs-back/</code> del repositorio, y los desvíos respecto del documento en
+      <code>docs-back/99-desvios.md</code>.
+    </p>
+  </footer>
+
+</div>

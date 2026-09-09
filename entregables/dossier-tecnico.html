@@ -1,0 +1,913 @@
+<title>Diseño Técnico del Backend</title>
+<style>
+  :root {
+    --ground:      #F1F4F3;
+    --surface:     #FFFFFF;
+    --surface-2:   #E9EFEC;
+    --ink:         #0D1A17;
+    --ink-2:       #52625C;
+    --ink-3:       #7A8A84;
+    --rule:        #D3DEDA;
+    --rule-strong: #AFC1BB;
+    --accent:      #0F6E56;
+    --accent-2:    #0A4C3B;
+    --accent-soft: #E2EFEA;
+    --tec:         #3D5A80;
+    --tec-soft:    #E6EBF2;
+    --alerta:      #C62F2F;
+    --alerta-soft: #FAEBEB;
+    --ok:          #2F7D5B;
+
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+
+    --measure: 70ch;
+    --pad: clamp(1.05rem, 4vw, 2.6rem);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0A1310;
+      --surface:     #101B17;
+      --surface-2:   #15221D;
+      --ink:         #E3ECE8;
+      --ink-2:       #97A7A0;
+      --ink-3:       #71817B;
+      --rule:        #22302A;
+      --rule-strong: #33443D;
+      --accent:      #4EBF9B;
+      --accent-2:    #7ED3B6;
+      --accent-soft: #12302A;
+      --tec:         #8FAAD0;
+      --tec-soft:    #17222F;
+      --alerta:      #E4574F;
+      --alerta-soft: #2A1514;
+      --ok:          #55B98D;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0A1310;
+    --surface:     #101B17;
+    --surface-2:   #15221D;
+    --ink:         #E3ECE8;
+    --ink-2:       #97A7A0;
+    --ink-3:       #71817B;
+    --rule:        #22302A;
+    --rule-strong: #33443D;
+    --accent:      #4EBF9B;
+    --accent-2:    #7ED3B6;
+    --accent-soft: #12302A;
+    --tec:         #8FAAD0;
+    --tec-soft:    #17222F;
+    --alerta:      #E4574F;
+    --alerta-soft: #2A1514;
+    --ok:          #55B98D;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 var(--pad) 6rem; }
+
+  /* ---------- portada ---------- */
+  header.top { padding: 4rem 0 2rem; border-bottom: 2px solid var(--ink); }
+  .eyebrow {
+    font-family: var(--mono); font-size: .71rem; letter-spacing: .15em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 400;
+    font-size: clamp(2.1rem, 6vw, 3.4rem); line-height: 1.06;
+    letter-spacing: -.02em; text-wrap: balance; margin: 0 0 1.1rem;
+  }
+  .lede { max-width: var(--measure); color: var(--ink-2); font-size: 1.08rem; margin: 0 0 1.6rem; }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: .5rem 1.6rem;
+    font-family: var(--mono); font-size: .73rem; letter-spacing: .05em;
+    color: var(--ink-3); text-transform: uppercase;
+  }
+  .meta b { color: var(--ink-2); font-weight: 600; }
+
+  /* ---------- secciones ---------- */
+  section { margin-top: 3.6rem; scroll-margin-top: 1rem; }
+  .sec-num {
+    display: block; font-family: var(--mono); font-size: .69rem;
+    letter-spacing: .16em; color: var(--tec); text-transform: uppercase;
+    margin-bottom: .5rem;
+  }
+  h2 {
+    font-family: var(--serif); font-weight: 400;
+    font-size: clamp(1.5rem, 3.6vw, 2.05rem); line-height: 1.16;
+    text-wrap: balance; margin: 0 0 1.1rem;
+    padding-bottom: .65rem; border-bottom: 1px solid var(--rule-strong);
+  }
+  h3 {
+    font-family: var(--sans); font-size: 1.02rem; font-weight: 700;
+    letter-spacing: -.005em; margin: 2.2rem 0 .6rem; max-width: var(--measure);
+  }
+  p, ul, ol { max-width: var(--measure); }
+  p { margin: 0 0 1rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.2rem; }
+  li { margin-bottom: .45rem; }
+  strong { font-weight: 700; }
+
+  /* ---------- índice ---------- */
+  .indice {
+    display: grid; gap: 1px; background: var(--rule);
+    border: 1px solid var(--rule); margin: 1.6rem 0 0;
+  }
+  @media (min-width: 700px) { .indice { grid-template-columns: 1fr 1fr; } }
+  .idx {
+    background: var(--surface); padding: .8rem 1rem;
+    display: grid; grid-template-columns: 3.1rem 1fr; gap: .7rem; align-items: baseline;
+  }
+  .idx code {
+    font-family: var(--mono); font-size: .74rem; color: var(--tec);
+    letter-spacing: .04em; background: none; padding: 0;
+  }
+  .idx b { font-size: .93rem; font-weight: 600; display: block; }
+  .idx span { font-size: .84rem; color: var(--ink-2); }
+
+  /* ---------- tablas ---------- */
+  .tabla-wrap { overflow-x: auto; margin: 1.3rem 0 1.6rem; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .89rem; min-width: 520px; }
+  thead th {
+    text-align: left; font-family: var(--mono); font-size: .67rem;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+    padding: .7rem .9rem; border-bottom: 1px solid var(--rule-strong); font-weight: 600;
+    background: var(--surface-2);
+  }
+  tbody td { padding: .62rem .9rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- piezas ---------- */
+  code, .ref, .puerto {
+    font-family: var(--mono); font-size: .85em;
+    background: var(--surface-2); padding: .08em .4em; border-radius: 3px;
+  }
+  .ref { color: var(--accent); font-weight: 600; white-space: nowrap; }
+  .puerto { color: var(--tec); font-weight: 600; white-space: nowrap; }
+
+  pre {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-left: 3px solid var(--tec);
+    padding: 1rem 1.1rem; overflow-x: auto; margin: 1.3rem 0;
+    font-family: var(--mono); font-size: .79rem; line-height: 1.6; color: var(--ink);
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  blockquote {
+    margin: 1.4rem 0; padding: 1rem 1.2rem;
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    max-width: var(--measure);
+  }
+  blockquote p { margin: 0; }
+  blockquote p + p { margin-top: .6rem; }
+
+  .alerta {
+    margin: 1.4rem 0; padding: 1rem 1.2rem;
+    background: var(--alerta-soft); border-left: 3px solid var(--alerta);
+    max-width: var(--measure);
+  }
+  .alerta p { margin: 0; }
+  .alerta p + p { margin-top: .6rem; }
+  .alerta .et {
+    display: block; font-family: var(--mono); font-size: .66rem;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--alerta);
+    margin-bottom: .4rem; font-weight: 700;
+  }
+
+  /* ---------- diagrama de capas ---------- */
+  .capas { display: grid; gap: .5rem; margin: 1.5rem 0; max-width: 620px; }
+  .capa {
+    background: var(--surface); border: 1px solid var(--rule);
+    padding: .8rem 1rem; display: grid; grid-template-columns: 1fr auto; gap: .8rem;
+    align-items: center;
+  }
+  .capa b { font-size: .93rem; }
+  .capa span { font-size: .82rem; color: var(--ink-2); display: block; }
+  .capa em {
+    font-family: var(--mono); font-size: .67rem; letter-spacing: .09em;
+    text-transform: uppercase; font-style: normal; color: var(--ink-3);
+    white-space: nowrap;
+  }
+  .capa.nucleo { border-left: 3px solid var(--accent); }
+  .capa.frontera { border-left: 3px solid var(--tec); }
+  .flecha {
+    text-align: center; color: var(--ink-3); font-family: var(--mono);
+    font-size: .75rem; letter-spacing: .1em;
+  }
+
+  /* ---------- pares ---------- */
+  .par { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 1.4rem 0; }
+  @media (min-width: 700px) { .par { grid-template-columns: 1fr 1fr; } }
+  .par > div { background: var(--surface); padding: 1rem 1.1rem; }
+  .par h4 {
+    margin: 0 0 .6rem; font-size: .78rem; font-family: var(--mono);
+    letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+  }
+  .par .queda h4 { color: var(--accent); }
+  .par .seva h4 { color: var(--tec); }
+  .par ul { margin: 0; padding-left: 1.1rem; font-size: .87rem; }
+
+  footer.fin {
+    margin-top: 4.5rem; padding-top: 1.5rem; border-top: 2px solid var(--ink);
+    font-size: .86rem; color: var(--ink-2);
+  }
+  footer.fin p { max-width: var(--measure); }
+
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  @media print {
+    body { background: #fff; font-size: 10.5pt; }
+    section { break-inside: avoid-page; }
+    .tabla-wrap, pre { break-inside: avoid; }
+  }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">Práctica Profesionalizante II · Rama VillegaBackBranch</p>
+  <h1>El cómo: diseño técnico del backend</h1>
+  <p class="lede">
+    Sistema de Dictaminado y Rutas Eficientes para la Dirección Técnica de Arbolado, Municipalidad de Rosario.
+    Este documento consolida el diseño técnico completo: estructura del código, interfaces, esquema de base de
+    datos, contrato de la API, algoritmos, seguridad y plan de construcción. Ninguna línea está implementada
+    todavía, y ese es el punto: se diseña entero antes de escribir código.
+  </p>
+  <p class="meta">
+    <span><b>Fecha</b> 19 de agosto de 2026</span>
+    <span><b>Estado</b> completo, pendiente de aprobación</span>
+    <span><b>Fuente</b> docs-back/tecnico/ · 14 documentos</span>
+  </p>
+</header>
+
+<section id="lectura">
+  <span class="sec-num">01 · Cómo está organizado</span>
+  <h2>Dos volúmenes: el qué y el cómo</h2>
+  <p>
+    El diseño funcional —<em>qué</em> hace el sistema y <em>por qué</em>— vive en <code>docs-back/</code>: reglas
+    de negocio, modelo conceptual, decisiones cerradas y desvíos respecto del documento entregado. Este dossier
+    resume el segundo volumen, <code>docs-back/tecnico/</code>, que responde <em>cómo</em> se construye.
+  </p>
+  <p>
+    La separación no es cosmética. El <strong>qué</strong> lo define el analista funcional y se defiende contra el
+    relevamiento y la normativa. El <strong>cómo</strong> lo define el desarrollo y se defiende contra el propio
+    diseño: cada pieza técnica tiene que poder rastrearse hasta un requerimiento.
+  </p>
+
+  <div class="indice">
+    <div class="idx"><code>T1</code><div><b>Estructura y convenciones</b><span>Carpetas, nombres, errores, configuración, tiempos</span></div></div>
+    <div class="idx"><code>T2</code><div><b>Los trece puertos</b><span>Cada interfaz con su firma exacta y su adaptador</span></div></div>
+    <div class="idx"><code>T3</code><div><b>Núcleo de dominio</b><span>Entidades y funciones puras del negocio</span></div></div>
+    <div class="idx"><code>T4</code><div><b>Casos de uso</b><span>Cada operación paso a paso, con su orden de validación</span></div></div>
+    <div class="idx"><code>T5</code><div><b>Esquema SQL</b><span>DDL completo, índices, triggers y seguridad por fila</span></div></div>
+    <div class="idx"><code>T6</code><div><b>API HTTP</b><span>Endpoints con petición y respuesta reales</span></div></div>
+    <div class="idx"><code>T7</code><div><b>Ruteo y geocodificación</b><span>Ruta, balanceador y punto en el mapa</span></div></div>
+    <div class="idx"><code>T8</code><div><b>Offline</b><span>Service Worker, cola durable, precarga y reintentos</span></div></div>
+    <div class="idx"><code>T9</code><div><b>Trabajos programados</b><span>Escalamiento, vencimientos y el reloj inyectable</span></div></div>
+    <div class="idx"><code>T10</code><div><b>Seguridad técnica</b><span>Token, RLS, storage privado, auditoría, retención</span></div></div>
+    <div class="idx"><code>T11</code><div><b>Driver de escenarios</b><span>El verificador que se corre en la defensa</span></div></div>
+    <div class="idx"><code>T12</code><div><b>Integración del front</b><span>Del mock al SDK sin cambiar lo que se ve</span></div></div>
+    <div class="idx"><code>T13</code><div><b>Plan de implementación</b><span>Orden de construcción y datos semilla</span></div></div>
+    <div class="idx"><code>T0</code><div><b>Índice</b><span>Mapa de la carpeta y las cinco reglas transversales</span></div></div>
+  </div>
+
+  <p style="margin-top:1.4rem">
+    Cada documento se puede leer solo, así que se repiten definiciones entre ellos <strong>a propósito</strong>:
+    quien vaya a implementar el módulo de rutas no debería tener que leer los catorce archivos para entender qué
+    recibe y qué devuelve.
+  </p>
+</section>
+
+<section id="reglas">
+  <span class="sec-num">02 · El marco</span>
+  <h2>Las cinco reglas que condicionan cada decisión</h2>
+
+  <h3>1. La tecnología termina en los adaptadores</h3>
+  <p>
+    El núcleo no importa infraestructura: ni el SDK del proveedor de base de datos, ni APIs del entorno de
+    ejecución, ni HTTP. Solo tipos, reglas y puertos. La capa de adaptadores es el <strong>único</strong> lugar del
+    repositorio donde puede aparecer el nombre de un proveedor, y esa regla <strong>se verifica sola</strong>: un
+    escenario del driver recorre los archivos del núcleo y falla si encuentra un import prohibido.
+  </p>
+
+  <h3>2. La nube se va entera</h3>
+  <p>
+    El equipo no tiene permisos sobre el SUA ni sobre la autenticación institucional, y la conexión real no se va a
+    realizar. Todo lo que hoy resuelve Supabase —base, autenticación, almacenamiento— es <strong>andamio
+    reemplazable</strong>. El día hipotético de la transferencia se cambia la implementación del adaptador y el
+    núcleo queda intacto <span class="ref">RNF-08</span> <span class="ref">RF-32</span>.
+  </p>
+
+  <h3>3. Se toma con señal, se ejecuta sin señal</h3>
+  <p>
+    Pedir trabajo requiere conexión, porque es pedir una asignación exclusiva. Cargar y firmar el dictamen, no.
+    Ese principio convierte el choque entre dos ingenieros de <em>caso normal</em> en <em>caso excepcional</em>, y
+    es el que ordena todo el diseño offline.
+  </p>
+
+  <h3>4. El front valida por comodidad, el backend valida por obligación</h3>
+  <p>
+    Toda regla que el navegador aplica se vuelve a aplicar en el servidor, y las más importantes una tercera vez en
+    la base. Un dictamen es un documento con validez legal: su coherencia no puede depender de que el JavaScript se
+    haya ejecutado.
+  </p>
+
+  <h3>5. Sin driver verde no está terminado</h3>
+  <p>
+    Cada módulo cierra con su escenario ejecutado en vivo contra el proyecto real, con la salida pegada en el
+    commit. Un módulo que anda en la máquina de quien lo escribió y no tiene escenario reproducible es un módulo
+    del que no se puede decir nada en una defensa oral.
+  </p>
+</section>
+
+<section id="corte">
+  <span class="sec-num">03 · Arquitectura</span>
+  <h2>Dónde está la línea de corte</h2>
+  <p>
+    El documento académico previó dos interfaces, asumiendo que la nube se quedaba como base propia del módulo. La
+    premisa real es otra, y con solo dos adaptadores habría que reescribir toda la capa de persistencia justo el día
+    que <span class="ref">RNF-08</span> promete que no hace falta. <strong>Son trece.</strong>
+  </p>
+
+  <div class="capas">
+    <div class="capa frontera"><div><b>Entrypoint HTTP</b><span>Parsea, autentica, serializa. Cero lógica de negocio</span></div><em>cáscara fina</em></div>
+    <div class="flecha">↓</div>
+    <div class="capa"><div><b>Casos de uso</b><span>Orquestan: piden a los puertos, llaman a las reglas, deciden</span></div><em>21 operaciones</em></div>
+    <div class="flecha">↓</div>
+    <div class="capa nucleo"><div><b>Núcleo de dominio</b><span>Funciones puras. No tocan base, red ni reloj</span></div><em>sobrevive todo</em></div>
+    <div class="flecha">↓</div>
+    <div class="capa frontera"><div><b>Puertos</b><span>Trece interfaces. La dependencia apunta siempre hacia adentro</span></div><em>la frontera</em></div>
+    <div class="flecha">↓</div>
+    <div class="capa"><div><b>Adaptadores</b><span>Único lugar del repositorio con nombre de proveedor</span></div><em>se reemplaza</em></div>
+  </div>
+
+  <div class="par">
+    <div class="queda">
+      <h4>Queda intacto el día de la transferencia</h4>
+      <ul>
+        <li>Escalamiento de prioridad</li>
+        <li>Exclusión de intervenciones</li>
+        <li>Firma, hash y vencimiento</li>
+        <li>Balanceador y orden de visita</li>
+        <li>Reserva de trabajo</li>
+        <li>Cálculo de eficiencia</li>
+        <li>Los 21 casos de uso</li>
+      </ul>
+    </div>
+    <div class="seva">
+      <h4>Se reemplaza cambiando un adaptador</h4>
+      <ul>
+        <li><span class="puerto">IReclamoProvider</span> → el SUA</li>
+        <li><span class="puerto">IAuthProvider</span> → el directorio</li>
+        <li><span class="puerto">IGeocodificador</span> → el geocodificador municipal</li>
+        <li><span class="puerto">IRuteoProvider</span> → OSRM o Google Routes</li>
+        <li><span class="puerto">IArchivoStorage</span> → el file server</li>
+        <li>Los seis repositorios de datos</li>
+        <li><span class="puerto">IRelojProvider</span> y el certificador</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>El decimotercero apareció con el relevamiento</h3>
+  <p>
+    El SUA guarda la dirección escrita del ejemplar y <strong>ninguna coordenada</strong>: el censo de arbolado
+    nunca se geolocalizó. Convertir «Mendoza 3450» en un punto del mapa es entonces trabajo del módulo, no un dato
+    de entrada. Va detrás de una interfaz como todo lo demás, porque la Municipalidad tiene su propio geocodificador
+    y conoce la nomenclatura catastral de Rosario mucho mejor que cualquier proveedor global.
+  </p>
+
+  <blockquote>
+    <p>
+      <strong>Un solo archivo sabe qué tecnología usa el sistema.</strong> El contenedor de composición —unas
+      ochenta líneas— es el mapa completo de las dependencias del proyecto. Para saber de qué depende el trabajo no
+      hace falta leer el código: se lee ese archivo.
+    </p>
+  </blockquote>
+</section>
+
+<section id="nucleo">
+  <span class="sec-num">04 · Núcleo</span>
+  <h2>Las reglas del negocio son funciones puras</h2>
+  <p>
+    Reciben datos, devuelven datos, no tocan la base ni le piden la hora al sistema. Se pueden ejecutar mil veces
+    con la misma entrada y dan lo mismo. Eso tiene tres consecuencias prácticas: se prueban sin infraestructura, se
+    pueden explicar en voz alta, y son el activo que sobrevive el día que la nube se va.
+  </p>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Función</th><th>Qué decide</th><th>Requerimiento</th></tr></thead>
+      <tbody>
+        <tr><td><code>calcularPrioridadInicial</code></td><td>Verde por defecto; sube por señales de riesgo en el texto o por insistencia del vecino</td><td><span class="ref">RF-11</span></td></tr>
+        <tr><td><code>escalarPorTiempo</code></td><td>El reclamo sube de color solo, a distinto ritmo según su categoría</td><td><span class="ref">RF-11</span></td></tr>
+        <tr><td><code>validarIntervencion</code></td><td>Extracción bloquea poda y corte de raíces, y viceversa</td><td><span class="ref">RF-14</span> <span class="ref">RF-15</span></td></tr>
+        <tr><td><code>sugerirComplejidad</code></td><td>Sugiere el nivel a partir de diámetro y altura</td><td><span class="ref">RF-15</span></td></tr>
+        <tr><td><code>normalizarEspecie</code></td><td>Reconoce la especie escrita a mano contra un catálogo con sinonimias</td><td><span class="ref">RF-16</span></td></tr>
+        <tr><td><code>calcularVencimiento</code></td><td>18 meses desde la emisión, y el aviso a 30 días</td><td><span class="ref">RF-19</span> <span class="ref">RF-05</span></td></tr>
+        <tr><td><code>balancear</code></td><td>Reparte la jornada por prioridad y redistribuye si falta stock</td><td><span class="ref">RF-23</span>–<span class="ref">RF-25</span></td></tr>
+        <tr><td><code>ordenarVisitas</code></td><td>Orden de paradas desde la sede y de vuelta a la sede</td><td><span class="ref">RF-22</span> <span class="ref">RF-26</span></td></tr>
+        <tr><td><code>puedeFirmar</code></td><td>Qué roles pueden firmar, según el apartado de firma digital</td><td><span class="ref">RF-18</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Tres reglas que merecen justificación</h3>
+  <p>
+    <strong>La prioridad arranca en verde y las excepciones se justifican solas.</strong> Cuando entra un reclamo
+    nadie miró el árbol todavía; el único que lo va a evaluar de verdad es el ingeniero, y recién cuando llegue. La
+    mejora que pide el relevamiento no es que el sistema adivine mejor: es que <em>el criterio sea el mismo siempre
+    y esté escrito</em>. Cuando una regla de texto actúa, queda registrado <strong>qué frase la disparó</strong>:
+    nunca hay un color inexplicable.
+  </p>
+  <p>
+    <strong>El ritmo de escalamiento depende de la categoría.</strong> La minuta propone dos meses parejos para
+    todos; el diseño lo afina, porque un caso de interferencia con cableado no puede esperar lo mismo que una poda
+    estética. Treinta días para riesgo estructural y cableado, sesenta por defecto, noventa para poda. Todo
+    configurable, todo en tabla.
+  </p>
+  <p>
+    <strong>El ingeniero mide perímetro y la regla habla de diámetro.</strong> En la calle se mide con cinta
+    métrica alrededor del tronco; el criterio de complejidad se expresa en diámetro. El sistema convierte y muestra
+    los dos valores, para que nadie tenga que hacer la cuenta parado frente a un árbol ni cargar un dato que no
+    midió.
+  </p>
+</section>
+
+<section id="datos">
+  <span class="sec-num">05 · Base de datos</span>
+  <h2>Reglas que sostiene la base, no el código</h2>
+  <p>
+    Hay dos esquemas: uno simula al SUA y <strong>se borra entero</strong> el día de la transferencia; el otro es
+    propio del módulo y migra. En la defensa se puede borrar el primero y mostrar que lo único que se rompe es un
+    adaptador. Que la frontera con el mundo externo sea visible en la base —y no solo en el código— es lo que
+    vuelve la arquitectura demostrable en lugar de declarativa.
+  </p>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Mecanismo</th><th>Qué garantiza</th><th>Por qué en la base</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>ux_reserva_activa</code><br><span style="font-size:.83em;color:var(--ink-2)">índice único parcial</span></td>
+          <td>Una sola reserva activa por reclamo</td>
+          <td>No depende de que el código se acuerde de chequear. Dos peticiones simultáneas: una gana, la otra recibe un rechazo limpio</td>
+        </tr>
+        <tr>
+          <td><code>tg_dictamen_inmutable</code><br><span style="font-size:.83em;color:var(--ink-2)">trigger</span></td>
+          <td>Un dictamen firmado no se actualiza ni se borra</td>
+          <td>La inmutabilidad de <span class="ref">RNF-06</span> deja de ser una promesa. Corregir es anular y emitir uno nuevo</td>
+        </tr>
+        <tr>
+          <td><code>ck_exclusion_extraccion</code><br><span style="font-size:.83em;color:var(--ink-2)">restricción</span></td>
+          <td>Extracción junto con poda no entra</td>
+          <td>Tercera capa de <span class="ref">RF-14</span>: front, backend y base. Excesivo hasta que se recuerda que el resultado es un documento legal</td>
+        </tr>
+        <tr>
+          <td><code>ux_dictamen_vigente</code><br><span style="font-size:.83em;color:var(--ink-2)">índice único parcial</span></td>
+          <td>Un solo dictamen vigente por reclamo</td>
+          <td>Red final debajo de la reserva <span class="ref">RNF-07</span></td>
+        </tr>
+        <tr>
+          <td><code>diametro_calculado</code><br><span style="font-size:.83em;color:var(--ink-2)">columna generada</span></td>
+          <td>El diámetro siempre coincide con su perímetro</td>
+          <td>Nadie puede guardar un diámetro inconsistente, y la sugerencia de complejidad es reproducible</td>
+        </tr>
+        <tr>
+          <td><code>config_firma</code><br><span style="font-size:.83em;color:var(--ink-2)">tabla versionada</span></td>
+          <td>Cada dictamen sabe bajo qué reglas se firmó</td>
+          <td>Un dictamen firmado en marzo se defiende con las reglas de marzo, no con las de hoy</td>
+        </tr>
+        <tr>
+          <td><code>ck_identificador_formato</code><br><span style="font-size:.83em;color:var(--ink-2)">restricción</span></td>
+          <td>El usuario respeta el formato municipal real</td>
+          <td>Es una regla del dominio, no una comodidad de la interfaz</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Seguridad por fila, redundante a propósito</h3>
+  <p>
+    Ninguna tabla sin política. El rol se valida en la función de la API <strong>y</strong> en la base. Si un token
+    se filtra, si un endpoint nuevo se olvida de chequear el rol, o si alguien expone la base por accidente, la
+    seguridad por fila sigue conteniendo. La política más importante del sistema dice tres cosas del negocio a la
+    vez:
+  </p>
+  <pre><code>create policy dictamen_insert_solo_roles_de_campo on arbolado.dictamen
+  for insert to authenticated
+  with check (
+    arbolado.rol_actual() = any (
+      select unnest(roles_habilitados) from arbolado.config_firma
+      order by version desc limit 1)          -- firma quien el panel habilita
+    and usuario_id = auth.uid()               -- nadie firma a nombre de otro
+    and exists (select 1 from arbolado.reserva r
+                where r.nro_reclamo_sua = nro_reclamo_sua and r.anio = anio
+                  and r.usuario_id = auth.uid()
+                  and r.liberada_en is null)  -- no se dictamina lo no reservado
+  );</code></pre>
+</section>
+
+<section id="dictamen">
+  <span class="sec-num">06 · El caso central</span>
+  <h2>Emitir y firmar el dictamen</h2>
+  <p>
+    El orden de validación está fijado, y va de lo más barato y general a lo más caro y específico. Así el error que
+    recibe el ingeniero es el primero que le importa, no el último que falló.
+  </p>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th style="width:2.6rem">#</th><th>Validación</th><th>Error</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>El rol puede firmar según el apartado de firma</td><td><code>ROL_NO_FIRMA</code></td></tr>
+        <tr><td class="num">2</td><td>¿Ya se procesó este identificador?</td><td>Devuelve la respuesta original</td></tr>
+        <tr><td class="num">3</td><td>El reclamo existe: par (N° SUA, año)</td><td><code>RECLAMO_NO_ENCONTRADO</code></td></tr>
+        <tr><td class="num">4</td><td>Es del tipo y subtipo dentro del alcance</td><td><code>RECLAMO_FUERA_DE_ALCANCE</code></td></tr>
+        <tr><td class="num">5</td><td>No tiene dictamen vigente</td><td><code>RECLAMO_YA_DICTAMINADO</code></td></tr>
+        <tr><td class="num">6</td><td><strong>Hay reserva activa a nombre del actor</strong></td><td><code>SIN_RESERVA_PROPIA</code></td></tr>
+        <tr><td class="num">7</td><td>Coherencia de intervenciones</td><td><code>INTERVENCIONES_EXCLUYENTES</code></td></tr>
+        <tr><td class="num">8</td><td>Coherencia de clasificación</td><td><code>CLASIFICACION_CONTRADICTORIA</code></td></tr>
+        <tr><td class="num">9</td><td>Campos del formulario físico completos</td><td><code>DATOS_INVALIDOS</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>La firma es un solo paso indivisible</h3>
+  <p>
+    Se calcula el hash del contenido, se registra el sello de tiempo del servidor con legajo y rol del firmante, se
+    fija el vencimiento a dieciocho meses desde la emisión, el dictamen queda en solo lectura, se libera la reserva
+    y se registra en auditoría. <strong>O el dictamen existe entero y firmado, o no existe.</strong>
+  </p>
+  <p>
+    Hay una excepción y se declara de frente: actualizar el estado del reclamo en el SUA <span class="ref">RF-20</span>
+    es una llamada a un sistema externo y <strong>no puede participar de la transacción local</strong>. Si falla, el
+    dictamen queda firmado con marca de sincronización pendiente y un trabajo programado lo reintenta. Deshacer un
+    dictamen firmado porque el SUA no respondió sería descartar trabajo de campo válido por un problema de red.
+  </p>
+
+  <h3>Dos relojes, a propósito</h3>
+  <p>
+    El dictamen guarda la fecha del dispositivo —es la fecha legal de emisión, frente al árbol— y la del servidor,
+    que es trazabilidad. El vencimiento cuenta desde la primera. Si el reloj del celular está mal y las fechas
+    resultan incoherentes, <strong>no se rechaza el trabajo</strong>: se registra la discrepancia en auditoría.
+    Rechazar el trabajo de campo de una persona porque su celular tiene la hora mal sería peor que anotarlo.
+  </p>
+
+  <h3>El choque excepcional no descarta trabajo</h3>
+  <p>
+    Si el reclamo ya fue dictaminado por otro, la carga <strong>no se pierde</strong>: queda como borrador
+    consultable, con el motivo del rechazo y quién dictaminó primero. Veinte minutos de trabajo frente a un árbol no
+    se descartan por una condición de carrera.
+  </p>
+</section>
+
+<section id="jornada">
+  <span class="sec-num">07 · Trabajo de campo</span>
+  <h2>La jornada se pre-confirma</h2>
+  <p>
+    Entre pedir trabajo y salir a la calle hay un momento, y es el único con señal garantizada. El diseño lo
+    convierte en un paso propio.
+  </p>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th style="width:2.6rem">#</th><th>Paso</th><th>Qué pasa</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Define la jornada</td><td>Cuántas horas o cuántos casos, en qué zona, con qué modo de traslado</td></tr>
+        <tr><td class="num">2</td><td><strong>El sistema reserva</strong></td><td>Los reclamos quedan tomados a su nombre <em>antes</em> de que empiece a configurar</td></tr>
+        <tr><td class="num">3</td><td>Pre-confirmación</td><td>Ve los casos ya reservados y ajusta sin apuro</td></tr>
+        <tr><td class="num">4</td><td>Confirma</td><td>Se arma la ruta definitiva y se precarga todo para trabajar sin señal</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <blockquote>
+    <p>
+      <strong>La reserva ocurre en el paso 2, no en el 4.</strong> Es el punto entero de la pantalla: el ingeniero
+      puede tomarse el tiempo que necesite para revisar la jornada sabiendo que nadie le va a sacar un caso mientras
+      decide. Si la reserva esperara a la confirmación, cada minuto de revisión sería un minuto de riesgo, y el
+      diseño lo estaría empujando a apurarse justo donde conviene que mire con calma.
+    </p>
+  </blockquote>
+
+  <p>
+    En esa pantalla se corrigen los <strong>puntos del mapa</strong> que cayeron mal, se saca un caso que ya se sabe
+    que no da, se corrige la categoría que el sistema dedujo del texto y se reordena una parada. Los reclamos cuya
+    dirección no se pudo geocodificar aparecen destacados: son los que más se benefician de un minuto de atención
+    antes de salir y los que más tiempo hacen perder si se descubren en la calle.
+  </p>
+
+  <h3>La precisión del punto se declara, no se oculta</h3>
+  <p>
+    Cada punto guarda si es exacto, aproximado, solo de calle o fallido. Un reclamo aproximado se dibuja distinto y
+    el ingeniero sabe que tiene que buscar el ejemplar en la cuadra. <strong>Un punto falsamente exacto es peor que
+    un punto declarado dudoso</strong>: si todos los pines se ven iguales, el problema se descubre parado en la
+    vereda equivocada.
+  </p>
+  <p>
+    Una vez que el ingeniero corrige un punto, <strong>ninguna geocodificación posterior lo pisa</strong>. Estuvo
+    parado frente al árbol: es la única persona con el dato bueno.
+  </p>
+
+  <h3>Sin señal, con la aplicación cerrada</h3>
+  <p>
+    El dispositivo es un <em>captor</em> Android provisto por la Municipalidad, con datos pagos por la repartición.
+    La peor situación no es la falta de señal: es la <strong>señal mala</strong>, donde la petición no falla rápido
+    sino que queda colgada. Por eso el diseño no pregunta si hay internet: intenta con un tiempo de espera corto y,
+    si no vuelve, encola.
+  </p>
+  <p>
+    Cada operación lleva un identificador generado en el dispositivo. Si el celular reintenta tres veces porque la
+    señal va y viene, entra <strong>un</strong> dictamen y no tres. Los reintentos usan espera creciente, porque
+    veinte dictámenes reintentando en bucle agotan la batería, que en campo es un recurso tan escaso como la señal.
+  </p>
+  <p>
+    <strong>El ingeniero nunca tiene que decidir si guardar.</strong> No hay botón de sincronizar: guarda, y el
+    sistema se encarga. Un botón manual traslada al usuario un problema técnico que no le corresponde, y garantiza
+    que alguna vez alguien se olvide de apretarlo.
+  </p>
+</section>
+
+<section id="roles">
+  <span class="sec-num">08 · Seguridad</span>
+  <h2>Quién firma, y por qué el Administrador no</h2>
+  <p>
+    El requerimiento pide matrícula profesional registrada. En la repartición nadie supo precisar qué forma tiene
+    esa matrícula ni quién la valida, y propusieron reemplazarla por el título presentado en Recursos Humanos. La
+    definición funcional final fue más simple: <strong>la constancia la da el alta del usuario con su rol</strong>.
+  </p>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Rol</th><th>Quién es</th><th>Firma</th></tr></thead>
+      <tbody>
+        <tr><td><b>Lector</b></td><td>Dirección y puestos periféricos: consulta ejecutiva</td><td>No</td></tr>
+        <tr><td><b>Operario</b></td><td>El ingeniero agrónomo que va a la calle</td><td><b style="color:var(--ok)">Sí</b></td></tr>
+        <tr><td><b>Jefe</b></td><td>Ingeniero en jefe: dictamina y además dirige el trabajo</td><td><b style="color:var(--ok)">Sí</b></td></tr>
+        <tr><td><b>Administrador</b></td><td><b>Personal del CIL</b>, el Centro de Informática</td><td><b style="color:var(--alerta)">No</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="alerta">
+    <p><span class="et">Desvío declarado · DV-10</span>
+      <strong>Esto contradice tres requerimientos tal como están escritos</strong>: <span class="ref">RF-02</span>
+      y <span class="ref">RF-18</span>, que distinguen dentro del Operario a los matriculados, y
+      <span class="ref">RF-19</span>, que sella la matrícula junto al hash. Es una decisión funcional tomada, no un
+      olvido, y está documentada con lo que se pierde y cómo se mitiga.</p>
+    <p><strong>Qué se pierde:</strong> el sistema deja de poder impedir que firme un operario que en el papel no
+      debería. Ese control queda del lado del alta de usuarios, fuera del módulo. <strong>Cómo se mitiga:</strong>
+      la lista de roles habilitados es un dato configurable, así que restringirla más adelante es un cambio de
+      panel y no de código; y toda firma queda auditada con usuario, legajo, rol y versión de configuración.</p>
+  </div>
+
+  <p>
+    El Administrador queda afuera por un motivo que está en el propio documento académico: la sección 3 lo define
+    como <em>personal del CIL</em>. No es ingeniero agrónomo. Un dictamen técnico autoriza intervenir un árbol bajo
+    la Ordenanza 5.118 y la Ley provincial 13.836; que lo pueda firmar alguien de sistemas sería un problema real,
+    no una formalidad. <strong>Administra la firma, no la ejerce</strong>, y el driver lo demuestra intentando
+    firmar con el usuario administrador y verificando que el servidor lo rechaza.
+  </p>
+
+  <h3>Lo que el sistema no hace, declarado</h3>
+  <p>
+    <strong>No certifica la firma ante un organismo oficial.</strong> Captura la firma, la vincula al agente, le
+    pone sello de tiempo y la vuelve inmutable, pero el puerto del certificador existe <em>sin implementación</em> y
+    está marcado como tal. Presentarla como firma con validez legal plena sería falso. El día que la repartición
+    contrate un certificador, se escribe el adaptador, se lo elige en el panel y se enciende un campo: ese es todo
+    el cambio.
+  </p>
+
+  <h3>Un dato personal que suele pasarse por alto</h3>
+  <p>
+    Una ruta de inspección con horarios estimados es, técnicamente, <strong>un registro de los movimientos de un
+    trabajador</strong>. Se trata como tal: solo la ve el propio ingeniero y quien tiene rol de supervisión, y tiene
+    retención acotada. Los dictámenes se guardan para siempre porque son documentos legales; las rutas no tienen esa
+    necesidad, y pasado su valor estadístico son más riesgo que utilidad.
+  </p>
+</section>
+
+<section id="driver">
+  <span class="sec-num">09 · Verificación</span>
+  <h2>El driver, que se corre en la defensa</h2>
+  <p>
+    No es una suite de pruebas unitarias: es la evidencia de que el sistema hace lo que la documentación dice,
+    ejecutable en vivo. Se organiza <strong>por requerimiento</strong>, no por archivo de código, y cuando algo
+    falla lo dice en castellano.
+  </p>
+
+  <pre><code>DICTAMEN
+  RF-14  Extracción + poda se rechaza ..................... PASA
+  RF-18  Un Administrador no puede firmar ................. PASA
+  RF-19  Un dictamen firmado no se puede modificar ........ PASA
+  RF-19  Vencimiento a 18 meses desde la emisión .......... PASA
+  RF-20  Al firmar, el reclamo pasa a dictaminado ......... PASA
+  RNF-07 Dos dictámenes vigentes: la base rechaza ......... PASA
+
+RUTAS
+  RF-21  10 minutos por dictamen, desde parámetros ........ PASA
+  RF-22  La ruta parte de Moreno 2350 y vuelve ahí ........ PASA
+  RF-25  Sin stock de rojos, redistribuye e informa ....... PASA
+  RF-32  Cambio de adaptador de ruteo sin desplegar ....... PASA</code></pre>
+
+  <h3>Los escenarios que justifican que exista</h3>
+  <p>
+    <strong>Catorce meses de escalamiento en cuatro líneas.</strong> El reloj es un puerto, así que el driver puede
+    decir «hacé de cuenta que pasaron catorce meses» y verificar la secuencia completa de saltos de color. Sin eso,
+    <span class="ref">RF-11</span> solo se podría probar esperando catorce meses.
+  </p>
+  <p>
+    <strong>Dos usuarios pidiendo el mismo reclamo en la misma milésima.</strong> Demuestra que la exclusividad la
+    garantiza el índice único de la base y no un chequeo del código.
+  </p>
+  <p>
+    <strong>El mismo dictamen enviado tres veces</strong>, como haría un celular con señal intermitente: existe uno
+    solo y las tres respuestas son idénticas. Es lo que sostiene todo el diseño offline.
+  </p>
+  <p>
+    <strong>Borrar el esquema que simula al SUA</strong> y verificar que lo único que falla es su adaptador. Es la
+    demostración literal de que la tecnología termina en los adaptadores; después se restaura.
+  </p>
+  <p>
+    <strong>Cambiar el proveedor de ruteo desde el panel</strong> y ver que la ruta siguiente se calculó con el
+    otro, sin desplegar nada. Eso <em>es</em> <span class="ref">RF-32</span>.
+  </p>
+
+  <h3>Cuatro modos de fallo que el driver tiene que atrapar</h3>
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Modo de fallo</th><th>Qué lo atrapa</th></tr></thead>
+      <tbody>
+        <tr><td>La regla está en el código pero no en la base</td><td>Los escenarios que escriben directo a las tablas</td></tr>
+        <tr><td>La regla está en la base pero no en la API</td><td>Los escenarios de negocio, que pasan por HTTP</td></tr>
+        <tr><td><b>La regla está en el front pero no en el backend</b></td><td>Todos: <b>el driver nunca usa el front</b></td></tr>
+        <tr><td>La arquitectura se rompió sin que nadie lo notara</td><td>Los escenarios estructurales</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    El tercero es el que más importa en este proyecto. El prototipo ya valida exclusiones y escalamiento en
+    JavaScript del navegador; si el backend no lo repitiera, el sistema parecería correcto en la demo y aceptaría
+    cualquier cosa por API.
+  </p>
+</section>
+
+<section id="plan">
+  <span class="sec-num">10 · Construcción</span>
+  <h2>En qué orden se construye</h2>
+  <p>
+    El orden lo determinan las dependencias reales, no la comodidad. Cada módulo cierra con driver verde y
+    documentación en el mismo commit, así que <strong>si el proyecto se corta en el módulo cinco, lo entregado son
+    cinco módulos verificables</strong> y no un sistema a medio hacer.
+  </p>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th style="width:2.6rem">#</th><th>Módulo</th><th>No arranca sin</th></tr></thead>
+      <tbody>
+        <tr><td class="num">0</td><td><b>Cimientos</b> — migraciones, contenedor, router, driver estructural</td><td>—</td></tr>
+        <tr><td class="num">1</td><td><b>Autenticación y roles</b></td><td>0</td></tr>
+        <tr><td class="num">2</td><td><b>Reclamos</b> — filtros, validación del par, alta, geocodificación, prioridad</td><td>1</td></tr>
+        <tr><td class="num">3</td><td><b>Dictamen</b> — emisión, firma, hash, inmutabilidad, vencimiento</td><td>2</td></tr>
+        <tr><td class="num">4</td><td><b>Rutas</b> — jornada en tres pasos, balanceador, directivas</td><td>2</td></tr>
+        <tr><td class="num">5</td><td><b>Protocolo de tormenta</b></td><td>4</td></tr>
+        <tr><td class="num">6</td><td><b>Dashboard</b> — métricas, filtro por distrito, próximos a vencer</td><td>3</td></tr>
+        <tr><td class="num">7</td><td><b>Panel de administración</b> — parámetros, adaptadores, firma, auditoría</td><td>3</td></tr>
+        <tr><td class="num">8</td><td><b>Offline</b> — Service Worker, cola, precarga</td><td>3, 4</td></tr>
+        <tr><td class="num">9</td><td><b>Conexión del front</b> — el SDK reemplaza al mock</td><td>cada módulo, uno a uno</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    <strong>El offline va al final</strong>, aunque sea la funcionalidad más vistosa: depende de que dictamen y
+    rutas estén estables. Conectarlo antes obligaría a depurar dos cosas a la vez —la cola y el endpoint— cada vez
+    que algo falle.
+  </p>
+
+  <h3>Definición de terminado</h3>
+  <ol>
+    <li>Desplegado en el proyecto real, no en local ni en teoría.</li>
+    <li>Su escenario está en el driver y <strong>ejecutado en vivo</strong>, con la salida pegada.</li>
+    <li>Documentación actualizada <strong>en el mismo commit</strong>.</li>
+    <li>Cero secretos en el commit.</li>
+    <li>Commit hecho, con el requerimiento referenciado.</li>
+  </ol>
+  <p>Si falta alguno, no está terminado, y se dice cuál falta.</p>
+
+  <h3>El front no se pisa</h3>
+  <p>
+    El prototipo estático mantiene su aspecto y su comportamiento visible; lo único que cambia es que el objeto
+    simulado en memoria se reemplaza por llamadas al SDK. Los cambios necesarios son <strong>nueve, y ocho son de
+    una a dos líneas</strong>: el color de prioridad media, la etiqueta del campo de usuario, quitar el campo de
+    matrícula, los minutos por dictamen, partir el número de reclamo en dos campos, mostrar la precisión del punto,
+    mostrar el diámetro junto al perímetro y el indicador de sincronización. El noveno es la pantalla nueva de
+    pre-confirmación.
+  </p>
+</section>
+
+<section id="desvios">
+  <span class="sec-num">11 · Trazabilidad</span>
+  <h2>Dónde nos apartamos del documento entregado</h2>
+  <p>
+    Un desvío no documentado es una pregunta sin respuesta. Son dieciséis; ocho salieron de las respuestas de la
+    Dirección Técnica del 18 de agosto, y son el diseño corrigiéndose contra el relevamiento en lugar de contra sí
+    mismo.
+  </p>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Desvío</th><th>Motivo</th><th>¿Corregir el documento?</th></tr></thead>
+      <tbody>
+        <tr><td>Trece adaptadores, no dos</td><td>La nube se va entera, no solo los conectores externos</td><td>Sí</td></tr>
+        <tr><td>Diez minutos por dictamen</td><td>El prototipo usaba siete, contra el requerimiento</td><td>No — el documento estaba bien</td></tr>
+        <tr><td>La prioridad vive del lado del módulo</td><td>El SUA real no tiene matriz de priorización</td><td>Sí</td></tr>
+        <tr><td>Reserva de trabajo previa</td><td>El documento no contemplaba el choque entre ingenieros</td><td>Sí</td></tr>
+        <tr><td>El vencimiento devuelve el reclamo a la cola</td><td>Ningún requerimiento decía qué pasa al vencer</td><td>Sí — requerimiento faltante</td></tr>
+        <tr><td>Una sola aplicación, no dos</td><td>Había una app paralela que contradecía la documentación</td><td>No — se corrigió el repositorio</td></tr>
+        <tr><td>Las directivas restringen más que la prioridad</td><td>Así se dirige el trabajo realmente</td><td>Sí</td></tr>
+        <tr><td>Prioridad media en amarillo</td><td>El prototipo la pintaba de azul</td><td>No — se corrige el prototipo</td></tr>
+        <tr><td>La etiqueta de tormenta todavía no existe</td><td>La tiene que agregar el CIL: es mejora propuesta, no integración</td><td>Sí</td></tr>
+        <tr><td><b>Firmar es atributo del rol</b></td><td>Nadie supo describir la matrícula. El Administrador es del CIL y no firma</td><td><b>Sí — el más importante</b></td></tr>
+        <tr><td>El Ingeniero en Jefe es un rol del sistema</td><td>La jefatura existe, y dos historias de usuario ya le hablaban</td><td>Sí</td></tr>
+        <tr><td>Geocodificar es trabajo del módulo</td><td>El SUA no tiene coordenadas: el censo nunca se geolocalizó</td><td>Sí</td></tr>
+        <tr><td>La credencial es un usuario de red</td><td>Se identifican con usuario y contraseña, no con correo</td><td>Sí — menor</td></tr>
+        <tr><td>La especie se escribe a mano</td><td>No hay lista oficial; la sugerencia de época pasa a ser best effort</td><td>Sí</td></tr>
+        <tr><td>La complejidad tiene criterio objetivo</td><td>Se decide por diámetro y altura, así que se puede sugerir</td><td>Sí</td></tr>
+        <tr><td>La reserva ocurre antes de pre-confirmar</td><td>Reservar primero es lo que vuelve gratis revisar la jornada</td><td>Sí</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <blockquote>
+    <p>
+      <strong>Uno de los desvíos es la mejor evidencia de que el desacoplamiento sirve.</strong> El supuesto era que
+      la credencial institucional fuera un correo; la respuesta del Centro de Informática fue que es un usuario de
+      red. No hubo que rehacer nada, porque el puerto de autenticación recibía desde el principio un identificador
+      opaco en lugar de un correo. Cambiaron la etiqueta del campo y el ejemplo.
+    </p>
+  </blockquote>
+</section>
+
+<section id="pendiente">
+  <span class="sec-num">12 · Honestidad</span>
+  <h2>Lo que todavía no está definido</h2>
+  <p>
+    De las veintidós preguntas que abrió el diseño, quedan seis. <strong>Ninguna bloquea la construcción</strong>:
+    para todas hay un supuesto tomado y documentado, y en los seis casos lo que cambiaría es un parámetro, una tabla
+    o un texto — no la arquitectura.
+  </p>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Qué falta</th><th>Quién puede responderlo</th><th>Qué pasa mientras tanto</th></tr></thead>
+      <tbody>
+        <tr><td>Diez o quince descripciones reales de reclamos</td><td>Dirección Técnica</td><td>Las señales de riesgo son nuestras; la regla es desactivable y la categoría corregible</td></tr>
+        <tr><td>Los cortes de diámetro y altura de cada complejidad</td><td>Dirección Técnica</td><td>La tabla existe vacía; los carga el Administrador y la sugerencia se enciende sola</td></tr>
+        <tr><td>Qué lleva el entregable para concesionarias</td><td>Equipo</td><td>Propuesta: ubicación, acción autorizada, complejidad y vigencia. Sin datos del vecino</td></tr>
+        <tr><td>Cuánto se guarda el historial de recorridos</td><td>Equipo</td><td>El trabajo de purga existe y está programado, con la retención sin fijar</td></tr>
+        <tr><td>Dónde se guardan las contraseñas de prueba</td><td>Equipo</td><td>Fuera del repositorio, de la forma que el equipo acuerde</td></tr>
+        <tr><td>Cómo se presentan los desvíos y qué espera cada corte</td><td>Docente</td><td>Registrados por separado, listos para incorporar o anexar</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Y una deuda heredada, dicha de frente</h3>
+  <p>
+    La aplicación móvil que se eliminó de la rama tenía credenciales de su proveedor de base de datos versionadas.
+    El archivo ya no está, pero <strong>siguen en el historial de git</strong>. Aunque una clave web de ese tipo no
+    es secreta por diseño, conviene desactivar ese proyecto o restringir la clave por dominio, ya que no se va a
+    usar más.
+  </p>
+</section>
+
+<footer class="fin">
+  <p>
+    <strong>Sistema de Dictaminado y Rutas Eficientes</strong> · Dirección Técnica de Arbolado, Dirección General de
+    Parques y Paseos, Municipalidad de Rosario.
+  </p>
+  <p>
+    Práctica Profesionalizante II — Tecnicatura Superior en Análisis Funcional de Sistemas, Terciario Urquiza.
+    Boubonis, Maschio, Pizzicatti y Villega. Docente: Pedernera.
+  </p>
+  <p>
+    Diseño técnico del backend, rama <code>VillegaBackBranch</code>. El detalle completo está en
+    <code>docs-back/tecnico/</code> del repositorio: catorce documentos, uno por área. Las decisiones funcionales
+    están numeradas en <code>docs-back/00-protocolo-de-trabajo.md</code> y los desvíos respecto del documento
+    entregado en <code>docs-back/99-desvios.md</code>.
+  </p>
+</footer>
+
+</div>
