@@ -1,0 +1,51 @@
+[
+  {
+    "nombre_usuario": "mrossi",
+    "password_demo": "Demo2026!",
+    "rol": "Operador",
+    "activo": true,
+    "fecha_alta": "2026-09-01"
+  },
+  {
+    "nombre_usuario": "cbenite",
+    "password_demo": "Demo2026!",
+    "rol": "Operador",
+    "activo": true,
+    "fecha_alta": "2026-09-01"
+  },
+  {
+    "nombre_usuario": "lfernan",
+    "password_demo": "Demo2026!",
+    "rol": "Operador",
+    "activo": true,
+    "fecha_alta": "2026-09-01"
+  },
+  {
+    "nombre_usuario": "pgimene",
+    "password_demo": "Demo2026!",
+    "rol": "Jefe",
+    "activo": true,
+    "fecha_alta": "2026-09-01"
+  },
+  {
+    "nombre_usuario": "asuarez",
+    "password_demo": "Demo2026!",
+    "rol": "Administrador",
+    "activo": true,
+    "fecha_alta": "2026-09-01"
+  },
+  {
+    "nombre_usuario": "tmolina",
+    "password_demo": "Demo2026!",
+    "rol": "Lector",
+    "activo": true,
+    "fecha_alta": "2026-09-01"
+  },
+  {
+    "nombre_usuario": "jdiaz",
+    "password_demo": "Demo2026!",
+    "rol": "Operador",
+    "activo": true,
+    "fecha_alta": "2026-09-01"
+  }
+]

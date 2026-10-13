@@ -1,0 +1,42 @@
+[
+  {
+    "nombre_usuario": "mrossi",
+    "nombre_completo": "Marta Rossi",
+    "vigente": true
+  },
+  {
+    "nombre_usuario": "cbenite",
+    "nombre_completo": "Carlos Benítez",
+    "vigente": true
+  },
+  {
+    "nombre_usuario": "lfernan",
+    "nombre_completo": "Laura Fernández",
+    "vigente": true
+  },
+  {
+    "nombre_usuario": "pgimene",
+    "nombre_completo": "Pablo Giménez",
+    "vigente": true
+  },
+  {
+    "nombre_usuario": "asuarez",
+    "nombre_completo": "Ana Suárez",
+    "vigente": true
+  },
+  {
+    "nombre_usuario": "tmolina",
+    "nombre_completo": "Tomás Molina",
+    "vigente": true
+  },
+  {
+    "nombre_usuario": "jdiaz",
+    "nombre_completo": "Julio Díaz",
+    "vigente": false
+  },
+  {
+    "nombre_usuario": "nmedina",
+    "nombre_completo": "Noelia Medina",
+    "vigente": true
+  }
+]
