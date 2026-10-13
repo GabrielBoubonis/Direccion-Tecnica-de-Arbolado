@@ -1,0 +1,18 @@
+<svg viewBox="0 0 375 812" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+  <rect width="375" height="812" fill="#ffffff"/>
+  <rect width="375" height="24" fill="#eeeeee"/>
+  <rect x="0" y="24" width="375" height="788" rx="0" fill="#2c3e50"/>
+  <text x="187" y="150" font-size="48" fill="#fff" text-anchor="middle">🔒</text>
+  <text x="187" y="215" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle">Captor bloqueado</text>
+  <text x="187" y="245" font-size="11" fill="#d6dbdf" text-anchor="middle">Se superó el máximo de 5 intentos de ingreso.</text>
+  <rect x="37" y="280" width="301" height="110" rx="12" fill="#ffffff"/>
+  <text x="187" y="308" font-size="11" fill="#555" text-anchor="middle">Código del dispositivo</text>
+  <text x="187" y="355" font-size="28" fill="#222" font-weight="bold" text-anchor="middle">K7M2-X9QD</text>
+  <text x="187" y="376" font-size="9" fill="#888" text-anchor="middle">Identifica a este captor</text>
+  <text x="187" y="430" font-size="11" fill="#d6dbdf" text-anchor="middle">Pasale este código a un Administrador del CIL</text>
+  <text x="187" y="448" font-size="11" fill="#d6dbdf" text-anchor="middle">para que lo desbloquee.</text>
+  <text x="187" y="466" font-size="11" fill="#d6dbdf" text-anchor="middle">Cuando lo haga, abrí la app con conexión.</text>
+  <rect x="37" y="520" width="301" height="46" rx="8" fill="#7f8c8d"/>
+  <text x="187" y="548" font-size="12" fill="#fff" font-weight="bold" text-anchor="middle">Ya me desbloquearon, reintentar</text>
+  <text x="187" y="780" font-size="9" fill="#aab7b8" text-anchor="middle">RF-52 · RF-60 — pantalla sin campos de ingreso</text>
+</svg>

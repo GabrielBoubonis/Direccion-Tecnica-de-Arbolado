@@ -34,7 +34,7 @@ equivalente en `er-modelo.md` (entidad `Dictamen`)._
 | Perímetro del tronco (Bloque 2) | Numérico, visible solo si Extracción está marcada | `perimetro_tronco` |
 | Motivo de extracción (Bloque 2) | Selección entre 12 opciones, visible solo si Extracción está marcada | `motivo_extraccion` |
 | Sin trabajo (Bloque 5) | Casillero booleano | `es_sin_trabajo` |
-| Motivo de sin trabajo (Bloque 5) | Selección entre 6 opciones | `motivo_sin_trabajo` |
+| Motivo de sin trabajo (Bloque 5) | Selección entre 6 opciones; "Sin trabajo" es excluyente con Extracción y con los trabajos (RF-61) | `motivo_sin_trabajo` |
 
 ## Paso 3 — Intervención
 
@@ -72,6 +72,24 @@ _Deshabilitado por completo si en el Paso 2 se marcó Extracción (RF-46; ver no
 **Regla general (RF-56):** solo Referencia de ubicación y Observaciones admiten texto libre. Todo
 campo con valores conocidos se elige de una lista cerrada o en el mapa, y el servidor rechaza
 cualquier valor fuera de ellas (ver Decisión 10 en `er-modelo.md`).
+
+## Listas cerradas tomadas del formulario en papel
+
+_Transcriptas del formulario físico "Dictamen Técnico de Arbolado" (Secretaría de Ambiente y Espacio Público, Dirección General de Parques y Paseos). Son los valores que el servidor acepta para cada campo (RF-56)._
+
+| Campo | Valores |
+|---|---|
+| Distrito | Centro, Noroeste, Norte, Oeste, Sudoeste, Sur |
+| Nivel de daño en vereda | 1 – Alto, 2 – Medio, 3 – Bajo |
+| Motivo de extracción (12) | 1 Árbol muerto; 2 Con riesgo de caída por ahuecamiento; 3 Con riesgo de caída por inclinación; 4 Afectado por enfermedad incurable; 5 Con pronunciado desequilibrio estructural; 6 En precario estado vegetativo; 7 No es posible implementar solución técnica; 8 Por daño intencional irreversible; 9 Obra pública; 10 Especie no apta para el lugar implantado; 11 Cepa verde; 12 Cepa muerta |
+| Trabajos en la parte subterránea (3) | 1 Corte vertical de raíces (con distancia al borde del árbol, en metros); 2 Corte horizontal de raíces; 3 Agrandamiento de cazuela |
+| Trabajos en la parte aérea (12) | 1 Poda de formación; 2 Liberación de conductores eléctricos; 3 Liberación de tránsito peatonal; 4 Liberación de tránsito vehicular; 5 Despeje de espacio aéreo privado; 6 Despeje de luminarias; 7 Equilibrio del ejemplar; 8 Raleo y limpieza; 9 Elevación de copa; 10 Reducción de altura de copa; 11 Reducción volumétrica; 12 Eliminación de ramas peligro |
+| Motivo de sin trabajo (6) | 1 Ejemplar extraído; 2 Trabajos realizados en ramas y raíces; 3 El/los ejemplar/es no ocasionan problemas visibles; 4 El domicilio no existe; 5 Ejemplar/es en propiedad privada; 6 En el domicilio no existe arbolado público |
+| Complejidad | Baja, Media, Alta, Máxima |
+| Plantar | Cazuela, Construir cazuela, Vereda jardín |
+| Casilleros de información adicional | Urgente, Árbol frente a garage, Media tensión, De oficio |
+
+_Nota: en el papel el casillero de cada bloque (Extracción, Trabajos subterráneos, Trabajos aéreos, Sin trabajo) se marca primero y después los motivos o ítems. "Sin trabajo" es excluyente con los otros tres (RF-61). En el papel la lista de extracción es de casilleros; el sistema la modela como una selección única (`motivo_extraccion`), a confirmar con la Dirección si un mismo ejemplar puede tener más de un motivo._
 
 ---
 

@@ -25,7 +25,7 @@ justificación de cada uno._
 
 ## Pantalla / Módulo 1 — Login
 
-**Wireframe:** `diagramas/wireframes/01-login.svg`
+**Wireframe:** `diagramas/wireframes/01-login.svg`, `diagramas/wireframes/01b-captor-bloqueado.svg` (bloqueo tras 5 intentos, con el código del dispositivo, RF-52 y RF-60) y `diagramas/wireframes/01c-reanudar-sin-senal.svg` (reanudar la sesión sin señal con la contraseña, RF-57)
 
 **Patrones de diseño utilizados:** Formulario simple centrado (Card).
 
@@ -156,7 +156,7 @@ quede claro que el formulario completo no es corto:
    medianera/referencia, Cantidad de ejemplares al frente.
 2. **Diagnóstico** — Bloque 1: nivel de daño en vereda (Alto/Medio/Bajo); Bloque 2:
    casillero "Extracción" + perímetro del tronco + motivo (12 opciones, aparecen solo si se
-   marca Extracción); Bloque 5: casillero "Sin trabajo" + motivo (6 opciones).
+   marca Extracción); Bloque 5: casillero "Sin trabajo" + motivo (6 opciones); "Sin trabajo" es excluyente: al marcarlo se deshabilitan Extracción y los trabajos, y no se puede firmar sin ninguna intervención ni "Sin trabajo" (RF-61).
 3. **Intervención** (pantalla dibujada en el wireframe) — Bloque 3: trabajos subterráneos
    (3 opciones, selección múltiple, una con campo de distancia); Bloque 4: trabajos aéreos
    (12 opciones, selección múltiple). **Si en el Paso 2 se marcó "Extracción", ambos
@@ -257,7 +257,7 @@ con más de un criterio cuando la única regla es "las más antiguas primero" (R
 
 ## Pantalla / Módulo 7 — Gestión de usuarios (Administrador)
 
-**Wireframe:** `diagramas/wireframes/07-gestion-usuarios.svg`
+**Wireframe:** `diagramas/wireframes/07-gestion-usuarios.svg` y `diagramas/wireframes/07b-desbloquear-captor.svg` (sección "Captores bloqueados", RF-60)
 
 **Patrones de diseño utilizados:** Tarjetas/listado (equivalente mobile de Tabla con
 paginación), Modal para alta de usuario.
@@ -336,6 +336,36 @@ sin explicación.
 - Validaciones relevantes: ninguna de carga de datos; el único comportamiento a validar es
   que el rango de fechas tenga una fecha de inicio anterior o igual a la de fin antes de
   aplicar el filtro.
+
+---
+
+## Pantalla / Módulo 10 — Para revisar (Administrador)
+
+**Wireframe:** `diagramas/wireframes/10-para-revisar.svg`
+
+**Patrones de diseño utilizados:** Tarjetas/listado con filtro por tipo (el mismo patrón de los Módulos 7 y 9).
+
+**Justificación:** Resuelve CU-14 y RF-58. Es el lugar donde el Administrador se entera de lo que el sistema no pudo procesar solo: un dictamen firmado sin conexión que llegó alterado (RF-53) y un registro del SUA rechazado por datos inválidos (RNF-18). Se reutiliza el patrón de listado de los Módulos 7 y 9 en lugar de inventar uno nuevo, porque es otro conjunto de registros que el Administrador consulta ocasionalmente. Cada tarjeta muestra el tipo de caso en una etiqueta con texto (no solo color), la solicitud afectada, la fecha y el motivo. La pantalla es de solo consulta: no tiene botones para editar ni descartar, y lo dice en un aviso fijo al pie. Si no hay casos, muestra el mensaje "No hay casos para revisar" (CU-14, excepción E1).
+
+**Formulario (si aplica):**
+- Cantidad de campos: 1 filtro opcional (tipo de caso); no hay formulario de carga.
+- Flujo: todo en una pantalla (listado y detalle en un panel desplegable).
+- Validaciones relevantes: ninguna de carga de datos.
+
+---
+
+## Pantalla / Módulo 11 — Dictámenes en conflicto (Jefe)
+
+**Wireframe:** `diagramas/wireframes/11-conflicto-dictamenes.svg`
+
+**Patrones de diseño utilizados:** Comparación lado a lado (dos tarjetas) con confirmación en Modal.
+
+**Justificación:** Resuelve CU-15 y RF-59. Cuando dos ingenieros dictaminaron el mismo caso, el Jefe necesita ver los dos juntos para elegir. En el celular las dos tarjetas se apilan una sobre la otra con los mismos datos en el mismo orden (autor, fecha de firma, intervención, motivo, prioridad), para que se comparen de un vistazo sin cambiar de pantalla. Elegir es una acción con consecuencia (el otro dictamen pasa a no vigente), por eso se confirma en un Modal que lo dice con esas palabras. No se ofrece borrar ningún dictamen: el que no se elige queda en el historial.
+
+**Formulario (si aplica):**
+- Cantidad de campos: 1 (elegir cuál dictamen queda vigente).
+- Flujo: una pantalla con confirmación en Modal.
+- Validaciones relevantes: el botón de confirmar se habilita solo con un dictamen elegido; si otro Jefe ya resolvió el caso, se informa y se muestra el dictamen vigente (CU-15, excepción E2).
 
 ---
 

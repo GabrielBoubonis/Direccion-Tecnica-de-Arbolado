@@ -45,7 +45,13 @@ seguimiento para la Dirección.
 - El captor se **bloquea localmente** luego de 5 intentos de inicio de sesión fallidos
   seguidos, y el Administrador puede **revocar de forma remota** la sesión y los datos
   locales de un dispositivo reportado como perdido o robado (RF-52), ya que ese dispositivo
-  puede tener dictámenes firmados y fotografías todavía sin sincronizar.
+  puede tener dictámenes firmados y fotografías todavía sin sincronizar. Un captor bloqueado
+  lo desbloquea un Administrador desde Gestión de usuarios, identificándolo por un código que
+  muestra la pantalla de bloqueo (RF-60).
+- Si la sesión se cierra por inactividad y el captor no tiene señal, el ingeniero puede
+  **reanudarla con su contraseña local**, solo si ya había ingresado con conexión ese día, no
+  pasaron los 7 días de tope y el captor no fue revocado; al volver la señal el sistema
+  revalida al usuario (RF-57).
 
 ### 2.2 Lectura de solicitudes del SUA
 
@@ -72,12 +78,17 @@ seguimiento para la Dirección.
   recomendada, etc.) para un caso pendiente o pendiente-revisión.
 - **Solo puede existir un dictamen activo por ejemplar en un momento dado.** Si dos
   ingenieros intentan dictaminar el mismo caso, se acepta el primero que confirma el
-  envío; el segundo intento es rechazado por el sistema.
+  envío; el segundo intento es rechazado por el sistema. Si uno de los dos dictámenes se firmó sin
+  conexión y recién llega al sincronizar, el sistema conserva ambos y un **Jefe** elige cuál
+  queda vigente; el otro queda en el historial como no vigente (RF-59).
+- "Sin trabajo" es excluyente con Extracción y con los trabajos aéreos y subterráneos, y un
+  dictamen no puede firmarse sin alguna intervención marcada ni "Sin trabajo" (RF-61).
 - El dictamen completo, firmado digitalmente (hash + timestamp + usuario), se guarda en la
   base de datos propia del sistema, ya que el SUA no tiene una entidad "dictamen" — solo
   campos de "datos complementarios de la solicitud".
-- Una vez firmado, el sistema envía al SUA, vía la API que este expone, únicamente el
-  subconjunto de campos que corresponde a esos datos complementarios. Si el envío falla, el
+- Una vez firmado, el sistema envía al SUA, vía la API que este expone, todo lo que
+  cargó el ingeniero (campos del formulario, fotografías, autor y fecha), sin los datos internos del
+  sistema (hash de firma, estado de sincronización). Si el envío falla, el
   dictamen queda guardado y firmado localmente con estado **pendiente de sincronizar**, y el
   sistema reintenta el envío automáticamente hasta lograrlo.
 - Al confirmar la firma, el sistema exige un **segundo factor de autenticación** además de
@@ -86,7 +97,9 @@ seguimiento para la Dirección.
 - Al sincronizar un dictamen firmado sin conexión, el sistema **recalcula el hash de firma**
   sobre el contenido recibido y lo compara contra el generado en el dispositivo al momento
   de firmar; si no coinciden, la sincronización se rechaza y el dictamen queda marcado para
-  revisión del Administrador en lugar de darse por válido silenciosamente (RF-53).
+  revisión del Administrador, en un apartado "Para revisar" de solo consulta que también
+  lista los registros del SUA rechazados por datos inválidos (RF-53, RF-58, RNF-18), en lugar
+  de darse por válido silenciosamente.
 - El sistema permite descargar el dictamen como PDF (u otro formato imprimible), para su
   impresión como documento legal cuando sea necesario.
 - Cada caso conserva un **historial de dictámenes**: si un caso vuelve a estar pendiente
@@ -114,7 +127,7 @@ seguimiento para la Dirección.
 - Los roles **Operador** y **Jefe** pueden generar, mediante un botón "Generar ruta", una
   ruta de trabajo optimizada para su jornada laboral, a partir de los casos pendientes.
 - El ingeniero define con qué criterios se arma la ruta, combinando de forma flexible:
-  - Cantidad o porcentaje de casos por **distrito** (opcional: puede no filtrar por distrito).
+  - Un **distrito** como filtro (opcional: puede no filtrar por distrito).
   - Cantidad de casos por **nivel de prioridad**.
   - Selección manual de una **zona en el mapa**.
   - **Modo de desplazamiento**: a pie o en vehículo. El ingeniero lo elige al generar la
@@ -202,7 +215,7 @@ seguimiento para la Dirección.
 
 - El sistema mantiene un **log de auditoría independiente e inmutable** (no editable ni
   borrable desde la propia aplicación) de toda alta, baja o modificación de rol de un
-  usuario, y de toda reconfiguración de los criterios de generación de rutas: qué usuario
+  usuario, y de todo desbloqueo o revocación de un captor: qué usuario
   realizó la acción, qué acción fue, y cuándo.
 - Es un registro **distinto** del historial de dictámenes (2.3) y del historial de
   derivaciones (2.4): estos documentan la operación diaria sobre solicitudes y dictámenes;

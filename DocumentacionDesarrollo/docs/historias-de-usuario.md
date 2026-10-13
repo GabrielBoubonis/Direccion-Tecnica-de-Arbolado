@@ -67,13 +67,14 @@ _Cada historia debe incluir formato clásico, criterios de aceptación y validac
 |-------|---------|
 | Historia | Como Operador, quiero ver el listado de solicitudes derivadas a la Dirección Técnica de Arbolado, para saber qué casos tengo disponibles para dictaminar. |
 | Módulo | Lectura de solicitudes del SUA |
-| Requisitos relacionados | RF-09, RF-10, RF-11, RF-13 |
+| Requisitos relacionados | RF-09, RF-10, RF-11, RF-13, RF-62 |
 
 ### Criterios de aceptación
 
 1. Dado que inicié sesión, cuando accedo al listado de solicitudes, el sistema muestra únicamente las de tipo reclamo, subtipo "problema con el arbolado público", derivadas a Parques y Paseos – Dirección Técnica.
 2. Cada solicitud del listado muestra su identificador (Número de SUA - Año) y su estado actual (Pendiente, Dictaminada o Pendiente-revisión).
 3. Dado que soy Operador o Jefe, puedo ver todas las solicitudes pendientes y pendientes-revisión, sin que estén restringidas a un ingeniero en particular.
+4. Dado que el sistema no pudo ubicar una solicitud en el mapa, la solicitud aparece igual en el listado y puedo dictaminarla entrando desde ahí; el sistema reintenta ubicarla solo, sin que nadie la corrija a mano (RF-62).
 
 ### Validación INVEST
 
@@ -151,18 +152,19 @@ _Cada historia debe incluir formato clásico, criterios de aceptación y validac
 |-------|---------|
 | Historia | Como Operador, quiero completar y firmar digitalmente el dictamen técnico de una solicitud, para dejar registrada la intervención que corresponde sobre el ejemplar. |
 | Módulo | Dictaminación |
-| Requisitos relacionados | RF-20, RF-21, RF-22, RF-23, RF-24, RF-29, RF-45, RF-46, RF-51, RF-56 |
+| Requisitos relacionados | RF-20, RF-21, RF-22, RF-23, RF-24, RF-29, RF-45, RF-46, RF-51, RF-56, RF-61 |
 
 ### Criterios de aceptación
 
 1. Dado que abro una solicitud en estado Pendiente o Pendiente-revisión, cuando completo el formulario del dictamen y confirmo el envío, el sistema me pide un segundo factor de autenticación (verificación biométrica del dispositivo, huella o reconocimiento facial) antes de firmarlo; recién entonces lo firma digitalmente con hash, timestamp y mi usuario, y lo guarda en la base de datos propia.
 2. Dado que otro ingeniero envía un dictamen para el mismo caso antes que yo, cuando intento enviar el mío, el sistema rechaza mi envío indicando que el caso ya fue dictaminado.
-3. Dado que el dictamen se firmó correctamente, el sistema envía al SUA el subconjunto de campos correspondiente a los "datos complementarios de la solicitud".
+3. Dado que el dictamen se firmó correctamente, el sistema envía al SUA todos los datos que cargué (campos del formulario, fotografías, autor y fecha), sin los datos internos del sistema (hash de firma, estado de sincronización).
 4. El formulario del dictamen no muestra nombre ni datos de contacto del vecino, solo la información técnica necesaria (ubicación, descripción del reclamo).
 5. Dado que no adjunté ninguna fotografía del ejemplar, cuando intento firmar el dictamen, el sistema me lo impide y me indica que debo cargar al menos una foto.
 6. Dado que marco "Extracción" en el dictamen, el sistema deshabilita los campos de trabajos en la parte aérea y en la parte subterránea, para no dejar cargada una intervención incongruente con la extracción del ejemplar.
 7. Dado que completo el formulario, los campos con valores conocidos (especie, nivel de daño, motivos, trabajos, complejidad, plantar, prioridad, domicilio y calle esquina) solo me permiten elegir una opción de una lista o un punto en el mapa, sin escribir libremente; solo Referencia de ubicación y Observaciones admiten texto libre. Nota N.° y Expediente N.° solo aceptan números enteros.
 8. Dado que la especie del ejemplar no figura en el selector, cuando elijo "Agregar especie" e ingreso su nombre, el sistema la incorpora al catálogo y la deja seleccionada, rechazando nombres que ya existan (sin distinguir mayúsculas ni tildes).
+9. Dado que marco "Sin trabajo", el sistema deshabilita Extracción y los trabajos aéreos y subterráneos; y dado que no marqué ninguna intervención ni "Sin trabajo", cuando intento firmar, el sistema me lo impide e indica que el dictamen debe decir algo (RF-61).
 
 ### Validación INVEST
 
@@ -237,7 +239,7 @@ _Cada historia debe incluir formato clásico, criterios de aceptación y validac
 |-------|---------|
 | Historia | Como Operador, quiero poder completar y firmar un dictamen aunque no tenga señal en el lugar donde estoy, para no depender de la conectividad del momento para hacer mi trabajo. |
 | Módulo | Trabajo sin conexión y sincronización |
-| Requisitos relacionados | RF-30, RF-31, RF-32, RF-52, RNF-16 |
+| Requisitos relacionados | RF-30, RF-31, RF-32, RF-52, RF-57, RNF-16 |
 
 ### Criterios de aceptación
 
@@ -245,6 +247,7 @@ _Cada historia debe incluir formato clásico, criterios de aceptación y validac
 2. Dado que firmo un dictamen sin conexión, el sistema lo guarda localmente en el dispositivo, cifrado en reposo, con estado "pendiente de sincronizar".
 3. Dado que intento generar una ruta nueva sin conexión, el sistema no lo permite, ya que esa acción requiere conexión.
 4. Dado que alguien falla 5 veces seguidas al intentar iniciar sesión en mi captor, el sistema bloquea el acceso local a la aplicación en ese dispositivo.
+5. Dado que mi sesión se cerró por inactividad y estoy sin señal, cuando ingreso mi contraseña, el sistema me deja reanudar la sesión solo si ya había ingresado con conexión ese día, no pasaron 7 días desde mi primer ingreso y el captor no fue revocado; al volver la señal, el sistema revalida mi usuario (RF-57).
 
 ### Validación INVEST
 
@@ -254,7 +257,7 @@ _Cada historia debe incluir formato clásico, criterios de aceptación y validac
 | Negociable | Sí | El mecanismo técnico de almacenamiento local puede decidirse en el diseño sin afectar el criterio de aceptación: que el dictamen quede firmado y guardado aunque no haya señal. |
 | Valiosa | Sí | Se verifica con el criterio 1: sin esto, un ingeniero en una zona sin señal simplemente no podría trabajar, lo cual contradice una condición real y frecuente del trabajo de campo. |
 | Estimable | Parcial | Depende de decisiones técnicas de almacenamiento local (Service Worker, IndexedDB) que pueden requerir un análisis previo. |
-| Pequeña | Sí | Dentro de lo que permite el alcance offline definido: se limita a firmar y guardar localmente de forma cifrada (criterio 2) y al bloqueo local por intentos fallidos (criterio 4), sin incluir la lógica de reintento de envío, que es de HU-10, ni la revocación remota del dispositivo, que es una acción de Administrador (HU-02). |
+| Pequeña | Sí | Dentro de lo que permite el alcance offline definido: se limita a firmar y guardar localmente de forma cifrada (criterio 2) al bloqueo local por intentos fallidos (criterio 4) y a la reanudación de sesión sin señal (criterio 5), sin incluir la lógica de reintento de envío, que es de HU-10, ni la revocación remota del dispositivo, que es una acción de Administrador (HU-02). |
 | Verificable | Sí | Se comprueba con el criterio 2: al firmar un dictamen en modo avión, debe quedar visible en el dispositivo con estado 'pendiente de sincronizar', verificable revisando la cola local sin reconectar. |
 
 ---
@@ -347,7 +350,7 @@ _Cada historia debe incluir formato clásico, criterios de aceptación y validac
 
 | Campo | Detalle |
 |-------|---------|
-| Historia | Como Administrador, quiero consultar el log de auditoría de altas, bajas, cambios de rol y de configuración de rutas, para poder revisar quién hizo qué cambio y cuándo ante cualquier incidente o duda. |
+| Historia | Como Administrador, quiero consultar el log de auditoría de altas, bajas, cambios de rol y desbloqueos o revocaciones de captores, para poder revisar quién hizo qué cambio y cuándo ante cualquier incidente o duda. |
 | Módulo | Auditoría |
 | Requisitos relacionados | RF-54, RF-55 |
 
@@ -421,3 +424,87 @@ _Cada historia debe incluir formato clásico, criterios de aceptación y validac
 | Estimable | Sí | Reutiliza las métricas de RF-35 a RF-37 con un filtro adicional por etiqueta de tormenta. |
 | Pequeña | Sí | Se limita a un desglose con los mismos tres indicadores y el filtro existente (criterios 2 y 3); no agrega métricas nuevas. |
 | Verificable | Sí | Se comprueba con el criterio 1: el total general debe ser igual a las solicitudes que no son de tormenta más las de tormenta, verificable con un período de datos de prueba. |
+
+---
+
+## HU-16 — Revisar los casos que quedan para revisión del Administrador
+
+| Campo | Detalle |
+|-------|---------|
+| Historia | Como Administrador, quiero ver en un apartado "Para revisar" los dictámenes con integridad no verificada y los registros del SUA rechazados, para enterarme de lo que el sistema no pudo procesar solo. |
+| Módulo | Administración |
+| Requisitos relacionados | RF-53, RF-58, RNF-18 |
+
+### Criterios de aceptación
+
+1. Dado que soy Administrador, cuando abro "Para revisar", veo cada caso con su tipo, la solicitud afectada, la fecha y el motivo.
+2. Dado que un dictamen firmado sin conexión llegó alterado al sincronizar, aparece en el listado como "integridad no verificada".
+3. Dado que el SUA envió una solicitud con datos inválidos, aparece en el listado como "datos inválidos del SUA".
+4. La pantalla es de solo consulta: no ofrece editar ni descartar casos.
+
+### Validación INVEST
+
+| Criterio | ¿Se cumple? | Observación |
+|----------|-------------|-------------|
+| Independiente | Parcial | Necesita que existan casos rechazados (HU-10 y la validación del SUA); se prueba con casos de prueba cargados a mano. |
+| Negociable | Sí | Se puede discutir luego si el Administrador necesita acciones sobre cada caso, sin cambiar el valor de esta historia (hoy es solo consulta). |
+| Valiosa | Sí | Se verifica con el criterio 1: sin este apartado, un rechazo quedaría invisible. |
+| Estimable | Sí | Es un listado de solo lectura sobre datos que ya se generan. |
+| Pequeña | Sí | Se limita a listar y ver el detalle (criterios 1 a 4); no incluye acciones, alertas ni mails. |
+| Verificable | Sí | Se comprueba con los criterios 2 y 3 cargando un caso de cada tipo y revisando que aparezca. |
+
+---
+
+## HU-17 — Elegir qué dictamen queda vigente cuando hay dos para el mismo caso
+
+| Campo | Detalle |
+|-------|---------|
+| Historia | Como Jefe, quiero ver los dos dictámenes firmados para el mismo caso y elegir cuál queda vigente, para que el caso tenga un único dictamen válido sin perder el otro. |
+| Módulo | Dictaminación |
+| Requisitos relacionados | RF-21, RF-59 |
+
+### Criterios de aceptación
+
+1. Dado que dos ingenieros dictaminaron el mismo caso (uno de ellos sin señal), la solicitud pasa a Pendiente-revisión y no se descarta ninguno de los dos dictámenes.
+2. Dado que soy Jefe, cuando abro el detalle del caso, veo ambos dictámenes con autor, fecha de firma y contenido.
+3. Cuando elijo uno, ese queda vigente, el otro queda en el historial como no vigente y la solicitud vuelve a Dictaminada.
+4. La elección queda registrada con quién la hizo, fecha y hora.
+
+### Validación INVEST
+
+| Criterio | ¿Se cumple? | Observación |
+|----------|-------------|-------------|
+| Independiente | Parcial | Depende de HU-06 y HU-09 para que existan dos dictámenes; se prueba cargando dos dictámenes del mismo caso. |
+| Negociable | Sí | La forma de mostrar los dos dictámenes (lado a lado o en pestañas) se define en la UI sin cambiar el valor. |
+| Valiosa | Sí | Se verifica con el criterio 3: el caso queda con un solo dictamen vigente y nada se pierde. |
+| Estimable | Sí | Es una pantalla de comparación y una acción de elegir, sobre datos que ya existen. |
+| Pequeña | Sí | No incluye volver a dictaminar ni notificaciones a los ingenieros. |
+| Verificable | Sí | Se comprueba con los criterios 3 y 4: un dictamen vigente, el otro no vigente y la elección registrada. |
+
+---
+
+## HU-18 — Desbloquear un captor bloqueado
+
+| Campo | Detalle |
+|-------|---------|
+| Historia | Como Administrador, quiero desbloquear un captor bloqueado por intentos fallidos identificándolo con el código de su pantalla, para que el ingeniero pueda volver a trabajar. |
+| Módulo | Autenticación y gestión de usuarios |
+| Requisitos relacionados | RF-52, RF-54, RF-60 |
+
+### Criterios de aceptación
+
+1. Dado que un captor se bloqueó tras 5 intentos fallidos, su pantalla de bloqueo muestra un código del dispositivo.
+2. Dado que soy Administrador, cuando ingreso ese código en Gestión de usuarios, veo el captor y puedo desbloquearlo.
+3. Cuando el captor tiene conexión, el desbloqueo se aplica y el ingeniero puede volver a ingresar.
+4. El desbloqueo queda registrado en el log de auditoría (quién, cuándo y qué captor).
+
+### Validación INVEST
+
+| Criterio | ¿Se cumple? | Observación |
+|----------|-------------|-------------|
+| Independiente | Parcial | Se apoya en el bloqueo de HU-09; se prueba bloqueando un captor de prueba. |
+| Negociable | Sí | Si más adelante se prefiere un desbloqueo automático por tiempo, se cambia sin tocar el resto. |
+| Valiosa | Sí | Se verifica con el criterio 3: sin esto, un ingeniero bloqueado no podría trabajar. |
+| Estimable | Sí | Es un buscador por código y una acción de confirmar. |
+| Pequeña | Sí | No incluye la revocación por pérdida o robo, que ya está en HU-02. |
+| Verificable | Sí | Se comprueba con los criterios 2 a 4. |

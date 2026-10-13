@@ -12,6 +12,10 @@ Datos **ficticios** para cargar las dos bases simuladas (SUA y Autenticación In
 | `especies.json` | Catálogo inicial de 23 especies. | Tabla `Especie` |
 | `historial_derivaciones.json` | Un evento por solicitud, más la derivación original de las 2 re-derivadas. | Tabla `HistorialDerivacion` |
 | `dictamenes_ejemplo.json` | 8 dictámenes ya firmados y sincronizados (6 solicitudes dictaminadas + el dictamen anterior de las 2 re-derivadas). | Tabla `Dictamen` y tablas hijas |
+| `catalogos.json` | Todas las listas cerradas del formulario en papel (distritos, motivos de extracción, trabajos, motivos de "sin trabajo", etc.). | Constantes o tablas de catálogo |
+| `dictamenes_conflicto.json` | Dos dictámenes firmados para la solicitud 48495-2026 (uno de extracción y otro de poda firmado sin conexión). | Para probar RF-59 y CU-15 |
+| `dispositivos.json` | 3 captores: uno bloqueado (K7M2-X9QD), uno revocado y uno activo. | Tabla `Dispositivo` (RF-60, CU-16) |
+| `casos_revision.json` | 2 casos para el apartado "Para revisar" (integridad no verificada y datos inválidos del SUA). | Tabla `CasoRevision` (RF-58, CU-14) |
 | `fotos/` | 3 imágenes de relleno para las fotografías de los dictámenes. | Almacenamiento de fotos |
 
 ## Qué casos cubre
@@ -22,6 +26,7 @@ Datos **ficticios** para cargar las dos bases simuladas (SUA y Autenticación In
 | Solicitud con dirección no ubicable | 1 | Falla de geocodificación (Decisión 9): queda disponible para consulta, pero fuera del cálculo de rutas. Es la de dirección "Pasaje sin nombre s/n". |
 | Solicitudes de tormenta | 8 | Sección "Protocolo por tormenta" (RF-38 a RF-43). Fechas repetidas a propósito (2 por día) para probar el orden por antigüedad y pedir, por ejemplo, 5 de las 8. No deben aparecer en el listado general. |
 | Solicitudes ya dictaminadas | 6 | Dashboard, historial y descarga de PDF. Con estado `Dictaminada`. |
+| Solicitud con dos dictámenes | 1 | La 48495 (cuenta entre las 25 pendientes del CSV, pero al cargar `dictamenes_conflicto.json` pasa a `Pendiente-revisión`): un Jefe elige cuál queda vigente (RF-59, CU-15). |
 | Solicitudes re-derivadas | 2 | `es_rederivacion = true` y año de origen 2025: deben quedar en `Pendiente-revisión` (RF-12, HU-14). Tienen un dictamen anterior. |
 
 Las fechas de derivación van del 17/08 al 06/10/2026, para que el dashboard tenga datos en agosto, septiembre y octubre. Hay días con más de una solicitud para probar los tramos de antigüedad de la ruta.
@@ -45,14 +50,11 @@ Todos usan la misma contraseña de demostración: `Demo2026!` (solo para la demo
 2. Los estados de las solicitudes no vienen en el mock del SUA: se calculan al leerlas. Los valores esperados están en la columna `estado_esperado_en_sistema` del CSV.
 3. Geocodificar la dirección de cada solicitud **una sola vez** y guardar `latitud` y `longitud` (Decisión 9), para no gastar la cuota gratuita de OpenRouteService en cada ruta.
 4. En `dictamenes_ejemplo.json`: reemplazar `hash_firma` (`<CALCULAR_EN_SEED>`) con el SHA-256 real del contenido, y completar `latitud_ejemplar` y `longitud_ejemplar` con las de la solicitud. El campo `nota_prueba` no es parte del modelo, se puede ignorar.
-5. Las rutas, los registros de auditoría y los dictámenes pendientes de sincronizar no se precargan: se generan usando el sistema durante la demo.
+5. Cargar también `dispositivos.json` y `casos_revision.json`. La solicitud 48495 queda en Pendiente-revisión por tener dos dictámenes: cargar `dictamenes_conflicto.json` después de los dictámenes de ejemplo.
+6. Las rutas, los registros de auditoría y los dictámenes pendientes de sincronizar no se precargan: se generan usando el sistema durante la demo.
 
-## Pendiente: catálogos que no están en la documentación
+## Catálogos del formulario
 
-Los dictámenes de ejemplo **no usan** extracción ni "sin trabajo" a propósito, porque no hay un listado escrito de estas opciones del formulario físico:
+Los catálogos de motivos de extracción (12), trabajos aéreos (12), trabajos subterráneos (3) y motivos de "sin trabajo" (6) se transcribieron del formulario en papel y están en `catalogos.json`. Los dictámenes de `dictamenes_ejemplo.json` no usan extracción ni "sin trabajo" a propósito; `dictamenes_conflicto.json` incluye un caso con extracción. Todos los dictámenes de ejemplo tienen `vigente = true`, salvo los dos del conflicto, que quedan en `null` hasta que un Jefe elige.
 
-- los **12 motivos de extracción**,
-- los **6 motivos de "sin trabajo"**,
-- el **ítem número 12** de los trabajos aéreos (el wireframe muestra 11).
-
-Hay que tomarlos del formulario en papel y agregarlos al sistema antes de armar esas pantallas. Los trabajos aéreos y subterráneos de los ejemplos usan solo opciones que sí figuran en el wireframe.
+Para probar la regla RF-61: marcar "Sin trabajo" debe deshabilitar Extracción y los trabajos, y firmar sin ninguna intervención ni "Sin trabajo" debe fallar.

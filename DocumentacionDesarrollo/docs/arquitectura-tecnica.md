@@ -42,18 +42,19 @@ API REST, JSON, autenticación por JWT en el header `Authorization: Bearer <toke
 
 | Recurso | Endpoints principales | RF relacionados |
 |---|---|---|
-| `/auth` | `POST /auth/login` (paso 1 y 2, RF-01 a RF-03), `POST /auth/refresh`, `POST /auth/logout`, `POST /auth/webauthn/verify` (segundo factor, RF-51) | RF-01 a RF-05, RF-50, RF-51 |
-| `/usuarios` | `GET /usuarios`, `POST /usuarios`, `PATCH /usuarios/:id`, `POST /usuarios/:id/reset-password`, `POST /usuarios/:id/revocar-captor` | RF-06 a RF-08, RF-52 |
+| `/auth` | `POST /auth/login` (paso 1 y 2, RF-01 a RF-03), `POST /auth/refresh`, `POST /auth/logout`, `POST /auth/webauthn/verify` (segundo factor, RF-51), `POST /auth/revalidar` (al volver la conexión tras reanudar sin señal, RF-57) | RF-01 a RF-05, RF-50, RF-51, RF-57 |
+| `/usuarios` | `GET /usuarios`, `POST /usuarios`, `PATCH /usuarios/:id`, `POST /usuarios/:id/reset-password`, `POST /usuarios/:id/revocar-captor`, `GET /usuarios/captores-bloqueados?codigo=`, `POST /usuarios/captores/:codigo/desbloquear` | RF-06 a RF-08, RF-52, RF-60 |
 | `/solicitudes` | `GET /solicitudes` (filtros de estado/distrito), `GET /solicitudes/:numeroSua/:anio` | RF-09 a RF-13 |
 | `/rutas` | `POST /rutas` (generar, RF-14 a RF-19, RF-47 a RF-49), `GET /rutas/activa`, `POST /rutas/:id/restablecer` | RF-14 a RF-19, RF-47 a RF-49 |
-| `/dictamenes` | `POST /dictamenes` (completar y firmar, dispara WebAuthn), `GET /dictamenes/:numeroSua/:anio/historial`, `GET /dictamenes/:id/pdf` | RF-20 a RF-29, RF-45, RF-46, RF-51 |
+| `/dictamenes` | `POST /dictamenes` (completar y firmar, dispara WebAuthn), `GET /dictamenes/:numeroSua/:anio/historial`, `GET /dictamenes/:id/pdf`, `GET /dictamenes/:numeroSua/:anio/conflicto` y `POST /dictamenes/:id/vigente` (solo Jefe, RF-59) | RF-20 a RF-29, RF-45, RF-46, RF-51, RF-59, RF-61 |
 | `/sync` | `POST /sync/dictamenes` (cola offline → servidor, recalcula hash, RF-53) | RF-30 a RF-34, RF-53 |
 | `/especies` | `GET /especies?q=` (búsqueda para el selector), `POST /especies` (agregar una especie nueva, normalizada y sin duplicados) | RF-56 |
 | `/dashboard` | `GET /dashboard?mes=&anio=` | RF-35 a RF-37, RF-44 |
 | `/tormenta` | `GET /tormenta`, `POST /tormenta/rutas` | RF-38 a RF-43 |
 | `/auditoria` | `GET /auditoria?usuario=&accion=&desde=&hasta=` | RF-54, RF-55 |
+| `/revision` | `GET /revision` (apartado "Para revisar", solo Administrador, solo lectura) | RF-58, RNF-18 |
 
-Cada endpoint de escritura que modifica usuarios o configuración de rutas dispara
+Cada endpoint de escritura que modifica usuarios o captores dispara
 internamente un registro en `/auditoria` (RF-54) — no es un endpoint que el cliente llame
 por separado.
 
@@ -163,6 +164,8 @@ escenario de falla._
 |---|---|
 | El JWT (30 min) vence a mitad de un formulario largo (dictamen, 5 pasos). | El cliente renueva el JWT en segundo plano con el refresh token mientras haya actividad, sin interrumpir al usuario. Si el refresh token también venció (tope de 7 días, RNF-20), recién ahí se pide reautenticar, y los datos ya cargados en el formulario se conservan (no se pierden al volver a loguearse). |
 | Se revoca el captor de un ingeniero (RF-52) mientras tiene una sesión activa en ese dispositivo. | La revocación invalida el refresh token de inmediato en el servidor. La próxima petición de ese dispositivo (no hay que esperar a que venza el JWT de 30 min) es rechazada y el cliente muestra "sesión finalizada por un administrador", sin reintentar silenciosamente. |
+| La sesión se cierra por inactividad (30 min) y el captor no tiene señal. | Tras cada ingreso exitoso con conexión, el captor guarda cifrado (AES-GCM, RNF-16) un verificador de la contraseña (bcrypt) y la fecha de ese ingreso. Sin señal, la app deja reanudar la sesión con la contraseña solo si el último ingreso con conexión fue ese mismo día, no pasaron 7 días desde el primer ingreso (RNF-20) y el captor no figura como revocado en su último estado conocido; los intentos fallidos suman para el bloqueo local de 5 (RF-52). Al volver la señal, `POST /auth/revalidar` confirma que el usuario siga vigente; si no lo está, se cierra la sesión (los dictámenes ya firmados en la cola se conservan y se sincronizan igual). (RF-57) |
+| Un captor se bloquea por 5 intentos fallidos. | La pantalla de bloqueo muestra un código corto derivado del UUID del dispositivo. El Administrador lo ingresa en Gestión de usuarios, confirma y el servidor marca el dispositivo como desbloqueado y registra el evento en `RegistroAuditoria` en la misma transacción. El captor aplica el desbloqueo la próxima vez que consulta al servidor con conexión. (RF-60) |
 | Falla la verificación WebAuthn al firmar, o el usuario la cancela. | Ya resuelto: el dictamen vuelve al Paso 5 con los datos intactos, sin firmar (ver CU-06, excepción, y wireframe `04b-segundo-factor.svg`). |
 
 ### 7.2 Conectividad y sincronización offline
@@ -173,7 +176,7 @@ escenario de falla._
 | Se pierde la conexión justo después de que el servidor recibe un dictamen de la cola offline, antes de que la confirmación (ACK) llegue al dispositivo. | Cada dictamen firmado localmente lleva un UUID generado en el dispositivo al momento de la firma. `/sync/dictamenes` usa ese UUID como clave de idempotencia: si el mismo UUID llega dos veces (por un reintento automático), el servidor no crea un segundo registro. |
 | El mismo ingeniero sincroniza desde dos dispositivos distintos (perdió el celular, usa uno de respaldo). | El UUID por dictamen evita duplicados aunque las dos colas se sincronicen por separado. La organización de un solo captor activo por ingeniero es una política operativa, no una restricción técnica del sistema. |
 | OpenRouteService no responde al generar una ruta. | Ya resuelto: selección solo por antigüedad, sin desempate por distancia, hasta que el servicio vuelva a responder (ver sección 5, punto 5). |
-| Falla la geocodificación de una Solicitud al derivarse. | Ya resuelto: la Solicitud queda disponible para consulta y dictamen manual, pero sin coordenadas, excluida del cálculo de rutas hasta corregirse (ver `er-modelo.md`, Decisión 9). |
+| Falla la geocodificación de una Solicitud al derivarse. | Ya resuelto: la Solicitud queda disponible para consulta y dictamen manual, pero sin coordenadas, excluida del cálculo de rutas hasta que un reintento automático (cada hora, RF-62) la geocodifique; nadie la corrige a mano (ver `er-modelo.md`, Decisión 9). |
 | El mock de SUA / Autenticación Institucional no responde (en producción: el servicio real cae) durante el login. | El sistema muestra un mensaje propio —distinto del error genérico de credenciales (RF-50)— que informa que el servicio de autenticación no está disponible y que se intente nuevamente en un rato; la caída no cuenta como intento fallido (RF-52, RNF-19); no existe una copia cacheada de credenciales institucionales con la que loguear "igual" en ese momento. |
 
 ### 7.3 Concurrencia e integridad de datos
@@ -182,7 +185,7 @@ escenario de falla._
 |---|---|
 | Dos ingenieros generan ruta casi al mismo tiempo y compiten por las mismas solicitudes. | Ya resuelto: condición de carrera analizada en `Slicing.md`, Parte B (fila 1 de la tabla de excepciones). |
 | Doble clic en "Confirmar ruta" o en el botón de firma del dictamen. | El botón se deshabilita apenas se registra el primer clic (UI optimista) y, del lado del servidor, la misma petición repetida no duplica nada gracias al UUID de idempotencia (igual mecanismo que en sincronización offline). |
-| Dos ingenieros cargan, sin verse entre sí (uno de ellos sin conexión), un dictamen para el mismo ejemplar. | La validación de "no existe ya un dictamen activo" (RF-21) se re-chequea en el servidor al sincronizar, no solo en el cliente. Si hay conflicto, el segundo dictamen en llegar no se descarta silenciosamente: la Solicitud pasa a estado Pendiente-revisión para que un Jefe decida cuál dictamen prevalece (mismo estado que ya usa RF-09 a RF-13). |
+| Dos ingenieros cargan, sin verse entre sí (uno de ellos sin conexión), un dictamen para el mismo ejemplar. | La validación de "no existe ya un dictamen activo" (RF-21) se re-chequea en el servidor al sincronizar, no solo en el cliente. Si hay conflicto, el segundo dictamen en llegar no se descarta silenciosamente: la Solicitud pasa a estado Pendiente-revisión para que un Jefe decida cuál dictamen prevalece (mismo estado que ya usa RF-09 a RF-13). El Jefe ve ambos dictámenes en el detalle del caso y elige uno: el elegido queda con `vigente = true`, el otro con `vigente = false` y se conserva en el historial (RF-59, CU-15). |
 | Una solicitud de tormenta reservada en una ruta del Protocolo por tormenta se intenta tomar también desde una ruta normal. | No es posible: toda Solicitud solo puede tener una fila activa en `RutaSolicitud` a la vez (ver `er-modelo.md`), sin importar si la ruta que la reservó es normal o de tormenta. |
 
 ### 7.4 Archivos y documentos
@@ -199,6 +202,7 @@ escenario de falla._
 |---|---|
 | El Dashboard podría mostrar datos desactualizados si una Solicitud cambia de estado justo mientras alguien lo está mirando. | Los KPIs se calculan on-demand en cada consulta (`GET /dashboard`), no se cachean ni se recalculan por lote, así que no hay ventana de desincronización entre vistas. |
 | El registro de auditoría de una acción administrativa (por ejemplo, un alta de usuario) falla, pero la acción principal ya se ejecutó. | La acción principal y su fila en `RegistroAuditoria` se ejecutan en una sola transacción de base de datos: si el registro de auditoría falla, toda la operación se revierte. Ninguna acción administrativa relevante queda sin su rastro (RF-54). |
+| Un dictamen llega alterado al sincronizar (RF-53) o el SUA manda una solicitud con datos inválidos (RNF-18). | El servidor crea un registro `CasoRevision` (tipo, referencia, motivo, fecha) y no da el caso por válido. El Administrador lo ve en `GET /revision` (apartado "Para revisar"), que es de solo lectura: no hay acción de editar ni descartar sobre el caso. (RF-58) |
 
 ---
 
@@ -262,6 +266,7 @@ a distancia.
 | Tecnología de almacenamiento offline sin decidir (HU-09) | Sección 6 |
 | Rate-limiting server-side, tope de sesión, cabeceras HTTP, borrado post-sync | Sección 4 |
 | Manejo de errores y casos de falla no catalogado | Sección 7 |
+| Decisiones de producto cerradas con el equipo: distrito como filtro de ruta, qué datos van al SUA, "Para revisar", dictámenes duplicados, desbloqueo de captor, sesión sin señal, "Sin trabajo", solicitudes sin ubicar | Secciones 2, 7.1, 7.2, 7.3 (RF-15, RF-24, RF-57 a RF-62) |
 | Configuración base de los captores (apagado, reinicio, conectividad) | Sección 8 |
 | Timeout de red sin valor concreto (RNF-04) | Sección 9 (10 segundos) |
 | Frecuencia de backup indefinida (RNF-11) | Sección 9 (la define el CIL) |

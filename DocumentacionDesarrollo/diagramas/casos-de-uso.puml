@@ -28,6 +28,9 @@ rectangle "Sistema de Dictaminación Técnica" {
   usecase "CU-11\nConsultar dashboard" as CU11
   usecase "CU-12\nAtender protocolo\npor tormenta" as CU12
   usecase "CU-13\nConsultar registro\nde auditoría" as CU13
+  usecase "CU-14\nRevisar casos\npara revisar" as CU14
+  usecase "CU-15\nResolver dictámenes\nen conflicto" as CU15
+  usecase "CU-16\nDesbloquear captor" as CU16
 
 }
 
@@ -59,6 +62,9 @@ LE --> CU12
 
 AD --> CU02
 AD --> CU13
+AD --> CU14
+AD --> CU16
+JF --> CU15
 
 JF --> CU11
 AD --> CU11

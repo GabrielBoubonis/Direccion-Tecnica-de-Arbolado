@@ -19,7 +19,9 @@ _Visualizar en [plantuml.com](https://www.plantuml.com/plantuml/uml/)._
 | TrabajoSubterraneo | Un ítem seleccionado del catálogo de trabajos sobre raíces (Bloque 3 del formulario), de selección múltiple. | Pertenece a un Dictamen. |
 | Ruta | Conjunto de solicitudes que un ingeniero decide atender en una jornada (normal o de tormenta). | Generada por un Usuario; agrupa Solicitudes a través de RutaSolicitud. |
 | RutaSolicitud | Tabla intermedia que resuelve la relación N a M entre Ruta y Solicitud, con la fecha de reserva y si ya fue liberada. | Conecta una Ruta con una Solicitud. |
-| RegistroAuditoria | Un evento inmutable de auditoría: alta, baja o cambio de rol de un Usuario, o reconfiguración de los criterios de ruteo (RF-54). | Generado por un Usuario (quien ejecutó la acción). |
+| RegistroAuditoria | Un evento inmutable de auditoría: alta, baja o cambio de rol de un Usuario, o desbloqueo o revocación de un captor (RF-54). | Generado por un Usuario (quien ejecutó la acción). |
+| Dispositivo | Un captor (celular o tablet Android) que usa la app, con su código visible, su estado (activo, bloqueado o revocado) y los datos de su último bloqueo y desbloqueo (RF-52, RF-60). | Lo usa un Usuario; el Administrador lo desbloquea o revoca. |
+| CasoRevision | Un caso que el sistema no pudo procesar solo y que el Administrador consulta en "Para revisar": dictamen con integridad no verificada o registro del SUA rechazado por datos inválidos (RF-58). | Puede referirse a un Dictamen. |
 
 ## Descripción de atributos principales
 
@@ -121,6 +123,7 @@ _Visualizar en [plantuml.com](https://www.plantuml.com/plantuml/uml/)._
   formulario, junto a `observaciones`, como el último dato que se completa antes de firmar.
   Ver Decisión 6.
 - `observaciones` (`string`): texto libre. **Opcional.**
+- `vigente` (`boolean`): verdadero por defecto. Pasa a falso cuando un Jefe elige el otro dictamen de un caso con dos firmados (RF-59, CU-15); el dictamen no vigente se conserva en el historial.
 - `hash_firma` (`string`), `estado_sincronizacion` (`string`): generados por el sistema al
   firmar, no los completa el usuario (RF-22, RF-25).
 - **Obligatorio y bloqueante para firmar** (no es un atributo de Dictamen, es una regla de
@@ -187,13 +190,30 @@ Catálogo inicial propuesto (a validar con los ingenieros agrónomos): Fresno am
   reservada (por dictaminarse, por "Restablecer" o por el corte automático de las 18:00 hs)
   y cuándo.
 
+### Dispositivo
+
+- `id_dispositivo` (PK, `string`): identificador único del captor (el mismo UUID que se usa para la idempotencia de la sincronización).
+- `codigo_visible` (`string`): código corto derivado del identificador, que se muestra en la pantalla de bloqueo para que el Administrador lo identifique (RF-60).
+- `nombre_usuario` (FK, `string`): último usuario que lo usó.
+- `estado` (`enum`): Activo / Bloqueado / Revocado.
+- `fecha_bloqueo` (`datetime`), `fecha_desbloqueo` (`datetime`), `desbloqueado_por` (FK, `string`): **Opcionales**, se completan al bloquearse y al desbloquearse.
+
+### CasoRevision
+
+- `id_caso` (PK, `int`).
+- `tipo` (`enum`): Integridad no verificada / Datos inválidos del SUA.
+- `referencia_solicitud` (`string`): número de SUA-Año tal como llegó (puede no existir como Solicitud si el registro fue rechazado).
+- `id_dictamen` (FK, `int`): **Opcional**, solo para integridad no verificada.
+- `motivo` (`string`), `fecha_hora` (`datetime`).
+- Es de solo consulta para el Administrador (RF-58): no tiene acciones de edición.
+
 ### RegistroAuditoria
 
 - `id_auditoria` (PK, `int`): identificador propio del evento.
 - `nombre_usuario` (FK, `string`): usuario que ejecutó la acción auditada (quien hizo el
-  alta, la baja, el cambio de rol o la reconfiguración de criterios de ruteo).
+  alta, la baja, el cambio de rol o el desbloqueo o la revocación de un captor).
 - `accion` (`string`): tipo de evento, por ejemplo "Alta de usuario", "Baja de usuario",
-  "Cambio de rol", "Reconfiguración de criterios de ruteo".
+  "Cambio de rol", "Desbloqueo de captor", "Revocación de captor".
 - `entidad_afectada` (`string`): sobre qué registro se aplicó la acción (por ejemplo, el
   `nombre_usuario` del usuario dado de alta/baja o modificado).
 - `valor_anterior` (`string`): estado previo del dato modificado, cuando aplica (por
@@ -337,7 +357,7 @@ visita entre las seleccionadas. Se resolvió de la siguiente manera:
 ### Decisión 8 — Registro de auditoría inmutable, independiente del historial de negocio
 
 Para resolver R-02/R-03 de la matriz de riesgos (acciones administrativas sin trazabilidad:
-altas, bajas y cambios de rol de usuarios, y reconfiguración de los criterios de ruteo
+altas, bajas y cambios de rol de usuarios, y desbloqueos o revocaciones de captores
 hechas sin dejar rastro verificable de quién y cuándo), se evaluaron dos formas de guardar
 este historial:
 
@@ -375,8 +395,8 @@ ruta. Se evaluaron dos opciones:
 
 Si la geocodificación falla (dirección ambigua o servicio caído en el momento de la
 derivación), la Solicitud queda disponible igual para consulta y dictamen manual, pero sin
-coordenadas: se excluye del cálculo de distancia hasta que se corrija manualmente o se
-reintente la geocodificación. No es un caso bloqueante para el resto del sistema, solo para
+coordenadas: se excluye del cálculo de distancia hasta que el sistema logre
+geocodificarla: lo reintenta solo, cada hora (RF-62), y nadie la corrige a mano. Mientras tanto se puede dictaminar entrando directo desde el listado. No es un caso bloqueante para el resto del sistema, solo para
 el armado automático de rutas de esa solicitud puntual.
 
 ### Decisión 10 — Campos del dictamen con valor cerrado, no texto libre

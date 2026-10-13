@@ -89,6 +89,7 @@ entity "Dictamen" as dictamen {
   --
   nivel_prioridad : enum
   observaciones : string
+  vigente : boolean
   hash_firma : string
   estado_sincronizacion : string
 }
@@ -187,6 +188,27 @@ entity "RutaSolicitud" as ruta_solicitud {
   fecha_liberacion : datetime
 }
 
+entity "Dispositivo" as dispositivo {
+  * id_dispositivo : string <<PK>>
+  --
+  codigo_visible : string
+  nombre_usuario : string <<FK>>
+  estado : enum
+  fecha_bloqueo : datetime
+  fecha_desbloqueo : datetime
+  desbloqueado_por : string <<FK>>
+}
+
+entity "CasoRevision" as caso_revision {
+  * id_caso : int <<PK>>
+  --
+  tipo : enum
+  referencia_solicitud : string
+  id_dictamen : int <<FK>>
+  motivo : string
+  fecha_hora : datetime
+}
+
 entity "RegistroAuditoria" as auditoria {
   * id_auditoria : int <<PK>>
   --
@@ -209,6 +231,8 @@ end note
 usuario ||--o{ dictamen : firma
 usuario ||--o{ ruta : genera
 usuario ||--o{ auditoria : genera
+usuario |o--o{ dispositivo : "usa"
+dictamen |o--o{ caso_revision : "puede originar"
 
 solicitud ||--o{ dictamen : "tiene historial de"
 solicitud ||--o{ historial : "registra derivaciones"

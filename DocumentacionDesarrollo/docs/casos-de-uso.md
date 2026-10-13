@@ -10,9 +10,9 @@ _Visualizar en [plantuml.com](https://www.plantuml.com/plantuml/uml/)._
 **Actores principales** (inician los casos de uso, son los roles del sistema):
 
 - **Operador** — ingeniero de campo. Consulta solicitudes, arma rutas, dictamina.
-- **Jefe** — mismo acceso operativo que el Operador, más el dashboard.
-- **Administrador** — personal del CIL. Gestiona usuarios y roles; en el resto del sistema
-  se comporta como lector.
+- **Jefe** — mismo acceso operativo que el Operador, más el dashboard y la resolución de dictámenes en conflicto.
+- **Administrador** — personal del CIL. Gestiona usuarios y roles, desbloquea captores y revisa los casos
+  que quedan "para revisar"; en el resto del sistema se comporta como lector.
 - **Lector** — consulta pasiva del dashboard y del protocolo por tormenta.
 
 **Actores secundarios** (sistemas externos que participan, pero no inician):
@@ -31,7 +31,7 @@ _Visualizar en [plantuml.com](https://www.plantuml.com/plantuml/uml/)._
 | `<<extend>>` | CU-09 extiende CU-06 | Solo se consulta el dictamen anterior si la solicitud está en estado Pendiente-revisión. |
 | `<<extend>>` | CU-10 extiende CU-06 | Solo aplica si el dispositivo no tiene conexión al momento de firmar. |
 
-CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso independiente, accesible únicamente para el Administrador.
+CU-13, CU-14, CU-15 y CU-16 no participan de relaciones `<<include>>`/`<<extend>>`: son casos de uso independientes. CU-13, CU-14 y CU-16 son accesibles únicamente para el Administrador; CU-15, para el Jefe.
 
 ---
 
@@ -61,6 +61,7 @@ CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso i
 |---|-----------|-----------------------|
 | E1 | La Autenticación Institucional no responde. | El sistema informa que el servicio de autenticación no está disponible y que se intente nuevamente en un rato, con un mensaje distinto del error genérico de credenciales (RF-50); esta situación no cuenta como intento fallido (RF-52, RNF-19). |
 | E2 | El usuario permanece 30 minutos sin interactuar con el sistema. | El sistema cierra la sesión automáticamente y solicita un nuevo ingreso. |
+| E3 | El usuario no tiene conexión y su sesión se cerró por inactividad (E2). | Si ya había ingresado con conexión ese día, no pasaron 7 días desde su primer ingreso y el captor no fue revocado, el sistema permite reanudar la sesión con la contraseña local, sin consultar a la Autenticación Institucional (RF-57); al recuperar la conexión revalida al usuario y, si ya no está vigente, cierra la sesión. Si no se cumple alguna condición, indica que debe buscar señal para ingresar. Los intentos fallidos cuentan para el bloqueo local (RF-52). |
 
 | Campo | Detalle |
 |-------|---------|
@@ -134,6 +135,7 @@ CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso i
 |---|-----------|-----------------------|
 | E1 | El SUA no responde o no está disponible. | El sistema informa que no puede obtener las solicitudes en este momento y sugiere reintentar. |
 | E2 | No hay solicitudes derivadas pendientes. | El sistema muestra el listado vacío con un mensaje aclaratorio. |
+| E3 | Una solicitud no pudo ubicarse en el mapa (la geocodificación falló al derivarla). | El sistema la muestra igual en el listado y permite dictaminarla desde ahí; la excluye del armado automático de rutas y reintenta ubicarla solo cada hora (RF-62). |
 
 | Campo | Detalle |
 |-------|---------|
@@ -160,7 +162,7 @@ CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso i
 | # | Acción (actor) | Reacción (sistema) |
 |---|----------------|--------------------|
 | 1 | El usuario accede al apartado de rutas. | El sistema muestra las opciones de criterios disponibles. |
-| 2 | El usuario define los criterios: cantidad o porcentaje por distrito, cantidad por nivel de prioridad, una zona señalada en el mapa y el modo de desplazamiento (a pie o en vehículo). | El sistema toma los criterios indicados.<br>• 2.1 Si el usuario no indica distrito, el sistema deberá armar la ruta con el resto de los criterios seleccionados.<br>• 2.2 El modo de desplazamiento es obligatorio, ya que determina cómo se calcula el tiempo y la distancia del recorrido. |
+| 2 | El usuario define los criterios: un distrito como filtro, cantidad por nivel de prioridad, una zona señalada en el mapa y el modo de desplazamiento (a pie o en vehículo). | El sistema toma los criterios indicados.<br>• 2.1 Si el usuario no indica distrito, el sistema deberá considerar todos los distritos y armar la ruta con el resto de los criterios seleccionados.<br>• 2.2 El modo de desplazamiento es obligatorio, ya que determina cómo se calcula el tiempo y la distancia del recorrido. |
 | 3 | El usuario confirma la generación de la ruta. | El sistema selecciona las solicitudes pendientes que cumplen los criterios, excluyendo las que ya forman parte de la ruta activa de otro ingeniero.<br>• 3.1 Si la cantidad de solicitudes candidatas supera el cupo indicado, el sistema deberá seleccionar cuáles incluir combinando antigüedad (preferencia a las más antiguas) y eficiencia del recorrido resultante. |
 | 4 | — | El sistema calcula el orden de visita minimizando tiempo y distancia según el modo de desplazamiento elegido, partiendo de la sede de la Dirección General de Parques y Paseos, arma la ruta ordenada, la muestra al usuario y reserva esas solicitudes. |
 
@@ -233,7 +235,7 @@ CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso i
 | # | Acción (actor) | Reacción (sistema) |
 |---|----------------|--------------------|
 | 1 | El usuario selecciona una solicitud de su ruta. | El sistema muestra el formulario de dictamen en blanco, junto al detalle técnico del caso.<br>• 1.1 Si la solicitud está en estado Pendiente-revisión, el sistema deberá ofrecer consultar el dictamen anterior (CU-09). |
-| 2 | El usuario registra las características del ejemplar y la intervención que corresponde. | El sistema valida que los datos obligatorios estén completos.<br>• 2.1 Si faltan datos obligatorios, el sistema deberá señalar los campos incompletos y no permitir el envío.<br>• 2.2 Si el usuario marca "Extracción", el sistema deberá deshabilitar los campos de trabajos en la parte aérea y en la parte subterránea, por ser incongruentes con la extracción del ejemplar.<br>• 2.3 Si no se adjuntó al menos una fotografía del ejemplar, el sistema deberá impedir el envío y señalar que la fotografía es obligatoria. |
+| 2 | El usuario registra las características del ejemplar y la intervención que corresponde. | El sistema valida que los datos obligatorios estén completos.<br>• 2.1 Si faltan datos obligatorios, el sistema deberá señalar los campos incompletos y no permitir el envío.<br>• 2.2 Si el usuario marca "Extracción", el sistema deberá deshabilitar los campos de trabajos en la parte aérea y en la parte subterránea, por ser incongruentes con la extracción del ejemplar.<br>• 2.3 Si no se adjuntó al menos una fotografía del ejemplar, el sistema deberá impedir el envío y señalar que la fotografía es obligatoria.<br>• 2.4 Si el usuario marca "Sin trabajo", el sistema deberá deshabilitar Extracción y los trabajos aéreos y subterráneos (y a la inversa); si no hay ninguna intervención marcada ni "Sin trabajo", deberá impedir el envío e indicar que el dictamen debe decir algo (RF-61). |
 | 3 | El usuario confirma el envío del dictamen. | El sistema verifica que la solicitud no haya sido dictaminada por otro ingeniero mientras tanto.<br>• 3.1 Si ya existe un dictamen activo para ese ejemplar, el sistema deberá rechazar el envío e informar que el caso ya fue resuelto.<br>• 3.2 El sistema deberá exigir un segundo factor de autenticación (verificación biométrica del dispositivo, WebAuthn) antes de continuar (RF-51). |
 | 4 | El usuario completa el segundo factor de autenticación. | El sistema verifica el segundo factor.<br>• 4.1 Si el segundo factor es incorrecto o no se completa, el sistema deberá cancelar la firma sin almacenar el dictamen. |
 | 5 | — | El sistema firma el dictamen dejando registro de quién lo emitió y cuándo, y lo almacena. |
@@ -272,7 +274,7 @@ CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso i
 | # | Acción (actor) | Reacción (sistema) |
 |---|----------------|--------------------|
 | 1 | — | El sistema detecta un dictamen firmado pendiente de enviar y verifica que haya conexión disponible. |
-| 2 | — | El sistema recalcula el hash de firma sobre el contenido del dictamen y lo compara contra el hash generado en el dispositivo al momento de firmar.<br>• 2.1 Si los hashes no coinciden, el sistema deberá rechazar la sincronización, marcar el dictamen como "integridad no verificada" y notificar al Administrador (RF-53), sin continuar con el paso 3. |
+| 2 | — | El sistema recalcula el hash de firma sobre el contenido del dictamen y lo compara contra el hash generado en el dispositivo al momento de firmar.<br>• 2.1 Si los hashes no coinciden, el sistema deberá rechazar la sincronización, marcar el dictamen como "integridad no verificada" y dejarlo en el apartado "Para revisar" del Administrador (RF-53, RF-58), sin continuar con el paso 3. |
 | 3 | — | El sistema envía al SUA los datos complementarios correspondientes a esa solicitud. |
 | 4 | — | El sistema recibe la confirmación del SUA y marca el dictamen como sincronizado.<br>• 4.1 Si el envío no se confirma, el sistema deberá mantener el dictamen en estado pendiente de sincronizar y programar un nuevo intento. |
 | 5 | — | El sistema actualiza el indicador de sincronización visible para el usuario. |
@@ -283,7 +285,7 @@ CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso i
 |---|-----------|-----------------------|
 | E1 | El SUA está caído o no responde. | El sistema distingue esta situación de la falta de conexión general del dispositivo, conserva el dictamen firmado y reintenta automáticamente con espera creciente entre intentos, sin intervención del usuario (RNF-17). |
 | E2 | El dispositivo no recupera conexión durante toda la jornada. | El sistema mantiene los dictámenes en cola y los envía apenas haya conexión, incluso en jornadas posteriores. |
-| E3 | El hash recalculado en el paso 2 no coincide con el generado al firmar. | El sistema rechaza la sincronización, conserva el dictamen marcado como "integridad no verificada" y notifica al Administrador, en lugar de darlo por sincronizado. |
+| E3 | El hash recalculado en el paso 2 no coincide con el generado al firmar. | El sistema rechaza la sincronización, conserva el dictamen marcado como "integridad no verificada" y lo deja en el apartado "Para revisar" del Administrador (RF-58), en lugar de darlo por sincronizado. |
 
 | Campo | Detalle |
 |-------|---------|
@@ -391,6 +393,8 @@ CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso i
 | E1 | El usuario intenta generar una ruta nueva estando sin conexión. | El sistema no permite la operación e informa que esa acción requiere conexión. |
 | E2 | La señal es intermitente durante el envío. | El sistema no bloquea la interfaz: mantiene el dictamen en cola y reintenta cuando la conexión se estabiliza. |
 | E3 | El usuario termina la jornada con dictámenes sin sincronizar. | El sistema los conserva en el dispositivo y los envía en cuanto haya conexión, aun en jornadas posteriores. |
+| E4 | La sesión se cierra por inactividad estando sin señal. | El sistema permite reanudarla con la contraseña local si se cumplen las condiciones de CU-01, excepción E3 (RF-57), para que el ingeniero pueda seguir dictaminando. |
+| E5 | Al sincronizar, el dictamen firmado sin conexión resulta ser el segundo para un caso que otro ingeniero ya dictaminó. | El sistema no lo descarta: conserva ambos dictámenes, pasa la solicitud a Pendiente-revisión y deja la decisión a un Jefe (CU-15). |
 
 | Campo | Detalle |
 |-------|---------|
@@ -480,7 +484,7 @@ CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso i
 |-------|---------|
 | Identificador | CU-13 |
 | Nombre | Consultar registro de auditoría |
-| Descripción | El Administrador consulta el log de auditoría de altas, bajas y cambios de rol de usuarios, y de reconfiguraciones de los criterios de ruteo, para revisar quién hizo qué cambio y cuándo. |
+| Descripción | El Administrador consulta el log de auditoría de altas, bajas y cambios de rol de usuarios, y de desbloqueos o revocaciones de captores, para revisar quién hizo qué cambio y cuándo. |
 | Actores | Principal: Administrador / Secundario: — |
 | Precondiciones | El Administrador inició sesión (CU-01). |
 | Postcondiciones | Éxito: el Administrador visualiza los eventos de auditoría según los filtros aplicados. / Fallo: no se muestra el listado y el Administrador es informado del motivo. |
@@ -506,3 +510,106 @@ CU-13 no participa de relaciones `<<include>>`/`<<extend>>`: es un caso de uso i
 | Frecuencia | Baja: solo ante una revisión puntual o un incidente a investigar. |
 | Importancia | Importante |
 | Urgencia | Puede esperar |
+
+---
+
+## CU-14 — Revisar casos para revisar
+
+| Campo | Detalle |
+|-------|---------|
+| Identificador | CU-14 |
+| Nombre | Revisar casos para revisar |
+| Descripción | El Administrador consulta los casos que el sistema no pudo procesar solo: dictámenes con integridad no verificada y registros del SUA rechazados por datos inválidos. |
+| Actores | Principal: Administrador / Secundario: — |
+| Precondiciones | El Administrador inició sesión (CU-01). |
+| Postcondiciones | Éxito: el Administrador visualiza los casos pendientes de revisión con su detalle. / Fallo: no se muestra el listado y el Administrador es informado del motivo. |
+
+### Secuencia normal
+
+| # | Acción (actor) | Reacción (sistema) |
+|---|----------------|--------------------|
+| 1 | El Administrador accede al apartado "Para revisar" de su panel. | El sistema muestra el listado de casos: tipo (integridad no verificada o datos inválidos del SUA), solicitud afectada, fecha y motivo, más recientes primero (RF-58). |
+| 2 | El Administrador abre un caso. | El sistema muestra su detalle (para un dictamen, el autor y la fecha de firma; para un registro del SUA, los campos rechazados y el motivo). La consulta es de solo lectura: el sistema no ofrece editar ni descartar el caso. |
+
+### Excepciones
+
+| # | Situación | Respuesta del sistema |
+|---|-----------|-----------------------|
+| E1 | No hay casos para revisar. | El sistema muestra el listado vacío con el mensaje "No hay casos para revisar". |
+| E2 | El listado no se puede leer (por ejemplo, falla de la base de datos). | El sistema informa que no pudo cargarlo y permite reintentar; no muestra datos parciales. |
+
+| Campo | Detalle |
+|-------|---------|
+| Rendimiento | El sistema deberá mostrar el listado del paso 1 sin demora perceptible. |
+| Frecuencia | Baja: solo cuando aparecen casos rechazados. |
+| Importancia | Importante |
+| Urgencia | Puede esperar |
+
+---
+
+## CU-15 — Resolver dictámenes en conflicto
+
+| Campo | Detalle |
+|-------|---------|
+| Identificador | CU-15 |
+| Nombre | Resolver dictámenes en conflicto |
+| Descripción | Un Jefe elige cuál de los dos dictámenes firmados para la misma solicitud queda vigente. |
+| Actores | Principal: Jefe / Secundario: — |
+| Precondiciones | El Jefe inició sesión (CU-01) y una solicitud está en Pendiente-revisión por tener dos dictámenes firmados (CU-10, excepción E5). |
+| Postcondiciones | Éxito: un dictamen queda vigente y el otro queda en el historial como no vigente; la solicitud vuelve a Dictaminada. / Fallo: ambos dictámenes se conservan y la solicitud sigue en Pendiente-revisión. |
+
+### Secuencia normal
+
+| # | Acción (actor) | Reacción (sistema) |
+|---|----------------|--------------------|
+| 1 | El Jefe abre el detalle de una solicitud con dos dictámenes en conflicto. | El sistema muestra ambos dictámenes lado a lado, con autor, fecha de firma y contenido (RF-59). |
+| 2 | El Jefe elige cuál queda vigente y confirma. | El sistema marca el elegido como vigente y el otro como no vigente, lo conserva en el historial, registra quién eligió, fecha y hora, y devuelve la solicitud a Dictaminada. |
+
+### Excepciones
+
+| # | Situación | Respuesta del sistema |
+|---|-----------|-----------------------|
+| E1 | El Jefe cierra la pantalla sin confirmar. | El sistema no cambia nada: ambos dictámenes siguen sin resolver. |
+| E2 | Otro Jefe resolvió el conflicto mientras tanto. | El sistema informa que el caso ya fue resuelto y muestra el dictamen vigente. |
+
+| Campo | Detalle |
+|-------|---------|
+| Rendimiento | El sistema deberá mostrar los dos dictámenes sin demora perceptible. |
+| Frecuencia | Baja: solo cuando dos ingenieros dictaminan el mismo caso, en especial uno de ellos sin señal. |
+| Importancia | Importante |
+| Urgencia | Puede esperar |
+
+---
+
+## CU-16 — Desbloquear captor
+
+| Campo | Detalle |
+|-------|---------|
+| Identificador | CU-16 |
+| Nombre | Desbloquear captor |
+| Descripción | El Administrador desbloquea un captor que quedó bloqueado tras 5 intentos de ingreso fallidos, identificándolo por el código que muestra su pantalla de bloqueo. |
+| Actores | Principal: Administrador / Secundario: — |
+| Precondiciones | El Administrador inició sesión (CU-01) y el captor fue bloqueado por RF-52. |
+| Postcondiciones | Éxito: el captor queda desbloqueado (RF-60) y el desbloqueo queda registrado en el log de auditoría (CU-13). / Fallo: el captor sigue bloqueado. |
+
+### Secuencia normal
+
+| # | Acción (actor) | Reacción (sistema) |
+|---|----------------|--------------------|
+| 1 | El Administrador accede a Gestión de usuarios, sección "Captores bloqueados", e ingresa el código que le informa el ingeniero. | El sistema muestra el captor con ese código, el usuario asociado y la fecha del bloqueo. |
+| 2 | El Administrador confirma el desbloqueo. | El sistema marca el captor como desbloqueado y registra la acción en el log de auditoría (usuario que la realizó, acción, fecha y hora; RF-54). |
+| 3 | El ingeniero abre la app en el captor con conexión. | El sistema aplica el desbloqueo y permite un nuevo intento de ingreso. |
+
+### Excepciones
+
+| # | Situación | Respuesta del sistema |
+|---|-----------|-----------------------|
+| E1 | El código ingresado no corresponde a ningún captor bloqueado. | El sistema informa que no encontró un captor bloqueado con ese código y permite corregirlo. |
+| E2 | El captor fue reportado como perdido o robado y ya se revocó (RF-52). | El sistema no permite desbloquearlo e indica que fue revocado. |
+
+| Campo | Detalle |
+|-------|---------|
+| Rendimiento | El sistema deberá completar los pasos 1 y 2 sin demora perceptible. |
+| Frecuencia | Baja: solo ante un bloqueo por intentos fallidos. |
+| Importancia | Importante |
+| Urgencia | Lo antes posible, porque hasta entonces el ingeniero no puede dictaminar con ese captor |
