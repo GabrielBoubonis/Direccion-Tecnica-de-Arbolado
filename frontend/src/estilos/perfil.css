@@ -1,0 +1,14 @@
+/* Pantalla 8 · Mi perfil. */
+.perfil-cabecera { text-align: center; padding: 8px 0 14px; }
+.perfil-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--campo-fondo); border: 1px solid var(--borde); display: grid; place-items: center; margin: 0 auto 8px; font-size: 20px; color: var(--texto-suave); }
+.perfil-cabecera h2 { font-size: 16px; }
+.perfil-cabecera .nombre { font-size: 13px; color: var(--texto-suave); margin: 4px 0; }
+.perfil-sync { margin-bottom: 12px; }
+.perfil-sync ul { margin: 6px 0 0; padding-left: 0; list-style: none; }
+.perfil-sync li { margin-top: 6px; }
+.perfil-opciones { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.perfil-opcion { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 48px; background: #fff; border: 1px solid var(--borde); border-radius: var(--radio); padding: 10px 14px; font-size: 14px; color: var(--texto); text-decoration: none; text-align: left; }
+.perfil-opcion .flecha { color: var(--texto-tenue); }
+.perfil-acerca { font-size: 13px; color: var(--texto-suave); background: var(--fondo-suave); border-radius: var(--radio); padding: 10px 14px; margin-top: -4px; }
+.perfil-acerca p + p { margin-top: 6px; }
+.perfil-cabecera, .perfil-sync, .perfil-opciones { max-width: 480px; margin-left: auto; margin-right: auto; }

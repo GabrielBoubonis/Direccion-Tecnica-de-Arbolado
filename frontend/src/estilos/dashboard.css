@@ -1,0 +1,31 @@
+/* Dashboard (pantalla 5) y Protocolo por tormenta (pantalla 6). */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.selector-periodo { background: var(--pizarra-oscuro); color: #fff; border: 0; border-radius: var(--radio-chico); min-height: 36px; padding: 0 10px; font-size: 13px; font-weight: 700; }
+
+.dash-tarjetas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.dash-kpi { border: 1px solid; border-radius: var(--radio); padding: 12px 14px; }
+.dash-kpi .rotulo-kpi { font-size: 13px; }
+.dash-kpi .valor { font-size: 28px; font-weight: 800; line-height: 1.2; margin-top: 4px; }
+.dash-kpi.derivadas { grid-column: 1 / -1; background: var(--info-fondo); border-color: var(--info-borde); color: var(--info); }
+.dash-kpi.dictaminadas { background: var(--exito-fondo); border-color: var(--exito-borde); color: var(--exito-oscuro); }
+.dash-kpi.sin { background: var(--peligro-fondo); border-color: var(--peligro-borde); color: var(--tormenta); }
+
+.dash-evolucion h2 { font-size: 15px; margin: 18px 2px 8px; }
+.dash-grafico { background: var(--fondo-suave); border: 1px solid var(--borde); border-radius: var(--radio); padding: 10px; }
+.dash-grafico svg { display: block; width: 100%; height: auto; }
+.dash-leyenda { display: flex; gap: 14px; font-size: 12px; color: var(--texto-suave); margin-bottom: 6px; }
+.dash-leyenda i { display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+
+.tormenta-alerta {
+  position: sticky; top: var(--alto-encabezado); z-index: 350; margin: -12px -12px 12px; padding: 12px 16px; text-align: center;
+  background: var(--tormenta-fondo); color: var(--tormenta); font-weight: 700; font-size: 13px; border-bottom: 1px solid var(--tormenta-borde);
+}
+@media (min-width: 900px) { .tormenta-alerta { margin: -20px -24px 16px; } }
+.tormenta-pie { text-align: center; font-size: 12px; color: var(--texto-tenue); margin: 14px 0; }
+.dias-rojo { color: var(--peligro); font-weight: 600; }
+.cantidad-grande { text-align: center; font-size: 22px; font-weight: 700; max-width: 120px; margin: 0 auto; }
+.campo.centrado { align-items: center; text-align: center; }
+.modal-acciones { display: flex; gap: 10px; margin-top: 14px; }
+.modal-acciones .boton { flex: 1; }
+.barra-generar { margin-bottom: 12px; }

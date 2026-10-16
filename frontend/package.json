@@ -1,0 +1,45 @@
+{
+  "name": "@arbolado/frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Interfaz web del Sistema de Dictaminación Técnica de Arbolado Público",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.1.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/leaflet": "^1.9.15",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.18.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "fake-indexeddb": "^6.0.0",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vite": "^6.0.7",
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^2.1.8",
+    "workbox-window": "^7.3.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dexie": "^4.0.11",
+    "leaflet": "^1.9.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^6.30.6",
+    "zod": "^3.24.1"
+  }
+}

@@ -1,0 +1,8 @@
+/* Para revisar (wireframe 10). */
+.para-revisar .filtro { display: flex; align-items: center; gap: 10px; background: var(--campo-fondo); border-radius: var(--radio-chico); padding: 6px 12px; margin-bottom: 8px; }
+.para-revisar .filtro label { font-size: 13px; font-weight: 600; }
+.para-revisar .filtro select { border: 0; background: none; font-size: 14px; min-height: 32px; }
+.para-revisar .caso .sua { display: block; font-size: 16px; margin: 6px 0 4px; }
+.para-revisar .detalle { border-top: 1px dashed var(--borde); margin-top: 8px; padding-top: 8px; font-size: 13px; }
+.para-revisar .detalle div { margin-top: 2px; }
+.para-revisar .solo-consulta { margin-top: 18px; }

@@ -1,0 +1,31 @@
+/* Usuarios y Captores bloqueados (wireframes 07 y 07b). */
+.usuarios .barra-superior { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.usuarios .accesos { display: flex; gap: 8px; }
+.usuarios .accesos .boton { flex: 1; }
+.usuarios .lista > * + * { margin-top: 8px; }
+.usuarios .fila-usuario { display: flex; align-items: center; gap: 12px; }
+.usuarios .avatar {
+  width: 38px; height: 38px; border-radius: 50%; background: var(--fondo-suave); border: 1px solid var(--borde);
+  display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--texto-suave); flex-shrink: 0;
+}
+.usuarios .datos-usuario { flex: 1; min-width: 0; }
+.usuarios .datos-usuario b { display: block; margin-bottom: 3px; }
+.usuarios .estado { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 10px; color: var(--texto-suave); }
+.usuarios .punto { width: 11px; height: 11px; border-radius: 50%; background: var(--exito); display: inline-block; }
+.usuarios .punto.inactivo { background: #95a5a6; }
+.usuarios .tarjeta.inactivo { opacity: 0.7; }
+.usuarios .ficha-bloque { border-top: 1px solid var(--borde); padding-top: 12px; margin-top: 12px; }
+.usuarios .ficha-bloque h3 { font-size: 13px; margin-bottom: 6px; }
+.usuarios .ficha-fila { display: flex; gap: 8px; align-items: stretch; }
+.usuarios .ficha-fila .entrada { flex: 1; }
+.usuarios .contrasena-temporal { font-size: 22px; font-weight: 800; text-align: center; margin: 12px 0; user-select: all; }
+.usuarios .reglas { list-style: none; font-size: 12px; margin: 6px 0 0; display: grid; gap: 2px; }
+.usuarios .reglas .ok { color: var(--exito-oscuro); }
+.usuarios .reglas .falta { color: var(--peligro); }
+.usuarios .codigo-captor { font-size: 19px; font-weight: 800; letter-spacing: 0.5px; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; }
+.usuarios .fila-captor { display: flex; align-items: center; gap: 12px; }
+.usuarios .fila-captor .cuerpo-captor { flex: 1; min-width: 0; }
+.usuarios .fila-captor .etiqueta { margin: 4px 0; }
+.usuarios .nota-revocado { font-size: 12px; color: var(--texto-suave); margin-top: 4px; }
+.usuarios .acciones-modal-cols { display: flex; gap: 10px; margin-top: 18px; }
+.usuarios .acciones-modal-cols .boton { flex: 1; min-height: 44px; }

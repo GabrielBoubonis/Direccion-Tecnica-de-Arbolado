@@ -1,0 +1,16 @@
+/* Simulador externo: control de los sistemas simulados. No es una pantalla del sistema. */
+.sim-bloque { margin-bottom: 12px; }
+.sim-bloque h2 { margin-bottom: 6px; }
+.sim-bloque .suave { font-size: 12.5px; color: var(--texto-suave); margin-bottom: 10px; }
+.sim-ayuda { font-size: 11.5px; color: var(--texto-suave); margin: 0 0 12px 30px; }
+.sim-fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.sim-fila .entrada { flex: 1; min-width: 120px; }
+.sim-grilla { display: grid; gap: 12px; }
+.sim-grilla > .tarjeta + .tarjeta { margin-top: 0; }
+.sim-grilla .boton + .boton { margin-top: 8px; }
+.sim-recibido { border-top: 1px solid var(--borde); padding: 8px 0; font-size: 13px; }
+.sim-recibido summary { cursor: pointer; }
+.sim-json { background: var(--fondo-suave); border-radius: var(--radio-chico); padding: 8px; font-size: 11.5px; overflow: auto; max-height: 260px; margin-top: 6px; }
+.sim-tabla-envoltorio { overflow-x: auto; }
+.sim-pie { font-size: 12px; color: var(--texto-suave); margin-top: 10px; }
+@media (min-width: 900px) { .sim-grilla { grid-template-columns: 1fr 1fr; align-items: start; } }

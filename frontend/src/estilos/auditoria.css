@@ -1,0 +1,12 @@
+/* Auditoría (wireframe 09). */
+.auditoria .barra-filtros { width: 100%; text-align: left; background: var(--campo-fondo); border: 0; border-radius: var(--radio-chico); min-height: 40px; padding: 0 12px; font-size: 13px; margin-bottom: 8px; }
+.auditoria .controles { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px; }
+.auditoria .controles .campo { margin-bottom: 0; }
+.auditoria .rango { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.auditoria .evento .actor { font-weight: 700; }
+.auditoria .evento .pie-evento { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--texto-suave); margin-top: 6px; }
+.auditoria .evento .etiqueta { margin-top: 4px; }
+.auditoria .inmutable { margin-top: 14px; }
+@media (min-width: 900px) {
+  .auditoria .controles { grid-template-columns: 1fr 1fr 1.4fr auto; align-items: end; }
+}

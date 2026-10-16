@@ -1,0 +1,30 @@
+/* Pantalla 3 · Generar ruta y ruta activa (wireframe 03-generar-ruta). */
+.cajas-prioridad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.caja-prioridad { border: 2px solid; border-radius: 10px; padding: 8px 4px; text-align: center; }
+.caja-prioridad.alta { border-color: #c0392b; background: #fdedec; }
+.caja-prioridad.media { border-color: #e67e22; background: #fef5e7; }
+.caja-prioridad.baja { border-color: #27ae60; background: #e9f7ef; }
+.caja-prioridad .rotulo-prioridad { font-size: 12px; font-weight: 700; }
+.caja-prioridad .numero { font-size: 24px; font-weight: 800; line-height: 1.2; }
+.caja-prioridad .controles { display: flex; justify-content: center; gap: 6px; margin-top: 4px; }
+.caja-prioridad .controles button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid #aab7c4; background: #fff; font-size: 18px; font-weight: 700; }
+.caja-prioridad .controles button:disabled { color: #ccc; }
+.caja-prioridad .disp { font-size: 11px; color: var(--texto-suave); margin-top: 2px; }
+.modo-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.modo-toggle .boton { background: #fff; color: var(--texto); border-color: #7f8c8d; border-radius: 999px; }
+.modo-toggle .boton[aria-pressed='true'] { background: var(--pizarra); color: #fff; border-color: var(--pizarra); }
+.resumen-vivo { border-radius: 8px; padding: 10px 12px; background: var(--info-fondo); border: 1px solid var(--info-borde); color: var(--info); font-weight: 700; margin-bottom: 12px; }
+.resumen-vivo small { display: block; font-weight: 400; font-size: 12px; margin-top: 2px; }
+.cabecera-ruta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+.cabecera-ruta > div { border: 1px solid var(--borde); border-radius: 8px; padding: 8px 4px; text-align: center; background: #fff; }
+.cabecera-ruta b { display: block; font-size: 16px; }
+.cabecera-ruta span { font-size: 11px; color: var(--texto-suave); }
+.parada .orden { width: 30px; height: 30px; border-radius: 50%; background: var(--pizarra); color: #fff; display: grid; place-items: center; font-weight: 700; flex-shrink: 0; }
+.parada .cuerpo-parada { flex: 1; min-width: 0; }
+.parada .fila-parada { display: flex; gap: 10px; align-items: flex-start; }
+.parada .acciones-parada, .tabla .acciones-parada { margin-top: 8px; display: flex; gap: 8px; }
+.tabla .acciones-parada { margin-top: 0; }
+.leyenda-mapa { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; margin-top: 6px; }
+.leyenda-mapa i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+.barra-zona { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--texto-suave); }
+.pie-ruta { display: flex; gap: 8px; margin: 12px 0; }
