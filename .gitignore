@@ -1,29 +1,32 @@
-# Secretos — nunca al repositorio.
-# Regla: si filtrar el archivo obliga a rotar una credencial, va acá.
+# Secretos: nunca al repositorio.
 .env
-.env.*
-!.env.example
+.env*
 *.key
 *.pem
-service-role*
-supabase/.temp/
-.supabase/
 
 # Dependencias y builds
 node_modules/
 dist/
 build/
+coverage/
+.vercel/
 
-# Entregables académicos originales (binarios pesados; la versión .md está en docs/)
-*.docx
-~$*
-
-# Sistema operativo / editores
+# Sistema operativo y editores
 .DS_Store
 Thumbs.db
 desktop.ini
 .idea/
 .vscode/
 *.swp
-.vercel
-.env*
+
+# Configuración local de sesiones de trabajo
+CLAUDE.md
+CLAUDE.local.md
+*.tsbuildinfo
+
+# Resultados de las pruebas en navegador
+test-results/
+e2e/resultados/
+playwright-report/
+test-results-*/
+e2e/test-results*/

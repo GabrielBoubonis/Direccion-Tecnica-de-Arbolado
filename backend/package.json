@@ -1,0 +1,52 @@
+{
+  "name": "@arbolado/backend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "API REST del Sistema de Dictaminación Técnica de Arbolado Público",
+  "main": "dist/app.js",
+  "scripts": {
+    "dev": "tsx watch src/servidor.ts",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "lint": "eslint src test prisma scripts",
+    "test": "jest",
+    "db:push": "tsx scripts/preparar-base.ts --sin-datos",
+    "db:seed": "tsx prisma/seed.ts",
+    "test:integracion": "jest -c jest.integracion.config.js --runInBand",
+    "db:preparar": "tsx scripts/preparar-base.ts"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.2.1",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.22.3",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "pdfkit": "^0.16.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@playwright/test": "^1.56.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.7",
+    "@types/pdfkit": "^0.13.8",
+    "@types/supertest": "^6.0.2",
+    "embedded-postgres": "^17.9.0-beta.17",
+    "eslint": "^9.18.0",
+    "globals": "^14.0.0",
+    "jest": "^29.7.0",
+    "prisma": "^6.2.1",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "descripcion": "Caso de referencia de la firma: el captor (frontend/src/pruebas/firma.test.ts) y el servidor tienen que dar el mismo hash (RF-22, RF-53). El perímetro sin Extracción no entra en la firma.",
+  "formulario": {
+    "notaNumero": 1234,
+    "expedienteNumero": null,
+    "domicilioEjemplar": "  Laprida 1350, Rosario  ",
+    "latitudEjemplar": -32.954036,
+    "longitudEjemplar": -60.635901,
+    "referenciaUbicacion": "Frente a la escuela",
+    "distanciaMedianeraReferencia": 2.5,
+    "idEspecie": 7,
+    "cantidadFrente": 2,
+    "nivelDanoVereda": "Alto",
+    "esExtraccion": false,
+    "perimetroTronco": 1.2,
+    "motivoExtraccion": null,
+    "esSinTrabajo": false,
+    "motivoSinTrabajo": null,
+    "trabajosSubterraneos": [
+      {
+        "tipoTrabajo": "Corte vertical de raíces",
+        "distanciaBorde": 0.8
+      },
+      {
+        "tipoTrabajo": "Corte horizontal de raíces"
+      }
+    ],
+    "trabajosAereos": [
+      "Raleo y limpieza",
+      "Elevación de copa"
+    ],
+    "complejidad": "Media",
+    "urgente": true,
+    "arbolFrenteGarage": false,
+    "mediaTension": false,
+    "deOficio": false,
+    "plantar": "Agrandar cazuela",
+    "fotografias": [
+      "foto:a",
+      "foto:b"
+    ],
+    "nivelPrioridad": "Alta",
+    "observaciones": "Raíz levanta la vereda."
+  },
+  "datos": {
+    "uuid": "3f1c8a52-7b9e-4d2a-9c41-0e6b5d7a8f10",
+    "numeroSua": "48509",
+    "anio": 2026,
+    "nombreUsuario": "lfernan0",
+    "fechaEmision": "2026-10-14T13:05:09.123Z"
+  },
+  "huellasFotos": [
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  "hashEsperado": "c086d1807dc6b140fc15ea9d3e62f81eae21f4975006d2a068b740830a6c94bb"
+}

@@ -1,0 +1,390 @@
+// Modelo de datos del Sistema de Dictaminación Técnica de Arbolado Público.
+// Traduce el modelo entidad-relación (docs/funcional/modelo-de-datos.md).
+// Los campos de lista cerrada se guardan como texto y se validan contra los catálogos del
+// dominio (backend/src/dominio/catalogos.ts), porque varios valores llevan tildes y espacios.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Rol {
+  Lector
+  Operador
+  Jefe
+  Administrador
+}
+
+enum EstadoSolicitud {
+  Pendiente
+  Dictaminada
+  PendienteRevision
+}
+
+enum TipoRuta {
+  Normal
+  Tormenta
+}
+
+enum EstadoRuta {
+  Activa
+  Restablecida
+}
+
+enum ModoDesplazamiento {
+  Caminando
+  Vehiculo
+}
+
+enum EstadoDispositivo {
+  Activo
+  Bloqueado
+  Revocado
+}
+
+enum TipoCasoRevision {
+  IntegridadNoVerificada
+  DatosInvalidosSua
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Base propia del sistema
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Usuario {
+  nombreUsuario  String   @id @map("nombre_usuario")
+  contrasenaHash String   @map("contrasena_hash")
+  rol            Rol
+  activo         Boolean  @default(true)
+  fechaAlta      DateTime @default(now()) @map("fecha_alta") @db.Date
+
+  dictamenes   Dictamen[]          @relation("Firmante")
+  rutas        Ruta[]
+  auditorias   RegistroAuditoria[]
+  dispositivos Dispositivo[]       @relation("UsuarioDispositivo")
+
+  @@map("usuario")
+}
+
+model Solicitud {
+  numeroSua             String          @map("numero_sua")
+  anio                  Int
+  distrito              String
+  prioridad             String
+  direccion             String
+  latitud               Float?
+  longitud              Float?
+  descripcionReclamo    String          @map("descripcion_reclamo")
+  estado                EstadoSolicitud @default(Pendiente)
+  esTormenta            Boolean         @default(false) @map("es_tormenta")
+  fechaUltimaDerivacion DateTime        @map("fecha_ultima_derivacion") @db.Date
+  // Geocodificación (Decisión 9 y RF-62): se intenta al derivar y se reintenta cada hora.
+  geoIntentos           Int             @default(0) @map("geo_intentos")
+  geoUltimoIntento      DateTime?       @map("geo_ultimo_intento")
+  geoError              String?         @map("geo_error")
+
+  derivaciones HistorialDerivacion[]
+  dictamenes   Dictamen[]
+  reservas     RutaSolicitud[]
+
+  @@id([numeroSua, anio])
+  @@map("solicitud")
+}
+
+model HistorialDerivacion {
+  idDerivacion    Int       @id @default(autoincrement()) @map("id_derivacion")
+  numeroSua       String    @map("numero_sua")
+  anio            Int
+  fechaDerivacion DateTime  @map("fecha_derivacion") @db.Date
+  motivo          String
+  solicitud       Solicitud @relation(fields: [numeroSua, anio], references: [numeroSua, anio])
+
+  @@index([fechaDerivacion])
+  @@map("historial_derivacion")
+}
+
+model Dictamen {
+  idDictamen                   Int       @id @default(autoincrement()) @map("id_dictamen")
+  // Clave de idempotencia generada en el cliente al firmar (arquitectura §7.2 y §7.3).
+  uuid                         String    @unique
+  numeroSua                    String    @map("numero_sua")
+  anio                         Int
+  nombreUsuario                String    @map("nombre_usuario")
+  notaNumero                   Int?      @map("nota_numero")
+  expedienteNumero             Int?      @map("expediente_numero")
+  fechaEmision                 DateTime  @map("fecha_emision")
+  domicilioEjemplar            String    @map("domicilio_ejemplar")
+  latitudEjemplar              Float     @map("latitud_ejemplar")
+  longitudEjemplar             Float     @map("longitud_ejemplar")
+  referenciaUbicacion          String?   @map("referencia_ubicacion")
+  distanciaMedianeraReferencia Float?    @map("distancia_medianera_referencia")
+  idEspecie                    Int       @map("id_especie")
+  cantidadFrente               Int       @default(1) @map("cantidad_frente")
+  nivelDanoVereda              String?   @map("nivel_dano_vereda")
+  esExtraccion                 Boolean   @default(false) @map("es_extraccion")
+  perimetroTronco              Float?    @map("perimetro_tronco")
+  motivoExtraccion             String?   @map("motivo_extraccion")
+  esSinTrabajo                 Boolean   @default(false) @map("es_sin_trabajo")
+  motivoSinTrabajo             String?   @map("motivo_sin_trabajo")
+  complejidad                  String
+  urgente                      Boolean   @default(false)
+  arbolFrenteGarage            Boolean   @default(false) @map("arbol_frente_garage")
+  mediaTension                 Boolean   @default(false) @map("media_tension")
+  deOficio                     Boolean   @default(false) @map("de_oficio")
+  plantar                      String?
+  nivelPrioridad               String    @map("nivel_prioridad")
+  observaciones                String?
+  // Nulo mientras un Jefe no resuelve un conflicto entre dos dictámenes (RF-59).
+  vigente                      Boolean?  @default(true)
+  vigenteElegidoPor            String?   @map("vigente_elegido_por")
+  vigenteElegidoEn             DateTime? @map("vigente_elegido_en")
+  hashFirma                    String    @map("hash_firma")
+  estadoSincronizacion         String    @default("Sincronizado") @map("estado_sincronizacion")
+  // Segundo factor del acto de firma (RF-51). En la demo es una verificación simulada.
+  segundoFactor                String    @default("Simulado") @map("segundo_factor")
+  // Firmado en el captor sin señal y recibido después por la sincronización (CU-10).
+  firmadoSinConexion           Boolean   @default(false) @map("firmado_sin_conexion")
+  enviadoSuaEn                 DateTime? @map("enviado_sua_en")
+  creadoEn                     DateTime  @default(now()) @map("creado_en")
+
+  solicitud           Solicitud            @relation(fields: [numeroSua, anio], references: [numeroSua, anio])
+  firmante            Usuario              @relation("Firmante", fields: [nombreUsuario], references: [nombreUsuario])
+  especie             Especie              @relation(fields: [idEspecie], references: [idEspecie])
+  fotografias         Fotografia[]
+  trabajosAereos      TrabajoAereo[]
+  trabajosSubterraneos TrabajoSubterraneo[]
+  casosRevision       CasoRevision[]
+
+  @@index([numeroSua, anio])
+  @@map("dictamen")
+}
+
+model Especie {
+  idEspecie         Int     @id @default(autoincrement()) @map("id_especie")
+  nombreComun       String  @map("nombre_comun")
+  // Nombre sin mayúsculas ni tildes, para evitar duplicados (RF-56).
+  nombreNormalizado String  @unique @map("nombre_normalizado")
+  nombreCientifico  String? @map("nombre_cientifico")
+  activa            Boolean @default(true)
+  creadaPor         String? @map("creada_por")
+
+  dictamenes Dictamen[]
+
+  @@map("especie")
+}
+
+model Fotografia {
+  idFoto            Int      @id @default(autoincrement()) @map("id_foto")
+  idDictamen        Int      @map("id_dictamen")
+  archivoReferencia String   @map("archivo_referencia")
+  orden             Int
+  dictamen          Dictamen @relation(fields: [idDictamen], references: [idDictamen])
+
+  @@map("fotografia")
+}
+
+// Contenido de las fotografías. Lo usa solo el adaptador de almacenamiento
+// (backend/src/integraciones/almacenamiento): el resto del sistema maneja la referencia.
+model ArchivoFoto {
+  id       String   @id
+  tipoMime String   @map("tipo_mime")
+  datos    Bytes
+  creadoEn DateTime @default(now()) @map("creado_en")
+
+  @@map("archivo_foto")
+}
+
+model TrabajoAereo {
+  idTrabajoAereo Int      @id @default(autoincrement()) @map("id_trabajo_aereo")
+  idDictamen     Int      @map("id_dictamen")
+  tipoTrabajo    String   @map("tipo_trabajo")
+  dictamen       Dictamen @relation(fields: [idDictamen], references: [idDictamen])
+
+  @@map("trabajo_aereo")
+}
+
+model TrabajoSubterraneo {
+  idTrabajoSubterraneo Int      @id @default(autoincrement()) @map("id_trabajo_subterraneo")
+  idDictamen           Int      @map("id_dictamen")
+  tipoTrabajo          String   @map("tipo_trabajo")
+  distanciaBorde       Float?   @map("distancia_borde")
+  dictamen             Dictamen @relation(fields: [idDictamen], references: [idDictamen])
+
+  @@map("trabajo_subterraneo")
+}
+
+model Ruta {
+  idRuta             Int                @id @default(autoincrement()) @map("id_ruta")
+  nombreUsuario      String             @map("nombre_usuario")
+  fecha              DateTime           @db.Date
+  tipo               TipoRuta
+  estado             EstadoRuta         @default(Activa)
+  modoDesplazamiento ModoDesplazamiento @map("modo_desplazamiento")
+  // Resultado del cálculo, para mostrarlo sin recalcular.
+  criterios          Json
+  distanciaTotalM    Float?             @map("distancia_total_m")
+  duracionTotalS     Float?             @map("duracion_total_s")
+  ordenOptimizado    Boolean            @default(true) @map("orden_optimizado")
+  geometria          Json?
+  creadaEn           DateTime           @default(now()) @map("creada_en")
+
+  usuario     Usuario         @relation(fields: [nombreUsuario], references: [nombreUsuario])
+  solicitudes RutaSolicitud[]
+
+  @@index([nombreUsuario, estado])
+  @@map("ruta")
+}
+
+// Una solicitud solo puede tener una reserva sin liberar a la vez: lo garantiza el índice
+// único parcial "ruta_solicitud_reserva_activa" (se crea en prisma/sql/indices.sql).
+model RutaSolicitud {
+  idRuta             Int       @map("id_ruta")
+  numeroSua          String    @map("numero_sua")
+  anio               Int
+  orden              Int
+  fechaIncorporacion DateTime  @default(now()) @map("fecha_incorporacion")
+  liberada           Boolean   @default(false)
+  fechaLiberacion    DateTime? @map("fecha_liberacion")
+  motivoLiberacion   String?   @map("motivo_liberacion")
+
+  ruta      Ruta      @relation(fields: [idRuta], references: [idRuta])
+  solicitud Solicitud @relation(fields: [numeroSua, anio], references: [numeroSua, anio])
+
+  @@id([idRuta, numeroSua, anio])
+  @@map("ruta_solicitud")
+}
+
+model RegistroAuditoria {
+  idAuditoria     Int      @id @default(autoincrement()) @map("id_auditoria")
+  nombreUsuario   String   @map("nombre_usuario")
+  accion          String
+  entidadAfectada String   @map("entidad_afectada")
+  valorAnterior   String?  @map("valor_anterior")
+  valorNuevo      String?  @map("valor_nuevo")
+  fechaHora       DateTime @default(now()) @map("fecha_hora")
+  usuario         Usuario  @relation(fields: [nombreUsuario], references: [nombreUsuario])
+
+  @@index([fechaHora])
+  @@map("registro_auditoria")
+}
+
+model Dispositivo {
+  idDispositivo    String            @id @map("id_dispositivo")
+  codigoVisible    String            @unique @map("codigo_visible")
+  nombreUsuario    String?           @map("nombre_usuario")
+  estado           EstadoDispositivo @default(Activo)
+  // Intentos fallidos consecutivos de inicio de sesión desde este captor (RF-52: se bloquea a los 5).
+  intentosFallidos Int               @default(0) @map("intentos_fallidos")
+  fechaBloqueo     DateTime?         @map("fecha_bloqueo")
+  fechaDesbloqueo  DateTime?         @map("fecha_desbloqueo")
+  desbloqueadoPor  String?           @map("desbloqueado_por")
+  fechaRevocacion  DateTime?         @map("fecha_revocacion")
+  ultimaConexion   DateTime?         @map("ultima_conexion")
+  // Clave AES-GCM con la que el captor cifra lo que guarda sin señal (RNF-16). Se entrega solo
+  // con una sesión válida; en el captor queda envuelta con una clave derivada de la contraseña.
+  claveDatos       String?           @map("clave_datos")
+  usuario          Usuario?          @relation("UsuarioDispositivo", fields: [nombreUsuario], references: [nombreUsuario])
+
+  @@map("dispositivo")
+}
+
+model CasoRevision {
+  idCaso              Int              @id @default(autoincrement()) @map("id_caso")
+  tipo                TipoCasoRevision
+  referenciaSolicitud String           @map("referencia_solicitud")
+  idDictamen          Int?             @map("id_dictamen")
+  motivo              String
+  fechaHora           DateTime         @default(now()) @map("fecha_hora")
+  dictamen            Dictamen?        @relation(fields: [idDictamen], references: [idDictamen])
+
+  @@map("caso_revision")
+}
+
+model SesionRefresco {
+  id            String    @id
+  nombreUsuario String    @map("nombre_usuario")
+  idDispositivo String?   @map("id_dispositivo")
+  // Primer inicio de sesión de la cadena: tope absoluto de 7 días (RNF-20).
+  inicio        DateTime
+  venceEn       DateTime  @map("vence_en")
+  revocada      Boolean   @default(false)
+
+  @@map("sesion_refresco")
+}
+
+model IntentoLogin {
+  id        Int      @id @default(autoincrement())
+  clave     String
+  fechaHora DateTime @default(now()) @map("fecha_hora")
+
+  @@index([clave, fechaHora])
+  @@map("intento_login")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sistemas externos SIMULADOS para la demo (arquitectura §3). No son parte del sistema:
+// representan al SUA y a la Autenticación Institucional, que en producción se consultan
+// por HTTP a través de los adaptadores de backend/src/integraciones.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SimSuaSolicitud {
+  id                 Int      @id @default(autoincrement())
+  numeroSua          String   @map("numero_sua")
+  anio               Int
+  tipo               String
+  subtipo            String
+  areaDerivada       String   @map("area_derivada")
+  distrito           String
+  prioridad          String
+  direccion          String
+  descripcionReclamo String   @map("descripcion_reclamo")
+  esTormenta         Boolean  @map("es_tormenta")
+  esRederivacion     Boolean  @map("es_rederivacion")
+  fechaDerivacion    DateTime @map("fecha_derivacion") @db.Date
+  // Marca de lectura: el sistema ya consultó este registro (RF-09).
+  leido              Boolean  @default(false)
+  creadoEn           DateTime @default(now()) @map("creado_en")
+
+  @@map("sim_sua_solicitud")
+}
+
+model SimSuaDatosComplementarios {
+  id         Int      @id @default(autoincrement())
+  numeroSua  String   @map("numero_sua")
+  anio       Int
+  contenido  Json
+  recibidoEn DateTime @default(now()) @map("recibido_en")
+
+  @@map("sim_sua_datos_complementarios")
+}
+
+model SimUsuarioInstitucional {
+  nombreUsuario  String  @id @map("nombre_usuario")
+  nombreCompleto String  @map("nombre_completo")
+  vigente        Boolean
+
+  @@map("sim_usuario_institucional")
+}
+
+// Interruptores de la simulación (por ejemplo, "el SUA no responde").
+model SimConfiguracion {
+  clave String @id
+  valor String
+
+  @@map("sim_configuracion")
+}
+
+// Reintentos automáticos con espera creciente ante la caída del SUA (RNF-17).
+model EstadoTarea {
+  clave          String   @id
+  fallos         Int      @default(0)
+  proximoIntento DateTime @default(now()) @map("proximo_intento")
+
+  @@map("estado_tarea")
+}
