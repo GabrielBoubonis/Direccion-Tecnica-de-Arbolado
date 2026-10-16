@@ -65,8 +65,6 @@ entity "Dictamen" as dictamen {
   domicilio_ejemplar : string
   latitud_ejemplar : decimal
   longitud_ejemplar : decimal
-  calle_esquina : string
-  numero_esquina : string
   referencia_ubicacion : string
   id_especie : int <<FK>>
   distancia_medianera_referencia : decimal
@@ -127,15 +125,6 @@ note right of dictamen
   que se define justo antes de firmar. Ver Decisión 6.
 end note
 
-note right of ruta
-  <b>modo_desplazamiento</b> (Caminando/Vehículo) lo elige
-  el ingeniero al generar la ruta (RF-49). Junto con
-  antigüedad y eficiencia del recorrido, define qué
-  solicitudes se seleccionan (RF-47) y en qué orden se
-  visitan (RF-48), partiendo de la sede de la Dirección
-  General de Parques y Paseos. Ver Decisión 7.
-end note
-
 entity "Especie" as especie {
   * id_especie : int <<PK>>
   --
@@ -177,6 +166,15 @@ entity "Ruta" as ruta {
   estado : string
   modo_desplazamiento : string
 }
+
+note right of ruta
+  <b>modo_desplazamiento</b> (Caminando/Vehículo) lo elige
+  el ingeniero al generar la ruta (RF-49). Junto con
+  antigüedad y eficiencia del recorrido, define qué
+  solicitudes se seleccionan (RF-47) y en qué orden se
+  visitan (RF-48), partiendo de la sede de la Dirección
+  General de Parques y Paseos. Ver Decisión 7.
+end note
 
 entity "RutaSolicitud" as ruta_solicitud {
   * id_ruta : int <<PK, FK>>
@@ -225,7 +223,7 @@ note right of auditoria
   INSERT y SELECT. Ningún flujo del sistema
   expone UPDATE ni DELETE sobre sus filas
   (registro inmutable, RF-54). Ver Decisión 8
-  en er-modelo.md y CU-13 en casos_de_uso.md.
+  en er-modelo.md y CU-13 en casos-de-uso.md.
 end note
 
 usuario ||--o{ dictamen : firma

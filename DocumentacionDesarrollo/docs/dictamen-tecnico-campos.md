@@ -19,7 +19,6 @@ equivalente en `er-modelo.md` (entidad `Dictamen`)._
 | SUA N.° | Precargado, solo lectura | (vía `Solicitud.numero_sua`) |
 | Domicilio de solicitud | Precargado, solo lectura | (vía `Solicitud.direccion`) |
 | Domicilio del ejemplar\* | Punto elegido en el mapa; la dirección la completa el geocodificador (puede diferir del anterior — ver Decisiones 3 y 10 en `er-modelo.md`) | `domicilio_ejemplar`, `latitud_ejemplar`, `longitud_ejemplar` |
-| Calle esquina / Número esquina | Selección entre calles sugeridas por el geocodificador | `calle_esquina`, `numero_esquina` |
 | Referencia de ubicación | Texto libre con largo máximo | `referencia_ubicacion` |
 | Especie\* | Selección con búsqueda en un catálogo; si la especie no figura, se agrega desde el selector. Obligatorio | `id_especie` |
 | Distancia a medianera/referencia | Numérico, editable | `distancia_medianera_referencia` |
@@ -44,7 +43,7 @@ _Deshabilitado por completo si en el Paso 2 se marcó Extracción (RF-46; ver no
 
 | Campo | Tipo / origen | Entidad / atributo en er-modelo.md |
 |---|---|---|
-| Trabajos subterráneos (Bloque 3) | Selección múltiple, 3 opciones (una con campo de distancia) | Entidad `TrabajoSubterraneo` (`tipo_trabajo`, `distancia_borde`) |
+| Trabajos subterráneos (Bloque 3) | Selección múltiple, 2 opciones (una con campo de distancia) | Entidad `TrabajoSubterraneo` (`tipo_trabajo`, `distancia_borde`) |
 | Trabajos aéreos (Bloque 4) | Selección múltiple, 12 opciones | Entidad `TrabajoAereo` (`tipo_trabajo`) |
 
 ## Paso 4 — Información adicional y fotografías
@@ -56,7 +55,7 @@ _Deshabilitado por completo si en el Paso 2 se marcó Extracción (RF-46; ver no
 | Árbol frente a garage | Casillero booleano | `arbol_frente_garage` |
 | Media tensión | Casillero booleano | `media_tension` |
 | De oficio | Casillero booleano | `de_oficio` |
-| Plantar | Selección: Cazuela / Construir cazuela / Vereda jardín / ninguna | `plantar` |
+| Plantar | Plantar árboles. Selección: Cazuela / Construir cazuela / Vereda jardín / Agrandar cazuela / ninguna | `plantar` |
 | Fotografías del ejemplar\* | Mínimo 1, obligatorio (RF-45) | Entidad `Fotografia` (`archivo_referencia`, `orden`) |
 
 ## Paso 5 — Observaciones y firma
@@ -82,11 +81,11 @@ _Transcriptas del formulario físico "Dictamen Técnico de Arbolado" (Secretarí
 | Distrito | Centro, Noroeste, Norte, Oeste, Sudoeste, Sur |
 | Nivel de daño en vereda | 1 – Alto, 2 – Medio, 3 – Bajo |
 | Motivo de extracción (12) | 1 Árbol muerto; 2 Con riesgo de caída por ahuecamiento; 3 Con riesgo de caída por inclinación; 4 Afectado por enfermedad incurable; 5 Con pronunciado desequilibrio estructural; 6 En precario estado vegetativo; 7 No es posible implementar solución técnica; 8 Por daño intencional irreversible; 9 Obra pública; 10 Especie no apta para el lugar implantado; 11 Cepa verde; 12 Cepa muerta |
-| Trabajos en la parte subterránea (3) | 1 Corte vertical de raíces (con distancia al borde del árbol, en metros); 2 Corte horizontal de raíces; 3 Agrandamiento de cazuela |
+| Trabajos en la parte subterránea (2) | 1 Corte vertical de raíces (con distancia al borde del árbol, en metros); 2 Corte horizontal de raíces |
 | Trabajos en la parte aérea (12) | 1 Poda de formación; 2 Liberación de conductores eléctricos; 3 Liberación de tránsito peatonal; 4 Liberación de tránsito vehicular; 5 Despeje de espacio aéreo privado; 6 Despeje de luminarias; 7 Equilibrio del ejemplar; 8 Raleo y limpieza; 9 Elevación de copa; 10 Reducción de altura de copa; 11 Reducción volumétrica; 12 Eliminación de ramas peligro |
 | Motivo de sin trabajo (6) | 1 Ejemplar extraído; 2 Trabajos realizados en ramas y raíces; 3 El/los ejemplar/es no ocasionan problemas visibles; 4 El domicilio no existe; 5 Ejemplar/es en propiedad privada; 6 En el domicilio no existe arbolado público |
 | Complejidad | Baja, Media, Alta, Máxima |
-| Plantar | Cazuela, Construir cazuela, Vereda jardín |
+| Plantar (árboles) | Cazuela, Construir cazuela, Vereda jardín, Agrandar cazuela |
 | Casilleros de información adicional | Urgente, Árbol frente a garage, Media tensión, De oficio |
 
 _Nota: en el papel el casillero de cada bloque (Extracción, Trabajos subterráneos, Trabajos aéreos, Sin trabajo) se marca primero y después los motivos o ítems. "Sin trabajo" es excluyente con los otros tres (RF-61). En el papel la lista de extracción es de casilleros; el sistema la modela como una selección única (`motivo_extraccion`), a confirmar con la Dirección si un mismo ejemplar puede tener más de un motivo._

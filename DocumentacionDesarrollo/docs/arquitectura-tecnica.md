@@ -134,7 +134,7 @@ las credenciales de producción.
    distancias ya calculada, partiendo de la sede.
 5. **Si OpenRouteService no responde:** la selección continúa usando solo el criterio de
    antigüedad (sin el desempate por distancia), y el orden de visita queda sin optimizar
-   hasta que el servicio vuelva a responder — ver `Slicing.md`, Parte B, segunda fila de la
+   hasta que el servicio vuelva a responder — ver `slicing.md`, Parte B, segunda fila de la
    tabla de excepciones.
 
 ---
@@ -183,7 +183,7 @@ escenario de falla._
 
 | Escenario | Qué hace el sistema |
 |---|---|
-| Dos ingenieros generan ruta casi al mismo tiempo y compiten por las mismas solicitudes. | Ya resuelto: condición de carrera analizada en `Slicing.md`, Parte B (fila 1 de la tabla de excepciones). |
+| Dos ingenieros generan ruta casi al mismo tiempo y compiten por las mismas solicitudes. | Ya resuelto: condición de carrera analizada en `slicing.md`, Parte B (fila 1 de la tabla de excepciones). |
 | Doble clic en "Confirmar ruta" o en el botón de firma del dictamen. | El botón se deshabilita apenas se registra el primer clic (UI optimista) y, del lado del servidor, la misma petición repetida no duplica nada gracias al UUID de idempotencia (igual mecanismo que en sincronización offline). |
 | Dos ingenieros cargan, sin verse entre sí (uno de ellos sin conexión), un dictamen para el mismo ejemplar. | La validación de "no existe ya un dictamen activo" (RF-21) se re-chequea en el servidor al sincronizar, no solo en el cliente. Si hay conflicto, el segundo dictamen en llegar no se descarta silenciosamente: la Solicitud pasa a estado Pendiente-revisión para que un Jefe decida cuál dictamen prevalece (mismo estado que ya usa RF-09 a RF-13). El Jefe ve ambos dictámenes en el detalle del caso y elige uno: el elegido queda con `vigente = true`, el otro con `vigente = false` y se conserva en el historial (RF-59, CU-15). |
 | Una solicitud de tormenta reservada en una ruta del Protocolo por tormenta se intenta tomar también desde una ruta normal. | No es posible: toda Solicitud solo puede tener una fila activa en `RutaSolicitud` a la vez (ver `er-modelo.md`), sin importar si la ruta que la reservó es normal o de tormenta. |

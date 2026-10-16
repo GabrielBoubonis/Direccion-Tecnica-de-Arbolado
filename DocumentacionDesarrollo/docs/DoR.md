@@ -68,7 +68,7 @@ cómo se resuelve el armado cuando los criterios compiten entre sí, (b) dividir
 más chicas, y (c) una métrica de eficiencia acordada para poder testearla objetivamente.
 
 > **Nota:** los tres puntos quedaron resueltos en rondas posteriores de trabajo. El punto
-> (b) —dividirla— se resuelve en `Slicing.md`: HU-04 se usa ahí como la épica a fragmentar
+> (b) —dividirla— se resuelve en `slicing.md`: HU-04 se usa ahí como la épica a fragmentar
 > en historias verticales, con un análisis de caminos alternativos sobre la más riesgosa de
 > esas historias. El punto (a) —cómo se resuelve el armado cuando los criterios compiten
 > entre sí— y el punto (c) —la métrica de "eficiencia"— quedaron definidos juntos en

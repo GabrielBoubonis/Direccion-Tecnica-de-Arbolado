@@ -40,11 +40,23 @@ se cuenta con acceso a los endpoints de producción.
 
 ## Entregas
 
-| Entrega | Descripción | Fecha | Estado |
-|---------|-------------|-------|--------|
-| EP-01 | Presentación preliminar | | |
-| EP-02 | | | |
-| Final | Versión definitiva | | |
+Cronograma del cuatrimestre (2026). Las fechas son las de la cátedra.
+
+| Fecha | Hito o actividad | Estado |
+|-------|------------------|--------|
+| Mar 08/09 | Cierre de Requisitos y Historias de usuario; arranque del diagrama general de Casos de uso | Realizado |
+| Mié 09/09 | Trabajo en grupo: Casos de uso (diagrama general completo y arranque de los CU desarrollados) | Realizado |
+| Mar 15/09 | Trabajo en grupo: cierre de Casos de uso (precondiciones, postcondiciones, secuencia, excepciones) | Realizado |
+| Mié 16/09 | **Entrega intermedia**: Requisitos, Historias de usuario y Casos de uso completos, con revisión en vivo | Entregada |
+| Mar 22/09 | Trabajo en grupo: wireframes (Diseño UI) | Realizado |
+| Mié 23/09 | Trabajo en grupo: Modelo Entidad-Relación | Realizado |
+| Mar 29/09 | Revisión en vivo de wireframes (Diseño UI) | Realizada |
+| Mié 30/09 | Consulta general y repaso | Realizada |
+| Mar 06/10 | Taller "Qué pide el mercado" | Realizado |
+| Mié 07/10 | Últimos ajustes: README, `integrantes.md` y estructura completa del repositorio | Realizado |
+| Mar 13/10 | **Presentación final grupal** (Parcial, Parte A) | Presentada; devolución parcial recibida |
+| Mié 14/10 | Cierre del cuatrimestre y repaso para el Cuestionario individual | En curso |
+| Mié 21/10 | **Parcial** | Pendiente |
 
 ## Estructura del repositorio
 
@@ -58,14 +70,14 @@ se cuenta con acceso a los endpoints de producción.
 │   ├── requisitos.md
 │   ├── alcance.md
 │   ├── historias-de-usuario.md
-│   ├── casos_de_uso.md
+│   ├── casos-de-uso.md
 │   ├── DoR.md
 │   ├── Slicing.md
 │   ├── er-modelo.md
 │   ├── diseño-ui.md
 │   ├── dictamen-tecnico-campos.md  ← detalle de campos del formulario físico (respaldo de diseño-ui.md)
 │   └── arquitectura-tecnica.md     ← decisiones técnicas de implementación (stack, API, seguridad); no forma parte de las plantillas de la cátedra
-├── datos-prueba/                   ← datos ficticios para cargar la demo (ver README_datos_prueba.md)
+├── datos-prueba/                   ← datos ficticios para cargar la demo (ver README-datos-prueba.md)
 ├── diagramas/
 │   ├── casos-de-uso.puml
 │   ├── er.puml
@@ -79,7 +91,7 @@ se cuenta con acceso a los endpoints de producción.
 ## Uso de inteligencia artificial
 
 El grupo usó Claude (Anthropic) como herramienta de apoyo en la redacción y estructuración
-de la documentación (`docs/`), en la generación de los wireframes de `diagramas/` y en la 
+de la documentación (`docs/`), en la generación de los wireframes de `diagramas/`, y en la 
 propuesta inicial del stack técnico de `arquitectura-tecnica.md`.
 Las decisiones de fondo — alcance, reglas de negocio, modelo de datos, elección final de
 tecnologías — fueron tomadas por el grupo; la IA se usó para redactar, ordenar y mantener la

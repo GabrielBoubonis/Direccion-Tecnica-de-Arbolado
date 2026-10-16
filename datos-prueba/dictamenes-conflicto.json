@@ -1,19 +1,17 @@
 {
-  "descripcion": "Dos dictámenes firmados para la misma solicitud (48495-2026). Al cargarlos, la solicitud debe quedar en Pendiente-revisión y un Jefe (pgimene) elige cuál queda vigente (RF-59, CU-15). Ambos tienen vigente = null hasta que se elige.",
+  "descripcion": "Dos dictámenes firmados para la misma solicitud (48495-2026). Al cargarlos, la solicitud debe quedar en Pendiente-revisión y un Jefe (pgimene0) elige cuál queda vigente (RF-59, CU-15). Ambos tienen vigente = null hasta que se elige.",
   "dictamenes": [
     {
       "id_dictamen": 101,
       "numero_sua": "48495",
       "anio": 2026,
-      "nombre_usuario": "mrossi",
+      "nombre_usuario": "mrossi0",
       "nota_numero": 1200,
       "expediente_numero": 30500,
       "fecha_emision": "2026-10-10",
       "domicilio_ejemplar": "Av. Ovidio Lagos 2764",
       "latitud_ejemplar": null,
       "longitud_ejemplar": null,
-      "calle_esquina": null,
-      "numero_esquina": null,
       "referencia_ubicacion": null,
       "id_especie": 15,
       "distancia_medianera_referencia": 1.4,
@@ -38,7 +36,7 @@
       "trabajos_subterraneos": [],
       "fotografias": [
         {
-          "archivo_referencia": "fotos/foto_prueba_2.jpg",
+          "archivo_referencia": "fotos/foto-prueba-2.jpg",
           "orden": 1
         }
       ],
@@ -49,15 +47,13 @@
       "id_dictamen": 102,
       "numero_sua": "48495",
       "anio": 2026,
-      "nombre_usuario": "cbenite",
+      "nombre_usuario": "cbenite0",
       "nota_numero": 1200,
       "expediente_numero": 30500,
       "fecha_emision": "2026-10-10",
       "domicilio_ejemplar": "Av. Ovidio Lagos 2764",
       "latitud_ejemplar": null,
       "longitud_ejemplar": null,
-      "calle_esquina": null,
-      "numero_esquina": null,
       "referencia_ubicacion": null,
       "id_especie": 15,
       "distancia_medianera_referencia": 1.4,
@@ -86,7 +82,7 @@
       "trabajos_subterraneos": [],
       "fotografias": [
         {
-          "archivo_referencia": "fotos/foto_prueba_2.jpg",
+          "archivo_referencia": "fotos/foto-prueba-2.jpg",
           "orden": 1
         }
       ],

@@ -86,8 +86,7 @@ _Visualizar en [plantuml.com](https://www.plantuml.com/plantuml/uml/)._
   Decisión 3.
 - `latitud_ejemplar` (`decimal`), `longitud_ejemplar` (`decimal`): coordenadas del punto
   elegido en el mapa para `domicilio_ejemplar`. **Obligatorios** junto con él.
-- `calle_esquina` (`string`), `numero_esquina` (`string`): se eligen entre las calles que
-  sugiere el geocodificador (sin tipeo libre). `referencia_ubicacion` (`string`): texto
+- `referencia_ubicacion` (`string`): texto
   libre con largo máximo. `distancia_medianera_referencia` (`decimal`): datos de ubicación
   complementarios. **Opcionales**, se completan solo cuando el domicilio no tiene
   numeración exacta.
@@ -113,7 +112,7 @@ _Visualizar en [plantuml.com](https://www.plantuml.com/plantuml/uml/)._
   reclamo desde la calle" que se descartó del alcance: acá el dictamen ya parte de una
   Solicitud existente derivada por el SUA, este campo solo documenta el origen para el
   registro legal.
-- `plantar` (`enum`): Cazuela / Construir cazuela / Vereda jardín / ninguna. **Opcional.**
+- `plantar` (`enum`): plantar árboles; Cazuela / Construir cazuela / Vereda jardín / Agrandar cazuela / ninguna. **Opcional.**
 - `nivel_prioridad` (`enum`): Alta/Media/Baja. **Obligatorio.** Es la urgencia con la que
   hay que **ejecutar** la intervención ya dictaminada (por ejemplo, una poda de riesgo
   eléctrico puede necesitar resolverse antes que una de mantenimiento estético), definida
@@ -163,10 +162,9 @@ Catálogo inicial propuesto (a validar con los ingenieros agrónomos): Fresno am
 
 - `id_trabajo_subterraneo` (PK, `int`).
 - `id_dictamen` (FK, `int`).
-- `tipo_trabajo` (`enum`): Corte vertical de raíces / Corte horizontal de raíces /
-  Agrandamiento de cazuela.
+- `tipo_trabajo` (`enum`): Corte vertical de raíces / Corte horizontal de raíces.
 - `distancia_borde` (`decimal`): **obligatorio solo si** `tipo_trabajo` es "Corte vertical
-  de raíces" (es el único de los tres que registra una distancia en el formulario
+  de raíces" (es el único de los dos que registra una distancia en el formulario
   original). **No puede tener filas si el Dictamen tiene `es_extraccion = true`** (ver
   Decisión 5).
 
@@ -376,7 +374,7 @@ este historial:
 
 Esta decisión está directamente ligada a RF-54 (registro inmutable), RF-55 (consulta con
 filtros) en `requisitos.md`, a HU-13 en `historias-de-usuario.md` y a CU-13 en
-`casos_de_uso.md`.
+`casos-de-uso.md`.
 
 ### Decisión 9 — Geocodificar la dirección una sola vez, al momento de la derivación
 
@@ -407,12 +405,12 @@ agruparse, filtrarse o enviarse al SUA de forma consistente. Por eso los campos 
 se resuelven así:
 
 - **Tabla de catálogo:** `especie` (`Especie`), porque es una lista larga que puede
-  actualizarse sin tocar el código. Se carga con un catálogo inicial de especies comunes y los usuarios pueden agregar las que falten desde el propio selector, con normalización y sin duplicados. Se carga con un catálogo inicial de especies comunes y los usuarios pueden agregar las que falten desde el propio selector, con normalización y sin duplicados.
+  actualizarse sin tocar el código. Se carga con un catálogo inicial de especies comunes y los usuarios pueden agregar las que falten desde el propio selector, con normalización y sin duplicados.
 - **Enumeración (`enum`):** `nivel_dano_vereda`, `motivo_extraccion`, `motivo_sin_trabajo`,
   `complejidad`, `plantar`, `nivel_prioridad` y `tipo_trabajo` (aéreo y subterráneo), porque
   son listas cortas y fijas del formulario físico.
-- **Mapa y geocodificador:** `domicilio_ejemplar`, `calle_esquina` y `numero_esquina` se
-  eligen en el mapa o entre calles sugeridas; el sistema guarda además las coordenadas.
+- **Mapa y geocodificador:** `domicilio_ejemplar` se
+  elige en el mapa; el sistema guarda además las coordenadas.
 - **Número entero:** `nota_numero` y `expediente_numero` son números enteros positivos
   (solo se aceptan dígitos).
 - **Texto libre, a propósito:** `referencia_ubicacion` y `observaciones`, con largo máximo y
